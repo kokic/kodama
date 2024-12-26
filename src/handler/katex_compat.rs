@@ -1,10 +1,15 @@
 use pulldown_cmark::CowStr;
 
-use crate::{formula_disambiguate, recorder::Context};
+use crate::recorder::Context;
 
 use super::Handler;
 
 pub struct KatexCompact;
+
+/// Replace the formula `<` with `< ` to avoid HTML syntax issues when parsing `<`.
+fn formula_disambiguate(s: &str) -> String {
+    s.replace("<", "< ")
+}
 
 impl Handler for KatexCompact {
     
@@ -13,8 +18,6 @@ impl Handler for KatexCompact {
         s: &pulldown_cmark::CowStr<'_>,
         recorder: &mut crate::recorder::Recorder,
     ) -> Option<std::string::String> {
-        // println!("(Inline) Math: {:?}", s);
-
         match recorder.context {
             Context::InlineTypst => {
                 let inline_typst = format!("${}$", s);
