@@ -43,15 +43,20 @@ pub fn html_entry_header(
     html!(div class="metadata" => (html!(ul => {items})))
 }
 
-pub fn html_css() -> &'static str {
-    return r###"
+pub fn html_css() -> String {
+    return format!(
+        r###"
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="true">
 <link href="https://fonts.googleapis.com/css2?family=Source+Code+Pro:ital,wght@0,200..900;1,200..900&amp;family=Source+Sans+3:ital,wght@0,200..900;1,200..900&amp;family=Source+Serif+4:ital,opsz,wght@0,8..60,200..900;1,8..60,200..900&amp;display=swap" rel="stylesheet">
 <meta name="viewport" content="width=device-width">
-<link rel="stylesheet" href="/main.css">
-"###;
+<style>
+{}
+</style>
+"###,
+        html_main_style()
+    );
 }
 
 pub fn html_import_katex() -> &'static str {
@@ -118,4 +123,187 @@ pub fn html_toc_block(data: &Vec<(String, String)>) -> String {
     html!(div class = "block" => 
       (html!(h1 => "Table of Contents"))
       (html!(ul class = "block" => {items})))
+}
+
+pub fn html_main_style() -> &'static str {
+    return r###"
+      body {
+        font-family: "Source Serif 4", serif;
+        font-optical-sizing: auto;
+        hyphens: auto;
+      }
+      
+      p, pre {
+        line-height: 1.55;
+      }
+      
+      h1, h2, h3, h4 {
+        margin-top: .5em;
+      }
+      
+      h1, h2, h3, h4, h5, h6 {
+        font-weight: normal;
+        font-family: "Source Sans 3", sans-serif;
+        font-weight: 500;
+        margin-bottom: 0;
+      }
+      
+      h5, h6, p {
+        margin-top: 0;
+      }
+      
+      details>summary {
+        list-style-type: none;
+        outline: none;
+      }
+      
+      details>summary>header {
+        display: inline;
+      }
+      
+      /* no effect */
+      details>summary::marker,
+      details>summary::-webkit-details-marker {
+        display: none;
+      }
+      
+      details h1 {
+        font-size: 1.2em;
+        display: inline;
+      }
+      
+      article>section>details>summary>header>h1 {
+        font-size: 1.5em;
+      }
+      
+      details>summary {
+        list-style-type: none;
+      }
+      
+      article>section>details>summary>header {
+        display: block;
+        margin-bottom: .5em;
+      }
+      
+      section>details>summary>header>h1 {
+        font-size: 1.5em;
+      }
+      
+      section.block:not([data-taxon='entry']) details>summary>header>h1 {
+        font-size: 13pt;
+      }
+      
+      /* class */
+      .inline-typst {
+        display: inline-block;
+        margin: 0 0;
+        line-height: 1em;
+        vertical-align: middle;
+      }
+      
+      .block {
+        padding-left: 5px;
+        padding-right: 10px;
+        padding-bottom: 2px;
+        border-radius: 5px;
+      }
+      
+      .block:hover {
+        background-color: rgba(0, 100, 255, 0.04);
+      }
+      
+      .block.hide-metadata>details>summary>header>.metadata {
+        display: none;
+      }
+      
+      .metadata ul {
+        padding-left: 0;
+        display: inline;
+      }
+      
+      .metadata li::after {
+        content: " · ";
+      }
+      
+      .metadata li:last-child::after {
+        content: "";
+      }
+      
+      .metadata ul li {
+        display: inline;
+      }
+      
+      a.link.local,
+      .link.local a,
+      a.slug {
+        box-shadow: none;
+        text-decoration-line: underline;
+        text-decoration-style: dotted;
+      }
+      
+      .slug,
+      .doi,
+      .orcid {
+        color: gray;
+        font-weight: 200;
+      }
+      
+      #grid-wrapper>article {
+        max-width: 90ex;
+        margin-right: auto;
+        grid-column: 1;
+      }
+      
+      #grid-wrapper>nav {
+        grid-column: 2;
+      }
+      
+      @media only screen and (max-width: 1000px) {
+        body {
+          margin-top: 1em;
+          margin-left: .5em;
+          margin-right: .5em;
+          transition: ease all .2s;
+        }
+      
+        #grid-wrapper>nav {
+          display: none;
+          transition: ease all .2s;
+        }
+      }
+      
+      @media only screen and (min-width: 1000px) {
+        body {
+          margin-top: 2em;
+          margin-left: 2em;
+          transition: ease all .2s;
+        }
+      
+        #grid-wrapper {
+          display: grid;
+          grid-template-columns: 90ex;
+        }
+      }
+      
+      nav#toc ul {
+        list-style-type: none;
+      }
+      nav#toc, nav#toc a {
+        color: #555;
+      }
+      
+      nav {
+        font-family: "Source Sans 3", sans-serif;
+        font-optical-sizing: auto;
+      }
+      
+      nav#toc a.bullet {
+        opacity: 0.7;
+        margin-left: 0.4em;
+        margin-right: 0.3em;
+        padding-left: 0.2em;
+        padding-right: 0.2em;
+        text-decoration: none;
+      }      
+    "###;
 }
