@@ -25,7 +25,7 @@ impl EntryMetaData {
             .get("author")
             .map(|s| s.as_str())
             .unwrap_or("Anonymous");
-        let start_date = self.get("start_date");
+        let start_date = self.get("date").or(self.get("start_date"));
         let end_date = self.get("end_date");
 
         html!(header =>
