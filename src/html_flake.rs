@@ -177,25 +177,28 @@ pub fn html_main_style() -> &'static str {
         display: inline;
       }
       
-      article>section>details>summary>header>h1 {
-        font-size: 1.5em;
-      }
-      
       details>summary {
         list-style-type: none;
+      }
+            
+      section .block[data-taxon] details>summary>header>h1 {
+        font-size: 13pt;
+      }
+      
+      article>section>details>summary>header>h1 {
+        font-size: 1.5em;
       }
       
       article>section>details>summary>header {
         display: block;
         margin-bottom: .5em;
       }
-      
-      section>details>summary>header>h1 {
-        font-size: 1.5em;
-      }
-      
-      section.block:not([data-taxon='entry']) details>summary>header>h1 {
-        font-size: 13pt;
+
+      article>section>details>summary>header>h1>.taxon {
+        display: block;
+        font-size: .9em;
+        color: #888;
+        padding-bottom: 5pt;
       }
       
       /* class */
