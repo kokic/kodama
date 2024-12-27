@@ -5,7 +5,9 @@ pub enum Context {
     InlineTypst, // typst 
     ImageSpan,  // display: inline
     ImageBlock, // display: block; text-align: center
-    Metadata,
+    Metadata, 
+
+    LocalLink, 
 }
 
 impl Context {
@@ -17,6 +19,7 @@ impl Context {
             Context::ImageSpan => "span",
             Context::ImageBlock => "block",
             Context::Metadata => "metadata",
+            Context::LocalLink => "local",
         }
     }
 }

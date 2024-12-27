@@ -1,6 +1,8 @@
 use super::{url_action, Handler};
 use crate::{
-    adjust_name, config, parse_markdown,
+    adjust_name, config,
+    html_flake::html_link_local,
+    parse_markdown,
     recorder::{Context, Recorder},
     write_and_inline_html_content,
 };
@@ -21,6 +23,9 @@ impl Handler for Embed {
                 if action == Context::Embed.strify() {
                     recorder.enter(Context::Embed);
                     recorder.push(url.to_string()); // [0]
+                } else if is_local_link(&url) {
+                    recorder.enter(Context::LocalLink);
+                    recorder.push(url.to_string());
                 }
             }
             Tag::MetadataBlock(_kind) => {
@@ -51,16 +56,33 @@ impl Handler for Embed {
             recorder.exit();
             return Some(inline_article);
         }
+
+        if *tag == TagEnd::Link && recorder.context == Context::LocalLink {
+            let url = recorder.data.get(0).unwrap().to_string();
+            let text = recorder
+                .data
+                .get(1)
+                .map(|s| s.as_str())
+                .unwrap_or(url.as_str())
+                .to_string();
+            recorder.exit();
+            return Some(html_link_local(&url, &text, &text));
+        }
+
         match tag {
-            TagEnd::MetadataBlock(_kind) => recorder.exit(), 
+            TagEnd::MetadataBlock(_kind) => recorder.exit(),
             _ => {}
         }
         None
     }
 
     fn text(&self, s: &pulldown_cmark::CowStr<'_>, recorder: &mut Recorder) {
-        if recorder.context == Context::Embed {
+        if recorder.context == Context::Embed || recorder.context == Context::LocalLink {
             recorder.push(s.to_string()); // [1]
         }
     }
+}
+
+fn is_local_link(url: &str) -> bool {
+    !url.starts_with("http://") || !url.starts_with("https://") || url.starts_with("www.")
 }

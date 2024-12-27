@@ -88,6 +88,11 @@ pub fn html_center_image(image_src: &str) -> String {
     html!(div style = "text-align: center" => {html_image(image_src)})
 }
 
+pub fn html_link_local(href: &str, title: &str, text: &str) -> String {
+  html!(span class = "link local" => 
+    (html!(a href = {href}, title = {title} => {text})))
+}
+
 pub fn html_doc(article_inner: &str, catalog: &str) -> String {
     let doc_type = "<!DOCTYPE html>";
     let body_inner = html!(div id="grid-wrapper" => 
@@ -239,6 +244,11 @@ pub fn html_main_style() -> &'static str {
         box-shadow: none;
         text-decoration-line: underline;
         text-decoration-style: dotted;
+      }
+
+      a {
+        color: black;
+        text-decoration: inherit;
       }
       
       .slug,
