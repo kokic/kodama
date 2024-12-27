@@ -3,6 +3,8 @@ use std::{fs::create_dir_all, path::PathBuf, sync::Mutex};
 pub static ROOT_DIR: Mutex<String> = Mutex::new(String::new());
 pub static OUTPUT_DIR: Mutex<String> = Mutex::new(String::new());
 
+pub const HASH_DIR: &str = "./.hash";
+
 pub fn dir_config(source: &Mutex<String>, target: String) {
     let mut path = source.lock().unwrap();
     *path = target;
@@ -55,4 +57,17 @@ pub fn output_path(path: &str) -> String {
     }
 
     filepath.to_str().unwrap().to_string()
+}
+
+pub fn hash_path(path: &str) -> PathBuf {
+    let mut filepath: PathBuf = root_dir().into();
+    filepath.push(HASH_DIR);
+    filepath.push(format!("{}.hash", path));
+    
+    let parent_dir = filepath.parent().unwrap();
+    if !parent_dir.exists() {
+        let _ = create_dir_all(&parent_dir);
+    }
+
+    filepath
 }

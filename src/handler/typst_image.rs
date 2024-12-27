@@ -40,7 +40,7 @@ impl Handler for TypstImage {
             match recorder.context {
                 Context::InlineTypst => {
                     let inline_typst = recorder.data.get(0).unwrap().as_str();
-                    let s = typst_cli::to_inline_svg(inline_typst);
+                    let s = typst_cli::source_to_inline_svg(inline_typst);
                     // event = Event::Html(CowStr::Boxed(s.into()));
                     recorder.exit();
                     return Some(s);
