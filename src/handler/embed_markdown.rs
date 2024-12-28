@@ -67,13 +67,15 @@ impl Handler for Embed {
                     recorder.exit();
                     return Some(inline_article);
                 }
-                Err(kind@ParseInterrupt::Skiped) => {
+                Err(kind @ ParseInterrupt::Skiped) => {
                     // reuse .entry file
                     let entry_path = cache_path(&format!("{}.entry", file_path));
                     let serialized = std::fs::read_to_string(entry_path).unwrap();
                     let html_entry: HtmlEntry = serde_json::from_str(&serialized).unwrap();
                     let inline_article = write_and_inline_html_content(&html_url, &html_entry);
                     println!("{}", kind.message(Some(&file_path)));
+
+                    recorder.exit();
                     return Some(inline_article);
                 }
                 Err(kind) => eprintln!("{}", kind.message(Some(&file_path))),
