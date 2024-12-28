@@ -97,7 +97,7 @@ fn eliminate_typst(relative_dir: &str, filename: &str, holder: &mut String) {
                         metadata.insert(key.to_string(), val.to_string());
 
                         if key == "title" {
-                            println!("Compile: {}", key);
+                            println!("Compile: {}", val);
                         }
                     }
                     _ => (),
@@ -201,7 +201,7 @@ fn parse_markdown(relative_dir: &str, filename: &str) -> Result<HtmlEntry, Parse
                         metadata.insert(key.to_string(), val.to_string());
 
                         if key == "title" {
-                            println!("Compile: {}", key);
+                            println!("Compile: {}", val);
                         }
                     }
                     _ => (),

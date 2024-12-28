@@ -1,7 +1,7 @@
 use super::{url_action, Handler};
 use crate::{
     adjust_name,
-    config::{self, cache_path},
+    config::{self, entry_path},
     entry::HtmlEntry,
     html_flake::html_link_local,
     parse_markdown,
@@ -48,33 +48,35 @@ impl Handler for Embed {
             let file_path = config::join_path(&parent_dir, &html_url);
             html_url = crate::config::output_path(&file_path);
 
+            let mut update_catalog = |html_entry: HtmlEntry| {
+                let slug = html_entry.get("slug").map_or("[no_slug]", |s| s);
+                let title = html_entry.metadata.title().map_or("[no_title]", |s| s);
+                let title = recorder.data.get(1).map(|s| s.as_str()).unwrap_or(title);
+                recorder.catalog.push((slug.to_string(), title.to_string()));
+            };
+
             match parse_markdown(&parent_dir, &filename) {
                 Ok(html_entry) => {
                     // generate html file & inline article
                     let inline_article = write_and_inline_html_content(&html_url, &html_entry);
 
                     // cache .entry file
-                    let _ = std::fs::write(
-                        cache_path(&format!("{}.entry", file_path)),
-                        serde_json::to_string(&html_entry).unwrap(),
-                    );
+                    let entry_path = entry_path(&format!("{}.entry", file_path));
+                    let _ = std::fs::write(entry_path, serde_json::to_string(&html_entry).unwrap());
 
-                    let slug = html_entry.get("slug").map_or("[no_slug]", |s| s);
-                    let title = html_entry.metadata.title().map_or("[no_title]", |s| s);
-                    let title = recorder.data.get(1).map(|s| s.as_str()).unwrap_or(title);
-                    recorder.catalog.push((slug.to_string(), title.to_string()));
-
+                    update_catalog(html_entry);
                     recorder.exit();
                     return Some(inline_article);
                 }
                 Err(kind @ ParseInterrupt::Skiped) => {
                     // reuse .entry file
-                    let entry_path = cache_path(&format!("{}.entry", file_path));
+                    let entry_path = entry_path(&format!("{}.entry", file_path));
                     let serialized = std::fs::read_to_string(entry_path).unwrap();
                     let html_entry: HtmlEntry = serde_json::from_str(&serialized).unwrap();
                     let inline_article = write_and_inline_html_content(&html_url, &html_entry);
                     println!("{}", kind.message(Some(&file_path)));
 
+                    update_catalog(html_entry);
                     recorder.exit();
                     return Some(inline_article);
                 }
