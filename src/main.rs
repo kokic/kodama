@@ -95,7 +95,7 @@ fn eliminate_typst(relative_dir: &str, filename: &str, holder: &mut String) {
                         let key = s[0..pos].trim();
                         let val = s[pos + 1..].trim();
                         metadata.insert(key.to_string(), val.to_string());
-                        
+
                         if key == "title" {
                             println!("Compile: {}", key);
                         }
@@ -195,11 +195,14 @@ fn parse_markdown(relative_dir: &str, filename: &str) -> Result<HtmlEntry, Parse
 
                 match recorder.context {
                     Context::Metadata if s.trim().len() != 0 => {
-                        println!("Metadata: {:?}", s);
                         let pos = s.find(':').expect("metadata item expect `name: value`");
                         let key = s[0..pos].trim().to_string();
                         let val = s[pos + 1..].trim().to_string();
-                        metadata.insert(key, val);
+                        metadata.insert(key.to_string(), val.to_string());
+
+                        if key == "title" {
+                            println!("Compile: {}", key);
+                        }
                     }
                     _ => (),
                 }
