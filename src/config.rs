@@ -3,7 +3,7 @@ use std::{fs::create_dir_all, path::PathBuf, sync::Mutex};
 pub static ROOT_DIR: Mutex<String> = Mutex::new(String::new());
 pub static OUTPUT_DIR: Mutex<String> = Mutex::new(String::new());
 
-pub const HASH_DIR: &str = "./.hash";
+pub const CACHE_DIR: &str = "./.cache";
 
 pub fn dir_config(source: &Mutex<String>, target: String) {
     let mut path = source.lock().unwrap();
@@ -59,10 +59,10 @@ pub fn output_path(path: &str) -> String {
     filepath.to_str().unwrap().to_string()
 }
 
-pub fn hash_path(path: &str) -> PathBuf {
+pub fn cache_path(path: &str) -> PathBuf {
     let mut filepath: PathBuf = root_dir().into();
-    filepath.push(HASH_DIR);
-    filepath.push(format!("{}.hash", path));
+    filepath.push(CACHE_DIR);
+    filepath.push(path);
     
     let parent_dir = filepath.parent().unwrap();
     if !parent_dir.exists() {
@@ -70,4 +70,23 @@ pub fn hash_path(path: &str) -> PathBuf {
     }
 
     filepath
+}
+
+pub fn is_file_modified(path: &str) -> bool {
+    let hash_path = cache_path(&format!("{}.hash", path));
+    let src = std::fs::read_to_string(path).unwrap();
+
+    let mut hasher = std::hash::DefaultHasher::new();
+    std::hash::Hash::hash(&src, &mut hasher);
+    let current_hash = std::hash::Hasher::finish(&hasher);
+    
+    let history_hash = std::fs::read_to_string(&hash_path)
+        .map(|s| s.parse::<u64>().expect("Invalid hash"))
+        .unwrap_or(0); // no file: 0
+
+    let is_modified = current_hash != history_hash;
+    if is_modified {
+        let _ = std::fs::write(&hash_path, current_hash.to_string());
+    }
+    is_modified
 }

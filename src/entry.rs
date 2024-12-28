@@ -1,6 +1,8 @@
 use crate::{html, html_flake::html_entry_header};
 use std::collections::HashMap;
 
+
+#[derive(serde::Serialize, serde::Deserialize)]
 pub struct EntryMetaData(pub HashMap<String, String>);
 
 impl EntryMetaData {
@@ -50,6 +52,7 @@ impl EntryMetaData {
     }
 }
 
+#[derive(serde::Serialize, serde::Deserialize)]
 pub struct HtmlEntry {
     pub metadata: EntryMetaData,
     pub catalog: Vec<(String, String)>,

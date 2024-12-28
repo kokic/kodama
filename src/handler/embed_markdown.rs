@@ -1,10 +1,12 @@
 use super::{url_action, Handler};
 use crate::{
-    adjust_name, config,
+    adjust_name,
+    config::{self, cache_path},
+    entry::HtmlEntry,
     html_flake::html_link_local,
     parse_markdown,
     recorder::{Context, Recorder},
-    write_and_inline_html_content,
+    write_and_inline_html_content, ParseInterrupt,
 };
 use pulldown_cmark::{Tag, TagEnd};
 
@@ -40,21 +42,42 @@ impl Handler for Embed {
             let entry_url = recorder.data.get(0).unwrap().as_str();
             let entry_url = config::join_path(&recorder.relative_dir, entry_url);
             let (parent_dir, filename) = crate::config::parent_dir(&entry_url);
-            let html_entry = parse_markdown(&parent_dir, &filename);
 
-            // generate html file & inline article
+            // url & path
             let mut html_url = adjust_name(&filename, ".md", ".html");
-            html_url = crate::config::output_path(&config::join_path(&parent_dir, &html_url));
-            let inline_article = write_and_inline_html_content(&html_url, &html_entry);
-            // let event = Event::Html(CowStr::Boxed(inline_article.into()));
+            let file_path = config::join_path(&parent_dir, &html_url);
+            html_url = crate::config::output_path(&file_path);
 
-            let slug = html_entry.get("slug").map_or("[no_slug]", |s| s);
-            let title = html_entry.metadata.title().map_or("[no_title]", |s| s);
-            let title = recorder.data.get(1).map(|s| s.as_str()).unwrap_or(title);
-            recorder.catalog.push((slug.to_string(), title.to_string()));
+            match parse_markdown(&parent_dir, &filename) {
+                Ok(html_entry) => {
+                    // generate html file & inline article
+                    let inline_article = write_and_inline_html_content(&html_url, &html_entry);
 
-            recorder.exit();
-            return Some(inline_article);
+                    // cache .entry file
+                    let _ = std::fs::write(
+                        cache_path(&format!("{}.entry", file_path)),
+                        serde_json::to_string(&html_entry).unwrap(),
+                    );
+
+                    let slug = html_entry.get("slug").map_or("[no_slug]", |s| s);
+                    let title = html_entry.metadata.title().map_or("[no_title]", |s| s);
+                    let title = recorder.data.get(1).map(|s| s.as_str()).unwrap_or(title);
+                    recorder.catalog.push((slug.to_string(), title.to_string()));
+
+                    recorder.exit();
+                    return Some(inline_article);
+                }
+                Err(kind@ParseInterrupt::Skiped) => {
+                    // reuse .entry file
+                    let entry_path = cache_path(&format!("{}.entry", file_path));
+                    let serialized = std::fs::read_to_string(entry_path).unwrap();
+                    let html_entry: HtmlEntry = serde_json::from_str(&serialized).unwrap();
+                    let inline_article = write_and_inline_html_content(&html_url, &html_entry);
+                    println!("{}", kind.message(Some(&file_path)));
+                    return Some(inline_article);
+                }
+                Err(kind) => eprintln!("{}", kind.message(Some(&file_path))),
+            }
         }
 
         if *tag == TagEnd::Link && recorder.context == Context::LocalLink {

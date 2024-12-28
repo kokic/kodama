@@ -8,7 +8,7 @@ mod recorder;
 mod typst_cli;
 
 use clap::Parser;
-use config::{dir_config, input_path, join_path, output_path, parent_dir};
+use config::{dir_config, input_path, is_file_modified, join_path, output_path, parent_dir};
 use entry::{EntryMetaData, HtmlEntry};
 use handler::Handler;
 use html_flake::{html_doc, html_section, html_toc_block};
@@ -91,11 +91,14 @@ fn eliminate_typst(relative_dir: &str, filename: &str, holder: &mut String) {
 
                 match recorder.context {
                     Context::Metadata if s.trim().len() != 0 => {
-                        println!("Metadata: {:?}", s);
                         let pos = s.find(':').expect("metadata item expect `name: value`");
-                        let key = s[0..pos].trim().to_string();
-                        let val = s[pos + 1..].trim().to_string();
-                        metadata.insert(key, val);
+                        let key = s[0..pos].trim();
+                        let val = s[pos + 1..].trim();
+                        metadata.insert(key.to_string(), val.to_string());
+                        
+                        if key == "title" {
+                            println!("Compile: {}", key);
+                        }
                     }
                     _ => (),
                 }
@@ -135,8 +138,27 @@ fn eliminate_typst(relative_dir: &str, filename: &str, holder: &mut String) {
     cmark(parser, holder).unwrap();
 }
 
+pub enum ParseInterrupt {
+    Skiped,
+    Fail,
+}
+
+impl ParseInterrupt {
+    pub fn message(&self, info: Option<&str>) -> String {
+        let info = info.map(|s| format!(": {}", s)).unwrap_or(".".to_string());
+        match self {
+            ParseInterrupt::Skiped => format!("Skip compilation of unmodified{}", info),
+            ParseInterrupt::Fail => format!("Parse failed{}", info),
+        }
+    }
+}
+
 /// parse markdown and generate HTML
-fn parse_markdown(relative_dir: &str, filename: &str) -> HtmlEntry {
+fn parse_markdown(relative_dir: &str, filename: &str) -> Result<HtmlEntry, ParseInterrupt> {
+    if !is_file_modified(&input_path(&join_path(relative_dir, filename))) {
+        return Err(ParseInterrupt::Skiped);
+    }
+
     let (markdown_input, mut metadata, mut recorder) = prepare_recorder(relative_dir, filename);
 
     let mut handlers: Vec<Box<dyn Handler>> = vec![
@@ -199,13 +221,13 @@ fn parse_markdown(relative_dir: &str, filename: &str) -> HtmlEntry {
             }
 
             Event::Html(_s) => { /* println!("Html: {:?}", s) */ }
-            Event::InlineHtml(s) => println!("InlineHtml: {:?}", s),
-            Event::Code(s) => println!("Code: {:?}", s),
-            Event::FootnoteReference(s) => println!("FootnoteReference: {:?}", s),
-            Event::TaskListMarker(b) => println!("TaskListMarker: {:?}", b),
+            Event::InlineHtml(_s) => { /*println!("InlineHtml: {:?}", s)*/ }
+            Event::Code(_s) => { /* println!("Code: {:?}", s) */ }
+            Event::FootnoteReference(_s) => { /* println!("FootnoteReference: {:?}", s) */ }
+            Event::TaskListMarker(_b) => { /* println!("TaskListMarker: {:?}", b) */ }
             Event::SoftBreak => { /* println!("SoftBreak") */ }
-            Event::HardBreak => println!("HardBreak"),
-            Event::Rule => println!("Rule"),
+            Event::HardBreak => { /* println!("HardBreak") */ }
+            Event::Rule => { /* println!("Rule") */ }
         };
 
         match recorder.is_none() {
@@ -220,11 +242,11 @@ fn parse_markdown(relative_dir: &str, filename: &str) -> HtmlEntry {
     let metadata = EntryMetaData(metadata);
     let content = html_output;
 
-    return HtmlEntry {
+    return Ok(HtmlEntry {
         metadata,
         content,
         catalog: recorder.catalog,
-    };
+    });
 }
 
 pub fn html_article_inner(entry: &HtmlEntry, hide_metadata: bool) -> String {
@@ -318,9 +340,13 @@ fn main() {
             let (root_dir, filename) = parent_dir(&input);
             dir_config(&config::ROOT_DIR, root_dir);
 
-            let entry = parse_markdown("", &filename);
-            let filepath = output_path(&adjust_name(&filename, ".md", ".html"));
-            write_html_content(&filepath, &entry);
+            match parse_markdown("", &filename) {
+                Ok(entry) => {
+                    let filepath = output_path(&adjust_name(&filename, ".md", ".html"));
+                    write_html_content(&filepath, &entry);
+                }
+                Err(kind) => println!("{}", kind.message(Some(&filename))),
+            }
         }
     }
 }

@@ -1,32 +1,9 @@
-use std::{
-    hash::{Hash, Hasher},
-    os::windows::process::CommandExt,
-    process::Command,
-};
+use std::{os::windows::process::CommandExt, process::Command};
 
-use crate::{config::hash_path, html};
-
-pub fn is_typst_modified(typst_path: &str) -> bool {
-    let hash_path = hash_path(typst_path);
-    let src = std::fs::read_to_string(typst_path).unwrap();
-
-    let mut hasher = std::hash::DefaultHasher::new();
-    src.hash(&mut hasher);
-    let current_hash = hasher.finish();
-    
-    let history_hash = std::fs::read_to_string(&hash_path)
-        .map(|s| s.parse::<u64>().expect("Invalid hash"))
-        .unwrap_or(0); // no file: 0
-
-    let is_modified = current_hash != history_hash;
-    if is_modified {
-        let _ = std::fs::write(&hash_path, current_hash.to_string());
-    }
-    is_modified
-}
+use crate::{config::is_file_modified, html};
 
 pub fn write_svg(typst_path: &str, svg_path: &str) {
-    if !is_typst_modified(typst_path) {
+    if !is_file_modified(typst_path) {
         println!("Skip compilation of unmodified: {}", typst_path);
         return;
     }
