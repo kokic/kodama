@@ -119,5 +119,5 @@ impl Handler for Embed {
 }
 
 fn is_local_link(url: &str) -> bool {
-    !url.starts_with("http://") || !url.starts_with("https://") || url.starts_with("www.")
+    !url.starts_with("http://") && !url.starts_with("https://") && url.starts_with("www.")
 }
