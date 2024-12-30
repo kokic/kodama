@@ -1,4 +1,4 @@
-use crate::{html, html_flake::html_entry_header};
+use crate::{html, html_flake::html_entry_header, recorder::Catalog};
 use std::collections::HashMap;
 
 
@@ -39,6 +39,10 @@ impl EntryMetaData {
           (html!(html_entry_header(author, start_date, end_date, vec![]))))
     }
 
+    pub fn id(&self) -> String {
+        self.get("slug").unwrap().to_string().replace("/", "-")
+    }
+
     pub fn get(&self, key: &str) -> Option<&String> {
         return self.0.get(key);
     }
@@ -55,7 +59,7 @@ impl EntryMetaData {
 #[derive(serde::Serialize, serde::Deserialize)]
 pub struct HtmlEntry {
     pub metadata: EntryMetaData,
-    pub catalog: Vec<(String, String)>,
+    pub catalog: Catalog,
     pub content: String,
 }
 

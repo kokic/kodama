@@ -24,12 +24,21 @@ impl Context {
     }
 }
 
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
+pub struct CatalogItem {
+    pub slug: String, 
+    pub text: String, 
+    pub children: Vec<Box<CatalogItem>>,
+}
+
+pub type Catalog = Vec<Box<CatalogItem>>;
+
 #[derive(Debug)]
 pub struct Recorder {
     pub context: Context,
     pub data: Vec<String>,
     pub relative_dir: String,
-    pub catalog: Vec<(String, String)>,
+    pub catalog: Catalog,
 }
 
 impl Recorder {

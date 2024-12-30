@@ -1,9 +1,10 @@
-use crate::html;
+use crate::{html, recorder::{Catalog, CatalogItem}};
 
 pub fn html_section(
     summary: &String,
     content: &String,
     hide_metadata: bool,
+    id: String, 
     taxon: Option<&String>,
 ) -> String {
     let mut class_name: Vec<&str> = vec!["block"];
@@ -12,7 +13,7 @@ pub fn html_section(
     }
     let taxon = taxon.map(|s| s.as_str()).unwrap_or("entry");
     html!(section class = {class_name.join(" ")}, data_taxon = {taxon} =>
-      (html!(details id = "#id", open = "true" =>
+      (html!(details id = {id}, open = "true" =>
         (html!(summary => {summary}))
         (content)))
     )
@@ -89,8 +90,8 @@ pub fn html_center_image(image_src: &str) -> String {
 }
 
 pub fn html_link_local(href: &str, title: &str, text: &str) -> String {
-  html!(span class = "link local" => 
-    (html!(a href = {href}, title = {title} => {text})))
+    html!(span class = "link local" => 
+      (html!(a href = {href}, title = {title} => {text})))
 }
 
 pub fn html_doc(article_inner: &str, catalog: &str) -> String {
@@ -108,21 +109,32 @@ pub fn html_doc(article_inner: &str, catalog: &str) -> String {
     format!("{}\n{}", doc_type, &html)
 }
 
-/// `data: (slug: String, text: String)`
-fn html_toc_li(data: &(String, String)) -> String {
-    let (slug, text) = data;
+fn html_toc_li(data: &CatalogItem) -> String {
+    let (slug, text) = (data.slug.as_str(), data.text.as_str());
     let slug_url = format!("{}.html", slug);
-    let title = format!("{} {}", text, slug);
+    let title = format!("{} [{}]", text, slug);
+    let href = format!("#{}", slug);
+
+    let mut child_html = String::new();
+    if !data.children.is_empty() {
+        child_html.push_str("<ul>");
+        for child in &data.children {
+            child_html.push_str(&html_toc_li(&child));
+        }
+        child_html.push_str("</ul>");
+    }
+
     html!(li => 
       (html!(a class = "bullet", href={slug_url}, title={title} => "■"))
-      (html!(span class = "link local" => {text})))
+      (html!(span class = "link" => 
+        (html!(a href = {href} => {text})))) 
+      (child_html))
 }
 
-/// `data: Vec<(slug: String, text: String)>`
-pub fn html_toc_block(data: &Vec<(String, String)>) -> String {
+pub fn html_toc_block(data: &Catalog) -> String {
     let items = data
         .iter()
-        .map(html_toc_li)
+        .map(|item| html_toc_li(item))
         .reduce(|s, t| s + &t)
         .unwrap_or(String::new());
     html!(div class = "block" => 

@@ -5,7 +5,7 @@ use crate::{
     entry::HtmlEntry,
     html_flake::html_link_local,
     parse_markdown,
-    recorder::{Context, Recorder},
+    recorder::{CatalogItem, Context, Recorder},
     write_and_inline_html_content, ParseInterrupt,
 };
 use pulldown_cmark::{Tag, TagEnd};
@@ -49,10 +49,16 @@ impl Handler for Embed {
             html_url = crate::config::output_path(&file_path);
 
             let mut update_catalog = |html_entry: HtmlEntry| {
-                let slug = html_entry.get("slug").map_or("[no_slug]", |s| s);
+                let slug = html_entry.get("slug").map_or("[no_slug]", |s| s.as_str());
                 let title = html_entry.metadata.title().map_or("[no_title]", |s| s);
                 let title = recorder.data.get(1).map(|s| s.as_str()).unwrap_or(title);
-                recorder.catalog.push((slug.to_string(), title.to_string()));
+
+                let item = CatalogItem {
+                    slug: slug.to_string(),
+                    text: title.to_string(),
+                    children: html_entry.catalog,
+                };
+                recorder.catalog.push(Box::new(item));
             };
 
             match parse_markdown(&parent_dir, &filename) {
@@ -71,8 +77,10 @@ impl Handler for Embed {
                 Err(kind @ ParseInterrupt::Skiped) => {
                     // reuse .entry file
                     let entry_path = entry_path(&format!("{}.entry", file_path));
-                    let serialized = std::fs::read_to_string(entry_path).unwrap();
-                    let html_entry: HtmlEntry = serde_json::from_str(&serialized).unwrap();
+                    let serialized =
+                        std::fs::read_to_string(entry_path).expect(config::ERR_ENTRY_FILE_LOST);
+                    let html_entry: HtmlEntry =
+                        serde_json::from_str(&serialized).expect(config::ERR_INVALID_ENTRY_FILE);
                     let inline_article = write_and_inline_html_content(&html_url, &html_entry);
                     println!("{}", kind.message(Some(&file_path)));
 

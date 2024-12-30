@@ -63,34 +63,28 @@ pub fn auto_create_dir_path(paths: Vec<&str>) -> String {
 }
 
 pub fn output_path(path: &str) -> String {
-    auto_create_dir_path(vec![
-        &OUTPUT_DIR.lock().unwrap(), 
-        path
-    ])
+    auto_create_dir_path(vec![&OUTPUT_DIR.lock().unwrap(), path])
 }
 
 #[allow(dead_code)]
 pub fn cache_path(path: &str) -> PathBuf {
-    auto_create_dir_path(vec![
-        CACHE_DIR, 
-        path
-    ]).into()
+    auto_create_dir_path(vec![CACHE_DIR, path]).into()
+}
+
+pub fn hash_dir() -> String {
+    join_path(CACHE_DIR, HASH_DIR_NAME)
 }
 
 pub fn hash_path(path: &str) -> PathBuf {
-    auto_create_dir_path(vec![
-        CACHE_DIR, 
-        HASH_DIR_NAME, 
-        path
-    ]).into()
+    auto_create_dir_path(vec![&hash_dir(), path]).into()
+}
+
+pub fn entry_dir() -> String {
+    join_path(CACHE_DIR, ENTRY_DIR_NAME)
 }
 
 pub fn entry_path(path: &str) -> PathBuf {
-    auto_create_dir_path(vec![
-        CACHE_DIR, 
-        ENTRY_DIR_NAME, 
-        path
-    ]).into()
+    auto_create_dir_path(vec![&entry_dir(), path]).into()
 }
 
 pub fn is_file_modified(path: &str) -> bool {
@@ -111,3 +105,32 @@ pub fn is_file_modified(path: &str) -> bool {
     }
     is_modified
 }
+
+fn delete_files_with_suffix(directory: &str, suffix: &str) -> Result<(), std::io::Error> {
+    for entry in std::fs::read_dir(directory)? {
+        let entry = entry?;
+        let path = entry.path();
+        if path.is_file()
+            && path
+                .file_name()
+                .and_then(|n| n.to_str())
+                .map_or(false, |n| n.ends_with(suffix))
+        {
+            std::fs::remove_file(&path)?;
+            println!("Deleted: {:?}", path);
+        }
+    }
+    Ok(())
+}
+
+pub fn delete_all_markdown_cache() -> Result<(), std::io::Error> {
+    delete_files_with_suffix(&hash_dir(), "md.hash")?;
+    std::fs::remove_dir_all(entry_dir())?;
+    Ok(())
+}
+
+pub const ERR_ENTRY_FILE_LOST: &str =
+    "The entry file was unexpectedly lost. Please manually delete the corresponding hash file";
+
+pub const ERR_INVALID_ENTRY_FILE: &str =
+    "Invalid entry file. Please manually delete the corresponding hash file";

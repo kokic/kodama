@@ -19,7 +19,11 @@ use std::collections::HashMap;
 
 fn to_slug(fullname: &str) -> String {
     let slug = &fullname[0..fullname.rfind('.').unwrap_or(fullname.len())];
-    slug.replace("\\", "/")
+    let mut slug = slug.replace("\\", "/");
+    if slug.starts_with("./") {
+        slug = slug[2..].to_string()
+    }
+    slug
 }
 
 pub fn adjust_name(path: &str, expect: &str, target: &str) -> String {
@@ -256,7 +260,13 @@ pub fn html_article_inner(entry: &HtmlEntry, hide_metadata: bool) -> String {
     let metadata = &entry.metadata;
     let summary = metadata.to_header();
     let content = &entry.content;
-    html_section(&summary, content, hide_metadata, metadata.texon())
+    html_section(
+        &summary,
+        content,
+        hide_metadata,
+        metadata.id(),
+        metadata.texon(),
+    )
 }
 
 fn write_html_content(filepath: &str, entry: &HtmlEntry) {
@@ -286,13 +296,17 @@ enum Command {
     // /// Creates new markdown file with name in the format "CAT-003S".
     // #[command(visible_alias = "n")]
     // New(NewCommand),
+
     /// Compiles an input markdown file into HTML format.
     #[command(visible_alias = "c")]
     Compile(CompileCommand),
 
-    // /// Compiles an input markdown file into markdown and SVGs.
+    /// Compiles an input markdown file into markdown and SVGs.
     #[command(visible_alias = "i")]
     Inline(CompileCommand),
+
+    /// Clean all markdown entry caches.
+    Clean(CleanCommand), 
 }
 
 #[derive(clap::Args)]
@@ -315,6 +329,15 @@ struct CompileCommand {
     root: String,
 }
 
+#[derive(clap::Args)]
+struct CleanCommand {
+    // target: String, 
+
+    /// Configures the project root (for absolute paths)
+    #[arg(short, long, default_value_t = format!("./"))]
+    root: String,
+}
+
 fn main() {
     let cli = Cli::parse();
     match &cli.command {
@@ -327,8 +350,8 @@ fn main() {
             let output = compile_command.output.as_str();
             dir_config(&config::OUTPUT_DIR, output.to_string());
 
-            let (root_dir, filename) = parent_dir(&input);
-            dir_config(&config::ROOT_DIR, root_dir);
+            let (_, filename) = parent_dir(&input);
+            dir_config(&config::ROOT_DIR, compile_command.root.to_string());
 
             let mut markdown = String::new();
             eliminate_typst("", &filename, &mut markdown);
@@ -340,8 +363,8 @@ fn main() {
             let output = compile_command.output.as_str();
             dir_config(&config::OUTPUT_DIR, output.to_string());
 
-            let (root_dir, filename) = parent_dir(&input);
-            dir_config(&config::ROOT_DIR, root_dir);
+            let (_, filename) = parent_dir(&input);
+            dir_config(&config::ROOT_DIR, compile_command.root.to_string());
 
             match parse_markdown("", &filename) {
                 Ok(entry) => {
@@ -350,6 +373,10 @@ fn main() {
                 }
                 Err(kind) => println!("{}", kind.message(Some(&filename))),
             }
+        }
+        Command::Clean(clean_command) => {
+            dir_config(&config::ROOT_DIR, clean_command.root.to_string());
+            let _ = config::delete_all_markdown_cache();
         }
     }
 }
