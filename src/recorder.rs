@@ -8,6 +8,7 @@ pub enum Context {
     Metadata, 
 
     LocalLink, 
+    ExternalLink, 
 }
 
 impl Context {
@@ -20,6 +21,7 @@ impl Context {
             Context::ImageBlock => "block",
             Context::Metadata => "metadata",
             Context::LocalLink => "local",
+            Context::ExternalLink => "external", 
         }
     }
 }

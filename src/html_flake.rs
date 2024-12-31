@@ -52,8 +52,8 @@ pub fn html_center_image(image_src: &str) -> String {
     html!(div style = "text-align: center" => {html_image(image_src)})
 }
 
-pub fn html_link_local(href: &str, title: &str, text: &str) -> String {
-    html!(span class = "link local" => 
+pub fn html_link(href: &str, title: &str, text: &str, class_name: &str) -> String {
+    html!(span class = format!("link {}", class_name) => 
       (html!(a href = {href}, title = {title} => {text})))
 }
 
@@ -228,6 +228,11 @@ pub fn html_main_style() -> &'static str {
         padding-bottom: 2px;
         border-radius: 5px;
       }
+
+      .block {
+        width: fit-content;
+        border-radius: var(--radius)
+      }
       
       .block:hover {
         background-color: rgba(0, 100, 255, 0.04);
@@ -254,6 +259,10 @@ pub fn html_main_style() -> &'static str {
         display: inline;
       }
       
+      .link.external {
+        text-decoration: underline;
+      }
+
       a.link.local,
       .link.local a,
       a.slug {
@@ -264,7 +273,7 @@ pub fn html_main_style() -> &'static str {
 
       a {
         color: black;
-        text-decoration: underline;
+        text-decoration: inherit;
       }
       
       .slug,

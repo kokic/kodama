@@ -3,7 +3,7 @@ use crate::{
     adjust_name,
     config::{self, entry_path},
     entry::HtmlEntry,
-    html_flake::html_link_local,
+    html_flake::html_link,
     parse_markdown,
     recorder::{CatalogItem, Context, Recorder},
     write_and_inline_html_content, ParseInterrupt,
@@ -25,7 +25,10 @@ impl Handler for Embed {
                 if action == Context::Embed.strify() {
                     recorder.enter(Context::Embed);
                     recorder.push(url.to_string()); // [0]
-                } else if is_local_link(&url) {
+                } else if is_external_link(&url) {
+                    recorder.enter(Context::ExternalLink);
+                    recorder.push(url.to_string());
+                } else {
                     recorder.enter(Context::LocalLink);
                     recorder.push(url.to_string());
                 }
@@ -101,7 +104,24 @@ impl Handler for Embed {
                 .unwrap_or(url.as_str())
                 .to_string();
             recorder.exit();
-            return Some(html_link_local(&url, &text, &text));
+            return Some(html_link(&url, &text, &text, Context::LocalLink.strify()));
+        }
+
+        if *tag == TagEnd::Link && recorder.context == Context::ExternalLink {
+            let url = recorder.data.get(0).unwrap().to_string();
+            let text = recorder
+                .data
+                .get(1)
+                .map(|s| s.as_str())
+                .unwrap_or(url.as_str())
+                .to_string();
+            recorder.exit();
+            return Some(html_link(
+                &url,
+                &text,
+                &text,
+                Context::ExternalLink.strify(),
+            ));
         }
 
         match tag {
@@ -112,12 +132,20 @@ impl Handler for Embed {
     }
 
     fn text(&self, s: &pulldown_cmark::CowStr<'_>, recorder: &mut Recorder) {
-        if recorder.context == Context::Embed || recorder.context == Context::LocalLink {
+        if recorder.context == Context::Embed
+            || recorder.context == Context::LocalLink
+            || recorder.context == Context::ExternalLink
+        {
             recorder.push(s.to_string()); // [1]
         }
     }
 }
 
+fn is_external_link(url: &str) -> bool {
+    url.starts_with("http://") || url.starts_with("https://") || url.starts_with("www.")
+}
+
+#[allow(dead_code)]
 fn is_local_link(url: &str) -> bool {
-    !url.starts_with("http://") && !url.starts_with("https://") && url.starts_with("www.")
+    !is_external_link(url)
 }

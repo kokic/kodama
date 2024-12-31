@@ -20,7 +20,7 @@ impl Handler for TypstImage {
                 id: _,
             } => {
                 let (url, action) = url_action(dest_url);
-                if dest_url.to_string() == "inline" {
+                if dest_url.to_string() == Context::InlineTypst.strify() {
                     recorder.enter(Context::InlineTypst);
                 } else if action == Context::ImageBlock.strify() {
                     recorder.enter(Context::ImageBlock);
