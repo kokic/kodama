@@ -1,4 +1,4 @@
-use std::{os::windows::process::CommandExt, process::Command};
+use std::process::Command;
 
 use crate::{config::is_file_modified, html};
 
@@ -37,13 +37,13 @@ pub fn source_to_svg(src: &str) -> String {
     let output = if cfg!(target_os = "windows") {
         Command::new("powershell")
             .args(["/C", &format!("echo {}", format!("'{}'", src))])
-            .raw_arg("| typst c -f=svg - -")
+            .arg("| typst c -f=svg - -")
             .output()
             .expect("Failed to execute `echo` on Windows")
     } else {
         Command::new("sh")
             .args(["-c", &format!("echo {}", format!("'{}'", src))])
-            .raw_arg("| typst c -f=svg - -")
+            .arg("| typst c -f=svg - -")
             .output()
             .expect("Failed to execute `echo`")
     };
