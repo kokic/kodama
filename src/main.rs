@@ -10,8 +10,8 @@ mod typst_cli;
 use clap::Parser;
 use config::{dir_config, input_path, is_file_modified, join_path, output_path, parent_dir};
 use entry::{EntryMetaData, HtmlEntry};
-use handler::Handler;
-use html_flake::{html_doc, html_section, html_toc_block};
+use handler::{embed_markdown::write_entry_html, Handler};
+use html_flake::html_section;
 use pulldown_cmark::{html, CowStr, Event, Options};
 use pulldown_cmark_to_cmark::cmark;
 use recorder::{Context, Recorder};
@@ -58,6 +58,10 @@ pub fn prepare_recorder(
     return (markdown_input, metadata, recorder);
 }
 
+const OPTIONS: Options = Options::ENABLE_MATH
+    .union(Options::ENABLE_YAML_STYLE_METADATA_BLOCKS)
+    .union(Options::ENABLE_TABLES);
+
 /// markdown + typst => markdown + svg + css
 fn eliminate_typst(relative_dir: &str, filename: &str, holder: &mut String) {
     let (markdown_input, mut metadata, mut recorder) = prepare_recorder(relative_dir, filename);
@@ -67,10 +71,7 @@ fn eliminate_typst(relative_dir: &str, filename: &str, holder: &mut String) {
         Box::new(handler::katex_compat::KatexCompact {}),
     ];
 
-    let parser = pulldown_cmark::Parser::new_ext(
-        &markdown_input,
-        Options::ENABLE_MATH.union(Options::ENABLE_YAML_STYLE_METADATA_BLOCKS),
-    );
+    let parser = pulldown_cmark::Parser::new_ext(&markdown_input, OPTIONS);
 
     let parser = parser.filter_map(|mut event| {
         match &event {
@@ -171,10 +172,7 @@ fn parse_markdown(relative_dir: &str, filename: &str) -> Result<HtmlEntry, Parse
         Box::new(handler::katex_compat::KatexCompact {}),
     ];
 
-    let parser = pulldown_cmark::Parser::new_ext(
-        &markdown_input,
-        Options::ENABLE_MATH.union(Options::ENABLE_YAML_STYLE_METADATA_BLOCKS),
-    );
+    let parser = pulldown_cmark::Parser::new_ext(&markdown_input, OPTIONS);
 
     let parser = parser.filter_map(|mut event| {
         match &event {
@@ -256,32 +254,25 @@ fn parse_markdown(relative_dir: &str, filename: &str) -> Result<HtmlEntry, Parse
     });
 }
 
-pub fn html_article_inner(entry: &HtmlEntry, hide_metadata: bool) -> String {
+pub fn html_article_inner(
+    entry: &HtmlEntry, 
+    // taxon_map: &HashMap<String, String>, 
+    hide_metadata: bool,
+    open: bool,
+    // taxon_map: &HashMap<String, String>,
+) -> String {
     let metadata = &entry.metadata;
     let summary = metadata.to_header();
     let content = &entry.content;
+    let article_id = metadata.id();
     html_section(
         &summary,
         content,
         hide_metadata,
-        metadata.id(),
-        metadata.texon(),
+        open,
+        article_id, 
+        metadata.taxon(),
     )
-}
-
-fn write_html_content(filepath: &str, entry: &HtmlEntry) {
-    let article_inner = html_article_inner(entry, false);
-    let html = html_doc(&article_inner, &html_toc_block(&entry.catalog));
-    let _ = std::fs::write(filepath, html);
-}
-
-fn write_and_inline_html_content(filepath: &str, entry: &HtmlEntry) -> String {
-    let catalog = html_toc_block(&entry.catalog);
-    let article_inner = html_article_inner(entry, false);
-    let html = html_doc(&article_inner, &catalog);
-    let _ = std::fs::write(filepath, html);
-    // inline article content
-    html_article_inner(entry, true)
 }
 
 #[derive(Parser)]
@@ -296,7 +287,6 @@ enum Command {
     // /// Creates new markdown file with name in the format "CAT-003S".
     // #[command(visible_alias = "n")]
     // New(NewCommand),
-
     /// Compiles an input markdown file into HTML format.
     #[command(visible_alias = "c")]
     Compile(CompileCommand),
@@ -306,7 +296,7 @@ enum Command {
     Inline(CompileCommand),
 
     /// Clean all markdown entry caches.
-    Clean(CleanCommand), 
+    Clean(CleanCommand),
 }
 
 #[derive(clap::Args)]
@@ -331,8 +321,7 @@ struct CompileCommand {
 
 #[derive(clap::Args)]
 struct CleanCommand {
-    // target: String, 
-
+    // target: String,
     /// Configures the project root (for absolute paths)
     #[arg(short, long, default_value_t = format!("./"))]
     root: String,
@@ -369,7 +358,7 @@ fn main() {
             match parse_markdown("", &filename) {
                 Ok(entry) => {
                     let filepath = output_path(&adjust_name(&filename, ".md", ".html"));
-                    write_html_content(&filepath, &entry);
+                    write_entry_html(&filepath, &entry);
                 }
                 Err(kind) => println!("{}", kind.message(Some(&filename))),
             }

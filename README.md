@@ -25,6 +25,8 @@ Usage: kodama.exe <COMMAND>
 
 Commands:
   compile  Compiles an input markdown file into HTML format [aliases: c]
+  inline   Compiles an input markdown file into markdown and SVGs [aliases: i]
+  clean    Clean all markdown entry caches
   help     Print this message or the help of the given subcommand(s)
 
 Options:

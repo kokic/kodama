@@ -1,24 +1,17 @@
 use crate::{html, html_flake::html_entry_header, recorder::Catalog};
 use std::collections::HashMap;
 
-
 #[derive(serde::Serialize, serde::Deserialize)]
 pub struct EntryMetaData(pub HashMap<String, String>);
 
 impl EntryMetaData {
     pub fn to_header(&self) -> String {
-        let taxon = match self.0.get("taxon") {
-            None => "".to_string(),
-            Some(s) => {
-                let (first, rest) = s.split_at(1);
-                format!("{}. ", first.to_uppercase() + rest)
-            }
-        };
+        let taxon = self.taxon().map_or("", |s| s);
         let title = self
             .0
             .get("title")
             .map(|s| s.as_str())
-            .unwrap_or("[No Title]");
+            .unwrap_or("[no_title]");
 
         let slug = self.get("slug").unwrap();
         let slug_url = format!("{}.html", &slug);
@@ -29,25 +22,30 @@ impl EntryMetaData {
             .unwrap_or("Anonymous");
         let start_date = self.get("date").or(self.get("start_date"));
         let end_date = self.get("end_date");
+        let span_class: Vec<String> = vec!["taxon".to_string()];
 
         html!(header =>
           (html!(h1 =>
-            (html!(span class = "taxon" => {taxon}))
+            (html!(span class = {span_class.join(" ")} => {taxon}))
             {title}
             {" "}
             (html!(a class = "slug", href = {slug_url} => "["{&slug}"]"))))
           (html!(html_entry_header(author, start_date, end_date, vec![]))))
     }
 
+    pub fn slug_to_id(slug: &str) -> String {
+        slug.replace("/", "-")
+    }
+
     pub fn id(&self) -> String {
-        self.get("slug").unwrap().to_string().replace("/", "-")
+        Self::slug_to_id(self.get("slug").unwrap())
     }
 
     pub fn get(&self, key: &str) -> Option<&String> {
         return self.0.get(key);
     }
 
-    pub fn texon(&self) -> Option<&String> {
+    pub fn taxon(&self) -> Option<&String> {
         return self.0.get("taxon");
     }
 
@@ -66,5 +64,9 @@ pub struct HtmlEntry {
 impl HtmlEntry {
     pub fn get(&self, key: &str) -> Option<&String> {
         return self.metadata.get(key);
+    }
+
+    pub fn update(&mut self, key: String, value: String) {
+        let _ = self.metadata.0.insert(key, value);
     }
 }

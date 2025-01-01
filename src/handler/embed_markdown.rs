@@ -1,12 +1,6 @@
 use super::{url_action, Handler};
 use crate::{
-    adjust_name,
-    config::{self, entry_path},
-    entry::HtmlEntry,
-    html_flake::html_link,
-    parse_markdown,
-    recorder::{CatalogItem, Context, Recorder},
-    write_and_inline_html_content, ParseInterrupt,
+    adjust_name, config::{self, entry_path}, entry::HtmlEntry, html_article_inner, html_flake::{html_doc, html_link, html_toc_block}, parse_markdown, recorder::{CatalogItem, Context, Recorder}, ParseInterrupt
 };
 use pulldown_cmark::{Tag, TagEnd};
 
@@ -51,29 +45,63 @@ impl Handler for Embed {
             let file_path = config::join_path(&parent_dir, &html_url);
             html_url = crate::config::output_path(&file_path);
 
-            let mut update_catalog = |html_entry: HtmlEntry| {
-                let slug = html_entry.get("slug").map_or("[no_slug]", |s| s.as_str());
+            let mut update_catalog = |html_entry: &HtmlEntry| {
+                let slug = html_entry.get("slug").map_or("[no_slug]", |s| s);
                 let title = html_entry.metadata.title().map_or("[no_title]", |s| s);
-                let title = recorder.data.get(1).map(|s| s.as_str()).unwrap_or(title);
 
-                let item = CatalogItem {
+                let mut inline_title = recorder
+                    .data
+                    .get(1) // inline entry title
+                    .map(|s| s.as_str())
+                    .unwrap_or(title);
+
+                let mut use_numbering = false;
+                let mut open_section = true;
+
+                let chars = inline_title.chars();
+                let mut index = 0;
+                for curr in chars {
+                    match curr {
+                        '+' => use_numbering = true,
+                        '-' => open_section = false,
+                        _ => break,
+                    }
+                    index += 1;
+                }
+                inline_title = &inline_title[index..].trim();
+                if inline_title.is_empty() {
+                    inline_title = title;
+                }
+
+                // for catalog taxon
+                let taxon = display_taxon(html_entry.metadata.taxon());
+                let item: CatalogItem = CatalogItem {
                     slug: slug.to_string(),
-                    text: title.to_string(),
-                    children: html_entry.catalog,
+                    text: inline_title.to_string(),
+                    taxon: taxon.to_string(),
+                    number: use_numbering,
+                    summary: !open_section,
+                    children: html_entry.catalog.clone(),
                 };
                 recorder.catalog.push(Box::new(item));
+
+                (inline_title.to_string(), taxon.to_string(), open_section)
             };
 
             match parse_markdown(&parent_dir, &filename) {
-                Ok(html_entry) => {
-                    // generate html file & inline article
-                    let inline_article = write_and_inline_html_content(&html_url, &html_entry);
-
+                Ok(mut html_entry) => {
                     // cache .entry file
                     let entry_path = entry_path(&format!("{}.entry", file_path));
                     let _ = std::fs::write(entry_path, serde_json::to_string(&html_entry).unwrap());
 
-                    update_catalog(html_entry);
+                    write_entry_html(&html_url, &mut html_entry);
+
+                    // generate inline article
+                    let (title, taxon, open) = update_catalog(&html_entry);
+                    html_entry.update("taxon".to_string(), taxon);
+                    html_entry.update("title".to_string(), title);
+                    let inline_article = html_article_inner(&html_entry, true, open);
+
                     recorder.exit();
                     return Some(inline_article);
                 }
@@ -82,12 +110,16 @@ impl Handler for Embed {
                     let entry_path = entry_path(&format!("{}.entry", file_path));
                     let serialized =
                         std::fs::read_to_string(entry_path).expect(config::ERR_ENTRY_FILE_LOST);
-                    let html_entry: HtmlEntry =
+                    let mut html_entry: HtmlEntry =
                         serde_json::from_str(&serialized).expect(config::ERR_INVALID_ENTRY_FILE);
-                    let inline_article = write_and_inline_html_content(&html_url, &html_entry);
-                    println!("{}", kind.message(Some(&file_path)));
 
-                    update_catalog(html_entry);
+                    // generate inline article
+                    let (title, taxon, open) = update_catalog(&html_entry);
+                    html_entry.update("taxon".to_string(), taxon);
+                    html_entry.update("title".to_string(), title);
+                    let inline_article = html_article_inner(&html_entry, true, open);
+
+                    println!("{}", kind.message(Some(&file_path)));
                     recorder.exit();
                     return Some(inline_article);
                 }
@@ -136,8 +168,26 @@ impl Handler for Embed {
             || recorder.context == Context::LocalLink
             || recorder.context == Context::ExternalLink
         {
-            recorder.push(s.to_string()); // [1]
+            recorder.push(s.to_string()); // [1]: Text
         }
+    }
+}
+
+/// to cache entry file
+pub fn write_entry_html(filepath: &str, entry: &HtmlEntry) {
+    let catalog = html_toc_block(&entry.catalog);
+    let article_inner = html_article_inner(entry, false, true);
+    let html = html_doc(&article_inner, &catalog);
+    let _ = std::fs::write(filepath, html);
+}
+
+pub fn display_taxon(taxon: Option<&String>) -> String {
+    match taxon {
+        None => "".to_string(),
+        Some(s) => match s.split_at_checked(1) {
+            Some((first, rest)) => format!("{}. ", first.to_uppercase() + rest),
+            _ => s.to_string(),
+        },
     }
 }
 

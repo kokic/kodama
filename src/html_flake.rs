@@ -1,9 +1,11 @@
-use crate::{html, recorder::{Catalog, CatalogItem}};
+
+use crate::{html, recorder::{Catalog, CatalogItem, Counter}};
 
 pub fn html_section(
     summary: &String,
     content: &String,
     hide_metadata: bool,
+    open: bool,  
     id: String, 
     taxon: Option<&String>,
 ) -> String {
@@ -11,12 +13,17 @@ pub fn html_section(
     if hide_metadata {
         class_name.push("hide-metadata");
     }
-    let taxon = taxon.map(|s| s.as_str()).unwrap_or("entry");
-    html!(section class = {class_name.join(" ")}, data_taxon = {taxon} =>
-      (html!(details id = {id}, open = "true" =>
-        (html!(summary => {summary}))
-        (content)))
-    )
+    let taxon = taxon.map_or("", |s| s);
+    let open = match open {
+        true => "open",
+        false => ""
+    };
+
+    let inner_html = format!("{}{}", (html!(summary => {summary})), content);
+    let html_details = format!(r#"
+      <details id={} {}>{}</details>
+    "#, id, open, inner_html);
+    html!(section class = {class_name.join(" ")}, data_taxon = {taxon} => {html_details})
 }
 
 pub fn html_entry_header(
@@ -65,280 +72,88 @@ pub fn html_doc(article_inner: &str, catalog: &str) -> String {
       (html!(nav id = "toc" => {catalog})));
 
     let html = html!(html lang = "en" => 
-      (html!(head => 
-        (html_css()) 
+      (html!(head => r###"
+        <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+        <meta name="viewport" content="width=device-width"> "###
+        (html_import_fonts())
         (html_import_katex())))
+        (html_css())
+        (html_javascript())
       (html!(body => {body_inner})));
     format!("{}\n{}", doc_type, &html)
 }
 
-fn html_toc_li(data: &CatalogItem) -> String {
-    let (slug, text) = (data.slug.as_str(), data.text.as_str());
+fn html_toc_li(data: &CatalogItem, counter: &Counter) -> String {
+    let (slug, taxon, text) = (data.slug.as_str(), data.taxon.as_str(), data.text.as_str());
     let slug_url = format!("{}.html", slug);
     let title = format!("{} [{}]", text, slug);
-    let href = format!("#{}", slug);
+    let href = format!("#{}", slug); // #id
 
     let mut child_html = String::new();
     if !data.children.is_empty() {
-        child_html.push_str("<ul>");
+        child_html.push_str(r#"<ul class="block">"#);
+        let mut counter = counter.left_shift();
         for child in &data.children {
-            child_html.push_str(&html_toc_li(&child));
+            child.number.then(|| counter.step_mut());
+            child_html.push_str(&html_toc_li(&child, &counter));
         }
         child_html.push_str("</ul>");
     }
 
-    html!(li => 
+    let taxon = data.number.then(|| {
+        let taxon_numbering = format!("{} {} ", taxon, counter.display());
+        taxon_numbering
+    }).unwrap_or(taxon.to_string());
+
+    let mut class_name: Vec<String> = vec![];
+    if data.summary {
+        class_name.push("item-summary".to_string());
+    }
+
+    html!(li class = {class_name.join(" ")} => 
       (html!(a class = "bullet", href={slug_url}, title={title} => "■"))
       (html!(span class = "link" => 
-        (html!(a href = {href} => {text})))) 
+        (html!(a href = {href} => 
+          (html!(span class = "taxon" => {taxon}))
+          (text))))) 
       (child_html))
 }
 
 pub fn html_toc_block(data: &Catalog) -> String {
+    // let mut taxon_map: HashMap<String, String> = HashMap::new();
+    let mut counter = Counter::init();
     let items = data
         .iter()
-        .map(|item| html_toc_li(item))
+        .map(|item| {
+            item.number.then(|| counter.step_mut());
+            html_toc_li(item, &counter)
+        })
         .reduce(|s, t| s + &t)
         .unwrap_or(String::new());
-    html!(div class = "block" => 
+    let html_toc = html!(div class = "block" => 
       (html!(h1 => "Table of Contents"))
-      (html!(ul class = "block" => {items})))
+      (html!(ul class = "block" => {items})));
+    html_toc
+}
+
+pub fn html_javascript() -> String {
+    html!(script => 
+      (include_str!("include/section-taxon.js")))
 }
 
 pub fn html_css() -> String {
-    return format!(
-        r###"
-<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="true">
-<link href="https://fonts.googleapis.com/css2?family=Source+Code+Pro:ital,wght@0,200..900;1,200..900&amp;family=Source+Sans+3:ital,wght@0,200..900;1,200..900&amp;family=Source+Serif+4:ital,opsz,wght@0,8..60,200..900;1,8..60,200..900&amp;display=swap" rel="stylesheet">
-<meta name="viewport" content="width=device-width">
-<style>
-{}
-</style>
-"###,
-        html_main_style()
-    );
+    html!(style => 
+      (html_main_style()))
+}
+
+pub fn html_import_fonts() -> &'static str {
+  return include_str!("include/import-fonts.html");
 }
 
 pub fn html_import_katex() -> &'static str {
-    return r###"
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.15/dist/katex.min.css" integrity="sha384-Htz9HMhiwV8GuQ28Xr9pEs1B4qJiYu/nYLLwlDklR53QibDfmQzi7rYxXhMH/5/u" crossorigin="anonymous">
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.15/dist/katex.min.js" integrity="sha384-bxmi2jLGCvnsEqMuYLKE/KsVCxV3PqmKeK6Y6+lmNXBry6+luFkEOsmp5vD9I/7+" crossorigin="anonymous"></script>
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.15/dist/contrib/auto-render.min.js" integrity="sha384-hCXGrW6PitJEwbkoStFjeJxv+fSOOQKOPbJxSfM6G5sWZjAyWhXiTIIAmQqnlLlh" crossorigin="anonymous"></script>
-<script>
-  document.addEventListener("DOMContentLoaded", function() {
-      renderMathInElement(document.body, {
-        delimiters: [
-            {left: '$$', right: '$$', display: true},
-            {left: '$', right: '$', display: false},
-            {left: '\\(', right: '\\)', display: false},
-            {left: '\\[', right: '\\]', display: true}
-        ],
-        throwOnError : false, 
-        minRuleThickness: 0.05, 
-      });
-  });
-</script>
-"###;
+    return include_str!("include/import-katex.html");
 }
 
 pub fn html_main_style() -> &'static str {
-    return r###"
-      body {
-        font-family: "Source Serif 4", serif;
-        font-optical-sizing: auto;
-        hyphens: auto;
-      }
-      
-      p, pre {
-        line-height: 1.55;
-      }
-      
-      h1, h2, h3, h4 {
-        margin-top: .5em;
-      }
-      
-      h1, h2, h3, h4, h5, h6 {
-        font-weight: normal;
-        font-family: "Source Sans 3", sans-serif;
-        font-weight: 500;
-        margin-bottom: 0;
-      }
-      
-      h5, h6, p {
-        margin-top: 0;
-      }
-      
-      details>summary {
-        list-style-type: none;
-        outline: none;
-      }
-      
-      details>summary>header {
-        display: inline;
-      }
-      
-      /* no effect */
-      details>summary::marker,
-      details>summary::-webkit-details-marker {
-        display: none;
-      }
-      
-      details h1 {
-        font-size: 1.2em;
-        display: inline;
-      }
-      
-      details>summary {
-        list-style-type: none;
-      }
-            
-      section .block[data-taxon] details>summary>header>h1 {
-        font-size: 13pt;
-      }
-      
-      article>section>details>summary>header>h1 {
-        font-size: 1.5em;
-      }
-      
-      article>section>details>summary>header {
-        display: block;
-        margin-bottom: .5em;
-      }
-
-      article>section>details>summary>header>h1>.taxon {
-        display: block;
-        font-size: .9em;
-        color: #888;
-        padding-bottom: 5pt;
-      }
-      
-      /* class */
-      .inline-typst {
-        display: inline-block;
-        margin: 0 0;
-        line-height: 1em;
-        vertical-align: middle;
-      }
-      
-      .block {
-        padding-left: 5px;
-        padding-right: 10px;
-        padding-bottom: 2px;
-        border-radius: 5px;
-      }
-
-      .block {
-        width: fit-content;
-        border-radius: var(--radius)
-      }
-      
-      .block:hover {
-        background-color: rgba(0, 100, 255, 0.04);
-      }
-      
-      .block.hide-metadata>details>summary>header>.metadata {
-        display: none;
-      }
-      
-      .metadata ul {
-        padding-left: 0;
-        display: inline;
-      }
-      
-      .metadata li::after {
-        content: " · ";
-      }
-      
-      .metadata li:last-child::after {
-        content: "";
-      }
-      
-      .metadata ul li {
-        display: inline;
-      }
-      
-      .link.external {
-        text-decoration: underline;
-      }
-
-      a.link.local,
-      .link.local a,
-      a.slug {
-        box-shadow: none;
-        text-decoration-line: underline;
-        text-decoration-style: dotted;
-      }
-
-      a {
-        color: black;
-        text-decoration: inherit;
-      }
-      
-      .slug,
-      .doi,
-      .orcid {
-        color: gray;
-        font-weight: 200;
-      }
-      
-      #grid-wrapper>article {
-        max-width: 90ex;
-        margin-right: auto;
-        grid-column: 1;
-      }
-      
-      #grid-wrapper>nav {
-        grid-column: 2;
-      }
-      
-      @media only screen and (max-width: 1000px) {
-        body {
-          margin-top: 1em;
-          margin-left: .5em;
-          margin-right: .5em;
-          transition: ease all .2s;
-        }
-      
-        #grid-wrapper>nav {
-          display: none;
-          transition: ease all .2s;
-        }
-      }
-      
-      @media only screen and (min-width: 1000px) {
-        body {
-          margin-top: 2em;
-          margin-left: 2em;
-          transition: ease all .2s;
-        }
-      
-        #grid-wrapper {
-          display: grid;
-          grid-template-columns: 90ex;
-        }
-      }
-      
-      nav#toc ul {
-        list-style-type: none;
-      }
-      nav#toc, nav#toc a {
-        color: #555;
-      }
-      
-      nav {
-        font-family: "Source Sans 3", sans-serif;
-        font-optical-sizing: auto;
-      }
-      
-      nav#toc a.bullet {
-        opacity: 0.7;
-        margin-left: 0.4em;
-        margin-right: 0.3em;
-        padding-left: 0.2em;
-        padding-right: 0.2em;
-        text-decoration: none;
-      }      
-    "###;
+    return include_str!("include/main.css");
 }
