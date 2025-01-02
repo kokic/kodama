@@ -175,9 +175,9 @@ impl Handler for Embed {
 
 /// to cache entry file
 pub fn write_entry_html(filepath: &str, entry: &HtmlEntry) {
-    let catalog = html_toc_block(&entry.catalog);
+    let catalog_html = html_toc_block(&entry.catalog);
     let article_inner = html_article_inner(entry, false, true);
-    let html = html_doc(&article_inner, &catalog);
+    let html = html_doc(&article_inner, &catalog_html);
     let _ = std::fs::write(filepath, html);
 }
 

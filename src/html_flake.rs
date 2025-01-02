@@ -64,17 +64,18 @@ pub fn html_link(href: &str, title: &str, text: &str, class_name: &str) -> Strin
       (html!(a href = {href}, title = {title} => {text})))
 }
 
-pub fn html_doc(article_inner: &str, catalog: &str) -> String {
+pub fn html_doc(article_inner: &str, catalog_html: &str) -> String {
     let doc_type = "<!DOCTYPE html>";
     let body_inner = html!(div id="grid-wrapper" => 
       (html!(article => {article_inner}))
       "\n\n"
-      (html!(nav id = "toc" => {catalog})));
+      (html!(nav id = "toc" => {catalog_html})));
 
-    let html = html!(html lang = "en" => 
-      (html!(head => r###"
-        <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-        <meta name="viewport" content="width=device-width"> "###
+    let html = html!(html lang = "en-US" => 
+      (html!(head => r#"
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<meta name="viewport" content="width=device-width"> 
+<title></title>"#
         (html_import_fonts())
         (html_import_katex())))
         (html_css())
@@ -138,6 +139,7 @@ pub fn html_toc_block(data: &Catalog) -> String {
 
 pub fn html_javascript() -> String {
     html!(script => 
+      (include_str!("include/page-title.js"))
       (include_str!("include/section-taxon.js")))
 }
 

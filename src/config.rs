@@ -89,7 +89,7 @@ pub fn entry_path(path: &str) -> PathBuf {
 
 pub fn is_file_modified(path: &str) -> bool {
     let hash_path = hash_path(&format!("{}.hash", path));
-    let src = std::fs::read_to_string(path).unwrap();
+    let src = std::fs::read_to_string(path).expect(path);
 
     let mut hasher = std::hash::DefaultHasher::new();
     std::hash::Hash::hash(&src, &mut hasher);
