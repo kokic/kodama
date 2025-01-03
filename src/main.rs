@@ -1,3 +1,4 @@
+mod slug;
 mod base36;
 mod config;
 mod entry;
@@ -16,15 +17,6 @@ use pulldown_cmark::{html, CowStr, Event, Options};
 use pulldown_cmark_to_cmark::cmark;
 use recorder::{Context, Recorder};
 use std::collections::HashMap;
-
-fn to_slug(fullname: &str) -> String {
-    let slug = &fullname[0..fullname.rfind('.').unwrap_or(fullname.len())];
-    let mut slug = slug.replace("\\", "/");
-    if slug.starts_with("./") {
-        slug = slug[2..].to_string()
-    }
-    slug
-}
 
 pub fn adjust_name(path: &str, expect: &str, target: &str) -> String {
     let prefix = if path.ends_with(expect) {
@@ -46,7 +38,7 @@ pub fn prepare_recorder(
     // global data store
     let mut metadata: HashMap<String, String> = HashMap::new();
     let fullname = join_path(relative_dir, filename);
-    metadata.insert("slug".to_string(), to_slug(&fullname));
+    metadata.insert("slug".to_string(), slug::to_slug(&fullname));
 
     // local contents recorder
     let recorder = Recorder::new(relative_dir);
@@ -255,8 +247,8 @@ fn parse_markdown(relative_dir: &str, filename: &str) -> Result<HtmlEntry, Parse
 }
 
 pub fn html_article_inner(
-    entry: &HtmlEntry, 
-    // taxon_map: &HashMap<String, String>, 
+    entry: &HtmlEntry,
+    // taxon_map: &HashMap<String, String>,
     hide_metadata: bool,
     open: bool,
     // taxon_map: &HashMap<String, String>,
@@ -270,7 +262,7 @@ pub fn html_article_inner(
         content,
         hide_metadata,
         open,
-        article_id, 
+        article_id,
         metadata.taxon(),
     )
 }

@@ -1,6 +1,13 @@
 use super::{url_action, Handler};
 use crate::{
-    adjust_name, config::{self, entry_path}, entry::HtmlEntry, html_article_inner, html_flake::{html_doc, html_link, html_toc_block}, parse_markdown, recorder::{CatalogItem, Context, Recorder}, ParseInterrupt
+    adjust_name,
+    config::{self, entry_path},
+    entry::HtmlEntry,
+    html_article_inner,
+    html_flake::{html_doc, html_link, html_toc_block},
+    parse_markdown,
+    recorder::{CatalogItem, Context, Recorder},
+    ParseInterrupt,
 };
 use pulldown_cmark::{Tag, TagEnd};
 
@@ -108,8 +115,11 @@ impl Handler for Embed {
                 Err(kind @ ParseInterrupt::Skiped) => {
                     // reuse .entry file
                     let entry_path = entry_path(&format!("{}.entry", file_path));
-                    let serialized =
-                        std::fs::read_to_string(entry_path).expect(config::ERR_ENTRY_FILE_LOST);
+                    let serialized = std::fs::read_to_string(&entry_path).expect(&format!(
+                        "{:?}: {}",
+                        &entry_path.to_str(),
+                        config::ERR_ENTRY_FILE_LOST
+                    ));
                     let mut html_entry: HtmlEntry =
                         serde_json::from_str(&serialized).expect(config::ERR_INVALID_ENTRY_FILE);
 

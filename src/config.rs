@@ -106,25 +106,29 @@ pub fn is_file_modified(path: &str) -> bool {
     is_modified
 }
 
-fn delete_files_with_suffix(directory: &str, suffix: &str) -> Result<(), std::io::Error> {
-    for entry in std::fs::read_dir(directory)? {
-        let entry = entry?;
-        let path = entry.path();
-        if path.is_file()
-            && path
-                .file_name()
-                .and_then(|n| n.to_str())
-                .map_or(false, |n| n.ends_with(suffix))
-        {
-            std::fs::remove_file(&path)?;
-            println!("Deleted: {:?}", path);
+pub fn delete_files_with_suffix(dir: &std::path::Path, suffix: &str) -> Result<(), std::io::Error> {
+    if dir.is_dir() {
+        for entry in std::fs::read_dir(dir)? {
+            let entry = entry?;
+            let path = entry.path();
+            if path.is_dir() {
+                delete_files_with_suffix(&path, suffix)?;
+            } else if path.is_file()
+                && path
+                    .file_name()
+                    .and_then(|n| n.to_str())
+                    .map_or(false, |n| n.ends_with(suffix))
+            {
+                std::fs::remove_file(&path)?;
+                println!("Deleted: {:?}", path);
+            }
         }
     }
     Ok(())
 }
 
 pub fn delete_all_markdown_cache() -> Result<(), std::io::Error> {
-    delete_files_with_suffix(&hash_dir(), "md.hash")?;
+    delete_files_with_suffix(std::path::Path::new(&hash_dir()), "md.hash")?;
     std::fs::remove_dir_all(entry_dir())?;
     Ok(())
 }

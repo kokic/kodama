@@ -33,12 +33,8 @@ impl EntryMetaData {
           (html!(html_entry_header(author, start_date, end_date, vec![]))))
     }
 
-    pub fn slug_to_id(slug: &str) -> String {
-        slug.replace("/", "-")
-    }
-
     pub fn id(&self) -> String {
-        Self::slug_to_id(self.get("slug").unwrap())
+        crate::slug::to_id(self.get("slug").unwrap())
     }
 
     pub fn get(&self, key: &str) -> Option<&String> {
