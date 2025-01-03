@@ -1,4 +1,3 @@
-mod slug;
 mod base36;
 mod config;
 mod entry;
@@ -6,12 +5,13 @@ mod handler;
 mod html_flake;
 mod html_macro;
 mod recorder;
+mod slug;
 mod typst_cli;
 
 use clap::Parser;
-use config::{dir_config, input_path, is_file_modified, join_path, output_path, parent_dir};
+use config::{dir_config, input_path, join_path, output_path, parent_dir};
 use entry::{EntryMetaData, HtmlEntry};
-use handler::{embed_markdown::write_entry_html, Handler};
+use handler::{embed_markdown::write_to_html, Handler};
 use html_flake::html_section;
 use pulldown_cmark::{html, CowStr, Event, Options};
 use pulldown_cmark_to_cmark::cmark;
@@ -93,9 +93,9 @@ fn eliminate_typst(relative_dir: &str, filename: &str, holder: &mut String) {
                         let val = s[pos + 1..].trim();
                         metadata.insert(key.to_string(), val.to_string());
 
-                        if key == "title" {
-                            println!("Compile: {}", val);
-                        }
+                        // if key == "title" {
+                        //     println!("Compile: {}", val);
+                        // }
                     }
                     _ => (),
                 }
@@ -151,11 +151,7 @@ impl ParseInterrupt {
 }
 
 /// parse markdown and generate HTML
-fn parse_markdown(relative_dir: &str, filename: &str) -> Result<HtmlEntry, ParseInterrupt> {
-    if !is_file_modified(&input_path(&join_path(relative_dir, filename))) {
-        return Err(ParseInterrupt::Skiped);
-    }
-
+fn parse_markdown(relative_dir: &str, filename: &str) -> HtmlEntry {
     let (markdown_input, mut metadata, mut recorder) = prepare_recorder(relative_dir, filename);
 
     let mut handlers: Vec<Box<dyn Handler>> = vec![
@@ -194,9 +190,9 @@ fn parse_markdown(relative_dir: &str, filename: &str) -> Result<HtmlEntry, Parse
                         let val = s[pos + 1..].trim().to_string();
                         metadata.insert(key.to_string(), val.to_string());
 
-                        if key == "title" {
-                            println!("Compile: {}", val);
-                        }
+                        // if key == "title" {
+                        //     println!("Compile: {}", val);
+                        // }
                     }
                     _ => (),
                 }
@@ -239,11 +235,11 @@ fn parse_markdown(relative_dir: &str, filename: &str) -> Result<HtmlEntry, Parse
     let metadata = EntryMetaData(metadata);
     let content = html_output;
 
-    return Ok(HtmlEntry {
+    return HtmlEntry {
         metadata,
         content,
         catalog: recorder.catalog,
-    });
+    };
 }
 
 pub fn html_article_inner(
@@ -331,11 +327,11 @@ fn main() {
             let output = compile_command.output.as_str();
             dir_config(&config::OUTPUT_DIR, output.to_string());
 
-            let (_, filename) = parent_dir(&input);
+            let (parent, filename) = parent_dir(&input);
             dir_config(&config::ROOT_DIR, compile_command.root.to_string());
 
             let mut markdown = String::new();
-            eliminate_typst("", &filename, &mut markdown);
+            eliminate_typst(&parent, &filename, &mut markdown);
             let filepath = output_path(&filename);
             let _ = std::fs::write(filepath, markdown);
         }
@@ -344,20 +340,17 @@ fn main() {
             let output = compile_command.output.as_str();
             dir_config(&config::OUTPUT_DIR, output.to_string());
 
-            let (_, filename) = parent_dir(&input);
+            let (parent, filename) = parent_dir(&input);
             dir_config(&config::ROOT_DIR, compile_command.root.to_string());
 
-            match parse_markdown("", &filename) {
-                Ok(entry) => {
-                    let filepath = output_path(&adjust_name(&filename, ".md", ".html"));
-                    write_entry_html(&filepath, &entry);
-                }
-                Err(kind) => println!("{}", kind.message(Some(&filename))),
-            }
+            let entry = parse_markdown(&parent, &filename);
+            let html_path = adjust_name(&filename, ".md", ".html");
+            let html_path = output_path(&html_path);
+            write_to_html(&html_path, &entry);
         }
         Command::Clean(clean_command) => {
             dir_config(&config::ROOT_DIR, clean_command.root.to_string());
-            let _ = config::delete_all_markdown_cache();
+            let _ = config::delete_all_html_cache();
         }
     }
 }

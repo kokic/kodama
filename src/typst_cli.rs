@@ -1,10 +1,13 @@
 use std::process::Command;
 
-use crate::{config::is_file_modified, html};
+use crate::{config::verify_and_update_file_hash, html};
 
 pub fn write_svg(typst_path: &str, svg_path: &str) {
-    if !is_file_modified(typst_path) {
-        println!("Skip compilation of unmodified: {}", typst_path);
+    if !verify_and_update_file_hash(typst_path) {
+        println!(
+            "Skip compilation of unmodified: {}",
+            crate::slug::pretty_path(std::path::Path::new(typst_path))
+        );
         return;
     }
 
@@ -17,7 +20,10 @@ pub fn write_svg(typst_path: &str, svg_path: &str) {
 
     if output.status.success() {
         let _ = String::from_utf8_lossy(&output.stdout);
-        println!("Compiled to SVG: {}", svg_path);
+        println!(
+            "Compiled to SVG: {}",
+            crate::slug::pretty_path(std::path::Path::new(svg_path))
+        );
     } else {
         let stderr = String::from_utf8_lossy(&output.stderr);
         eprintln!("Command failed in `write_svg`: \n  {}", stderr);

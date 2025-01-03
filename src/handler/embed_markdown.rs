@@ -1,13 +1,14 @@
+use std::path::Path;
+
 use super::{url_action, Handler};
 use crate::{
     adjust_name,
-    config::{self, entry_path},
+    config::{self, entry_path, verify_and_update_file_hash},
     entry::HtmlEntry,
     html_article_inner,
     html_flake::{html_doc, html_link, html_toc_block},
     parse_markdown,
     recorder::{CatalogItem, Context, Recorder},
-    ParseInterrupt,
 };
 use pulldown_cmark::{Tag, TagEnd};
 
@@ -81,60 +82,61 @@ impl Handler for Embed {
                 }
 
                 // for catalog taxon
-                let taxon = display_taxon(html_entry.metadata.taxon());
                 let item: CatalogItem = CatalogItem {
                     slug: slug.to_string(),
                     text: inline_title.to_string(),
-                    taxon: taxon.to_string(),
+                    taxon: html_entry.metadata.taxon().unwrap().to_string(),
                     number: use_numbering,
                     summary: !open_section,
                     children: html_entry.catalog.clone(),
                 };
                 recorder.catalog.push(Box::new(item));
 
-                (inline_title.to_string(), taxon.to_string(), open_section)
+                (inline_title.to_string(), open_section)
             };
 
-            match parse_markdown(&parent_dir, &filename) {
-                Ok(mut html_entry) => {
-                    // cache .entry file
-                    let entry_path = entry_path(&format!("{}.entry", file_path));
-                    let _ = std::fs::write(entry_path, serde_json::to_string(&html_entry).unwrap());
+            let mut inline_article = |html_entry: &mut HtmlEntry| {
+                let taxon = display_taxon(html_entry.metadata.taxon());
+                html_entry.update("taxon".to_string(), taxon);
+                write_to_html(&html_url, html_entry);
 
-                    write_entry_html(&html_url, &mut html_entry);
+                // generate inline article
+                let (title, open) = update_catalog(&html_entry);
+                html_entry.update("title".to_string(), title);
+                let inline_article = html_article_inner(&html_entry, true, open);
 
-                    // generate inline article
-                    let (title, taxon, open) = update_catalog(&html_entry);
-                    html_entry.update("taxon".to_string(), taxon);
-                    html_entry.update("title".to_string(), title);
-                    let inline_article = html_article_inner(&html_entry, true, open);
+                inline_article
+            };
 
-                    recorder.exit();
-                    return Some(inline_article);
-                }
-                Err(kind @ ParseInterrupt::Skiped) => {
-                    // reuse .entry file
-                    let entry_path = entry_path(&format!("{}.entry", file_path));
-                    let serialized = std::fs::read_to_string(&entry_path).expect(&format!(
-                        "{:?}: {}",
-                        &entry_path.to_str(),
-                        config::ERR_ENTRY_FILE_LOST
-                    ));
-                    let mut html_entry: HtmlEntry =
-                        serde_json::from_str(&serialized).expect(config::ERR_INVALID_ENTRY_FILE);
+            let mut html_entry = parse_markdown(&parent_dir, &filename);
+            // Ok(mut html_entry) => {
+            // cache .entry file
+            let entry_path = entry_path(&format!("{}.entry", file_path));
+            let _ = std::fs::write(entry_path, serde_json::to_string(&html_entry).unwrap());
 
-                    // generate inline article
-                    let (title, taxon, open) = update_catalog(&html_entry);
-                    html_entry.update("taxon".to_string(), taxon);
-                    html_entry.update("title".to_string(), title);
-                    let inline_article = html_article_inner(&html_entry, true, open);
+            let inline_article = inline_article(&mut html_entry);
+            recorder.exit();
+            return Some(inline_article);
+            // }
+            // Err(kind @ ParseInterrupt::Skiped) => {
+            //     // reuse .entry file
+            //     let entry_path = entry_path(&format!("{}.entry", file_path));
+            //     let serialized = std::fs::read_to_string(&entry_path).expect(&format!(
+            //         "{:?}: {}",
+            //         &entry_path.to_str(),
+            //         config::ERR_ENTRY_FILE_LOST
+            //     ));
+            //     println!("{}", kind.message(Some(&file_path)));
 
-                    println!("{}", kind.message(Some(&file_path)));
-                    recorder.exit();
-                    return Some(inline_article);
-                }
-                Err(kind) => eprintln!("{}", kind.message(Some(&file_path))),
-            }
+            //     let mut html_entry: HtmlEntry =
+            //         serde_json::from_str(&serialized).expect(config::ERR_INVALID_ENTRY_FILE);
+
+            //     let inline_article = inline_article(&mut html_entry);
+            //     recorder.exit();
+            //     return Some(inline_article);
+            // }
+            // Err(kind) => eprintln!("{}", kind.message(Some(&file_path))),
+            // }
         }
 
         if *tag == TagEnd::Link && recorder.context == Context::LocalLink {
@@ -183,12 +185,18 @@ impl Handler for Embed {
     }
 }
 
-/// to cache entry file
-pub fn write_entry_html(filepath: &str, entry: &HtmlEntry) {
-    let catalog_html = html_toc_block(&entry.catalog);
-    let article_inner = html_article_inner(entry, false, true);
-    let html = html_doc(&article_inner, &catalog_html);
-    let _ = std::fs::write(filepath, html);
+pub fn write_to_html(filepath: &str, entry: &HtmlEntry) {
+    if verify_and_update_file_hash(&filepath) {
+        let catalog_html = html_toc_block(&entry.catalog);
+        let article_inner = html_article_inner(entry, false, true);
+        let html = html_doc(&article_inner, &catalog_html);
+        let _ = std::fs::write(filepath, html);
+        println!(
+            "Output: {:?} {}",
+            entry.metadata.title().map_or("", |s| s),
+            crate::slug::pretty_path(Path::new(filepath))
+        );
+    }
 }
 
 pub fn display_taxon(taxon: Option<&String>) -> String {
