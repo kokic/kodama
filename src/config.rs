@@ -87,6 +87,7 @@ pub fn entry_dir() -> String {
     join_path(CACHE_DIR, ENTRY_DIR_NAME)
 }
 
+#[allow(dead_code)]
 pub fn entry_path(path: &str) -> PathBuf {
     auto_create_dir_path(vec![&entry_dir(), path]).into()
 }

@@ -3,7 +3,7 @@ use std::path::Path;
 use super::{url_action, Handler};
 use crate::{
     adjust_name,
-    config::{self, entry_path, verify_and_update_file_hash},
+    config::{self, verify_and_update_file_hash},
     entry::HtmlEntry,
     html_article_inner,
     html_flake::{html_doc, html_link, html_toc_block},
@@ -111,8 +111,8 @@ impl Handler for Embed {
             let mut html_entry = parse_markdown(&parent_dir, &filename);
             // Ok(mut html_entry) => {
             // cache .entry file
-            let entry_path = entry_path(&format!("{}.entry", file_path));
-            let _ = std::fs::write(entry_path, serde_json::to_string(&html_entry).unwrap());
+            // let entry_path = entry_path(&format!("{}.entry", file_path));
+            // let _ = std::fs::write(entry_path, serde_json::to_string(&html_entry).unwrap());
 
             let inline_article = inline_article(&mut html_entry);
             recorder.exit();
