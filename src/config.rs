@@ -93,11 +93,12 @@ pub fn entry_path(path: &str) -> PathBuf {
 }
 
 /// Return is file modified i.e. is hash updated.
-pub fn is_hash_updated<P: AsRef<Path>>(path: &str, hash_path: P) -> (bool, u64) {
-    let src: String = std::fs::read_to_string(path).expect(path);
-
+pub fn is_hash_updated<P: AsRef<Path>>(content: &str, hash_path: P) -> (bool, u64) {
+    // match std::fs::read_to_string(path) {
+    // Err(_) => return (true, 0), // target file not exists.
+    // Ok(src) => {
     let mut hasher = std::hash::DefaultHasher::new();
-    std::hash::Hash::hash(&src, &mut hasher);
+    std::hash::Hash::hash(&content, &mut hasher);
     let current_hash = std::hash::Hasher::finish(&hasher);
 
     let history_hash = std::fs::read_to_string(&hash_path)
@@ -105,13 +106,30 @@ pub fn is_hash_updated<P: AsRef<Path>>(path: &str, hash_path: P) -> (bool, u64) 
         .unwrap_or(0); // no file: 0
 
     (current_hash != history_hash, current_hash)
+    // }
+    // }
 }
 
 /// Return is file modified i.e. is hash updated.
 /// Update hash when file modified.
 pub fn verify_and_update_file_hash(path: &str) -> bool {
     let hash_path = hash_path(&format!("{}.hash", path));
-    let (is_modified, current_hash) = is_hash_updated(path, &hash_path);
+    let content = std::fs::read_to_string(path);
+    if let Ok(content) = content {
+        let (is_modified, current_hash) = is_hash_updated(&content, &hash_path);
+        if is_modified {
+            let _ = std::fs::write(&hash_path, current_hash.to_string());
+        }
+        return is_modified;
+    }
+    true
+}
+
+/// Return is content modified i.e. is hash updated.
+/// Update hash when content modified.
+pub fn verify_and_update_content_hash(path: &str, content: &str) -> bool {
+    let hash_path = hash_path(&format!("{}.hash", path));
+    let (is_modified, current_hash) = is_hash_updated(&content, &hash_path);
     if is_modified {
         let _ = std::fs::write(&hash_path, current_hash.to_string());
     }
@@ -148,8 +166,13 @@ pub fn delete_files_with_suffix(dir: &std::path::Path, suffix: &str) -> Result<(
 #[allow(dead_code)]
 pub fn delete_modified_markdown_hash() -> Result<(), std::io::Error> {
     delete_files_with(std::path::Path::new(&hash_dir()), &|hash_path: &Path| {
-        let (is_modified, _) = is_hash_updated(&hash_path_to_target(hash_path), hash_path);
-        is_modified
+        let path = hash_path_to_target(hash_path);
+        let content = std::fs::read_to_string(path);
+        if let Ok(content) = content {
+            let (is_modified, _) = is_hash_updated(&content, hash_path);
+            return is_modified
+        }
+        true
     })
 }
 
@@ -171,9 +194,3 @@ pub fn delete_all_html_cache() -> Result<(), std::io::Error> {
     std::fs::remove_dir_all(entry_dir())?;
     Ok(())
 }
-
-// pub const ERR_ENTRY_FILE_LOST: &str =
-//     "The entry file was unexpectedly lost. Please manually delete the corresponding hash file";
-
-// pub const ERR_INVALID_ENTRY_FILE: &str =
-//     "Invalid entry file. Please manually delete the corresponding hash file";

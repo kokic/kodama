@@ -1,12 +1,51 @@
+
+:root {
+  --content-gap: 15px;
+  --radius: 5px;
+}
+
 body {
   font-family: "Source Serif 4", serif;
   font-optical-sizing: auto;
   hyphens: auto;
 }
 
+pre, code {
+  font-family: "Source Code Pro", monospace;
+  font-optical-sizing: auto;
+}
+
 p,
 pre {
   line-height: 1.55;
+}
+
+pre {
+  border-radius: var(--radius);
+  background-color: rgba(0, 100, 100, 0.04);
+  padding: .5em;
+  font-size: 11pt;
+  margin-top: 0em;
+  overflow-x: auto;
+  white-space: pre-wrap;
+  white-space: -moz-pre-wrap;
+  white-space: -pre-wrap;
+  white-space: -o-pre-wrap;
+  word-wrap: break-word;
+}
+
+code {
+  border-radius: var(--radius);
+  background-color: rgba(0, 100, 100, 0.04);
+  padding: 0.2em;
+  font-size: 0.9em;
+}
+
+/* !forest */
+pre>code {
+  border-radius: 0;
+  background-color: transparent;
+  padding: 0;
 }
 
 h1,
@@ -104,6 +143,33 @@ article>section>details>summary>header>h1>.taxon {
 
 .block.hide-metadata>details>summary>header>.metadata {
   display: none;
+}
+
+img {
+  object-fit: cover;
+  max-width: 100%;
+}
+
+figure {
+  text-align: center;
+}
+
+figcaption {
+  font-style: italic;
+  padding: 3px;
+}
+
+mark {
+  background-color: rgb(255, 255, 151);
+}
+
+hr {
+  margin-top: 10px;
+  margin-bottom: 20px;
+  background-color: gainsboro;
+  border: 0 none;
+  width: 100%;
+  height: 2px;
 }
 
 .metadata ul {

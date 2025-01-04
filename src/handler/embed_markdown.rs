@@ -1,9 +1,9 @@
-use std::path::Path;
+use std::{collections::HashMap, path::Path};
 
 use super::{url_action, Handler};
 use crate::{
     adjust_name,
-    config::{self, verify_and_update_file_hash},
+    config::{self, verify_and_update_content_hash},
     entry::HtmlEntry,
     html_article_inner,
     html_flake::{html_doc, html_link, html_toc_block},
@@ -109,34 +109,9 @@ impl Handler for Embed {
             };
 
             let mut html_entry = parse_markdown(&parent_dir, &filename);
-            // Ok(mut html_entry) => {
-            // cache .entry file
-            // let entry_path = entry_path(&format!("{}.entry", file_path));
-            // let _ = std::fs::write(entry_path, serde_json::to_string(&html_entry).unwrap());
-
             let inline_article = inline_article(&mut html_entry);
             recorder.exit();
             return Some(inline_article);
-            // }
-            // Err(kind @ ParseInterrupt::Skiped) => {
-            //     // reuse .entry file
-            //     let entry_path = entry_path(&format!("{}.entry", file_path));
-            //     let serialized = std::fs::read_to_string(&entry_path).expect(&format!(
-            //         "{:?}: {}",
-            //         &entry_path.to_str(),
-            //         config::ERR_ENTRY_FILE_LOST
-            //     ));
-            //     println!("{}", kind.message(Some(&file_path)));
-
-            //     let mut html_entry: HtmlEntry =
-            //         serde_json::from_str(&serialized).expect(config::ERR_INVALID_ENTRY_FILE);
-
-            //     let inline_article = inline_article(&mut html_entry);
-            //     recorder.exit();
-            //     return Some(inline_article);
-            // }
-            // Err(kind) => eprintln!("{}", kind.message(Some(&file_path))),
-            // }
         }
 
         if *tag == TagEnd::Link && recorder.context == Context::LocalLink {
@@ -175,21 +150,44 @@ impl Handler for Embed {
         None
     }
 
-    fn text(&self, s: &pulldown_cmark::CowStr<'_>, recorder: &mut Recorder) {
+    fn text(
+        &self,
+        s: &pulldown_cmark::CowStr<'_>,
+        recorder: &mut Recorder,
+        metadata: &mut HashMap<String, String>,
+    ) {
         if recorder.context == Context::Embed
             || recorder.context == Context::LocalLink
             || recorder.context == Context::ExternalLink
         {
-            recorder.push(s.to_string()); // [1]: Text
+            return recorder.push(s.to_string()); // [1]: Text
+        }
+
+        if recorder.context == Context::Metadata && s.trim().len() != 0 {
+            /*
+             * It is known that the behavior differs between the two architectures
+             * (I) `x86_64-pc-windows-msvc` and (II) `aarch64-unknown-linux-musl`.
+             * (I) automatically splits the input by lines,
+             * while (II) receives the entire multi-line string as a whole.
+             */
+            let lines: Vec<&str> = s.split("\n").collect();
+            for s in lines {
+                if s.trim().len() != 0 {
+                    let pos = s.find(':').expect("metadata item expect `name: value`");
+                    let key = s[0..pos].trim();
+                    let val = s[pos + 1..].trim();
+                    metadata.insert(key.to_string(), val.to_string());
+                }
+            }
         }
     }
 }
 
 pub fn write_to_html(filepath: &str, entry: &HtmlEntry) {
-    if verify_and_update_file_hash(&filepath) {
-        let catalog_html = html_toc_block(&entry.catalog);
-        let article_inner = html_article_inner(entry, false, true);
-        let html = html_doc(&article_inner, &catalog_html);
+    let catalog_html = html_toc_block(&entry.catalog);
+    let article_inner = html_article_inner(entry, false, true);
+    let html = html_doc(&article_inner, &catalog_html);
+    if verify_and_update_content_hash(&filepath, &html) {
         let _ = std::fs::write(filepath, html);
         println!(
             "Output: {:?} {}",

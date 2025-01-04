@@ -41,7 +41,6 @@ impl Handler for TypstImage {
                 Context::InlineTypst => {
                     let inline_typst = recorder.data.get(0).unwrap().as_str();
                     let s = typst_cli::source_to_inline_svg(inline_typst);
-                    // event = Event::Html(CowStr::Boxed(s.into()));
                     recorder.exit();
                     return Some(s);
                 }
@@ -55,7 +54,6 @@ impl Handler for TypstImage {
                     svg_url = output_path(&img_src);
 
                     write_svg(&typst_url, &svg_url);
-                    // event = Event::Html(CowStr::Boxed(html_image(&svg_url).into()));
                     recorder.exit();
                     return Some(html_image(&img_src));
                 }
@@ -69,7 +67,6 @@ impl Handler for TypstImage {
                     svg_url = output_path(&img_src);
 
                     write_svg(&typst_url, &svg_url);
-                    // event = Event::Html(CowStr::Boxed(html_center_image(&svg_url).into()));
                     recorder.exit();
                     return Some(html_center_image(&img_src));
                 }

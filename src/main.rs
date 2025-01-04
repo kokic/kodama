@@ -84,7 +84,7 @@ fn eliminate_typst(relative_dir: &str, filename: &str, holder: &mut String) {
             Event::Text(s) => {
                 handlers
                     .iter_mut()
-                    .for_each(|handler| handler.text(s, &mut recorder));
+                    .for_each(|handler| handler.text(s, &mut recorder, &mut metadata));
 
                 match recorder.context {
                     Context::Metadata if s.trim().len() != 0 => {
@@ -92,10 +92,6 @@ fn eliminate_typst(relative_dir: &str, filename: &str, holder: &mut String) {
                         let key = s[0..pos].trim();
                         let val = s[pos + 1..].trim();
                         metadata.insert(key.to_string(), val.to_string());
-
-                        // if key == "title" {
-                        //     println!("Compile: {}", val);
-                        // }
                     }
                     _ => (),
                 }
@@ -181,21 +177,7 @@ fn parse_markdown(relative_dir: &str, filename: &str) -> HtmlEntry {
             Event::Text(s) => {
                 handlers
                     .iter_mut()
-                    .for_each(|handler| handler.text(s, &mut recorder));
-
-                match recorder.context {
-                    Context::Metadata if s.trim().len() != 0 => {
-                        let pos = s.find(':').expect("metadata item expect `name: value`");
-                        let key = s[0..pos].trim().to_string();
-                        let val = s[pos + 1..].trim().to_string();
-                        metadata.insert(key.to_string(), val.to_string());
-
-                        // if key == "title" {
-                        //     println!("Compile: {}", val);
-                        // }
-                    }
-                    _ => (),
-                }
+                    .for_each(|handler| handler.text(s, &mut recorder, &mut metadata));
             }
 
             Event::InlineMath(s) => {
@@ -244,10 +226,8 @@ fn parse_markdown(relative_dir: &str, filename: &str) -> HtmlEntry {
 
 pub fn html_article_inner(
     entry: &HtmlEntry,
-    // taxon_map: &HashMap<String, String>,
     hide_metadata: bool,
     open: bool,
-    // taxon_map: &HashMap<String, String>,
 ) -> String {
     let metadata = &entry.metadata;
     let summary = metadata.to_header();

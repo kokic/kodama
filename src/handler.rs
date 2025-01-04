@@ -2,6 +2,8 @@ pub mod embed_markdown;
 pub mod katex_compat;
 pub mod typst_image;
 
+use std::collections::HashMap;
+
 use crate::recorder::Recorder;
 use pulldown_cmark::{CowStr, Tag, TagEnd};
 
@@ -15,7 +17,7 @@ pub trait Handler {
     }
 
     #[allow(dead_code, unused_variables)]
-    fn text(&self, s: &CowStr<'_>, recorder: &mut Recorder) {}
+    fn text(&self, s: &CowStr<'_>, recorder: &mut Recorder, metadata: &mut HashMap<String, String>) {}
 
     #[allow(dead_code, unused_variables)]
     fn inline_math(&self, s: &CowStr<'_>, recorder: &mut Recorder) -> Option<String> {
