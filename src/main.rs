@@ -52,7 +52,8 @@ pub fn prepare_recorder(
 
 const OPTIONS: Options = Options::ENABLE_MATH
     .union(Options::ENABLE_YAML_STYLE_METADATA_BLOCKS)
-    .union(Options::ENABLE_TABLES);
+    .union(Options::ENABLE_TABLES)
+    .union(Options::ENABLE_SMART_PUNCTUATION);
 
 /// markdown + typst => markdown + svg + css
 fn eliminate_typst(relative_dir: &str, filename: &str, holder: &mut String) {
