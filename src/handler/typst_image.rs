@@ -55,7 +55,7 @@ impl Handler for TypstImage {
 
                     write_svg(&typst_url, &svg_url);
                     recorder.exit();
-                    return Some(html_image(&img_src));
+                    return Some(html_image(&format!("/{}", img_src)));
                 }
                 Context::ImageBlock => {
                     let typst_url = recorder.data.get(0).unwrap().as_str();
@@ -68,7 +68,7 @@ impl Handler for TypstImage {
 
                     write_svg(&typst_url, &svg_url);
                     recorder.exit();
-                    return Some(html_center_image(&img_src));
+                    return Some(html_center_image(&format!("/{}", img_src)));
                 }
 
                 _ => (),
