@@ -1,17 +1,18 @@
-use crate::{html, html_flake::html_entry_header, recorder::Catalog};
+use crate::{
+    html, html_flake::html_entry_header, recorder::Catalog,
+};
 use std::collections::HashMap;
 
 #[derive(serde::Serialize, serde::Deserialize)]
 pub struct EntryMetaData(pub HashMap<String, String>);
 
-const PRESET_METADATA: [&'static str; 7] = [
-    "taxon",
-    "title",
+const PRESET_METADATA: [&'static str; 3] = [
+    "taxon", "title",
     "slug",
-    "author",
-    "date",
-    "start_date",
-    "end_date",
+    // "author",
+    // "date",
+    // "start_date",
+    // "end_date",
 ];
 
 impl EntryMetaData {
@@ -26,12 +27,12 @@ impl EntryMetaData {
         let slug = self.get("slug").unwrap();
         let slug_url = format!("/{}.html", &slug);
 
-        let author = self
-            .get("author")
-            .map(|s| s.as_str())
-            .unwrap_or("Anonymous");
-        let start_date = self.get("date").or(self.get("start_date"));
-        let end_date = self.get("end_date");
+        // let author = self
+        // .get("author")
+        // .map(|s| s.as_str())
+        // .unwrap_or("Anonymous");
+        // let start_date = self.get("date").or(self.get("start_date"));
+        // let end_date = self.get("end_date");
         let span_class: Vec<String> = vec!["taxon".to_string()];
 
         html!(header =>
@@ -40,7 +41,9 @@ impl EntryMetaData {
             {title}
             {" "}
             (html!(a class = "slug", href = {slug_url} => "["{&slug}"]"))))
-          (html!(html_entry_header(author, start_date, end_date, self.etc()))))
+          (html!(html_entry_header(
+            // author, start_date, end_date, 
+            self.etc()))))
     }
 
     pub fn is_custom_metadata(s: &str) -> bool {
@@ -49,14 +52,16 @@ impl EntryMetaData {
 
     /// return all custom metadata values
     pub fn etc(&self) -> Vec<String> {
-        let mut etc: Vec<String> = Vec::new();
-        for key in self.0.keys() {
-            if EntryMetaData::is_custom_metadata(key) {
-                let value = self.get(key).unwrap();
-                etc.push(value.to_string());
-            }
-        }
-        etc
+        let mut etc_keys: Vec<&String> = self
+            .0
+            .keys()
+            .filter(|s| EntryMetaData::is_custom_metadata(s))
+            .collect();
+        etc_keys.sort();
+        etc_keys
+            .into_iter()
+            .map(|s| self.get(s).unwrap().to_string())
+            .collect()
     }
 
     pub fn id(&self) -> String {

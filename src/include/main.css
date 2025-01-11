@@ -48,6 +48,15 @@ pre>code {
   padding: 0;
 }
 
+/* !forest */
+.footnote-definition>p {
+  display: inline;
+}
+
+.display-none {
+  display: none;
+}
+
 h1,
 h2,
 h3,

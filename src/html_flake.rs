@@ -27,19 +27,19 @@ pub fn html_section(
 }
 
 pub fn html_entry_header(
-    author: &str,
-    start_date: Option<&String>,
-    end_date: Option<&String>,
+    // author: &str,
+    // start_date: Option<&String>,
+    // end_date: Option<&String>,
     mut etc: Vec<String>,
 ) -> String {
     let mut meta_items: Vec<String> = vec![];
-    if let Some(start_date) = start_date {
-        meta_items.push(start_date.to_string());
-    }
-    if let Some(end_date) = end_date {
-        meta_items.push(end_date.to_string());
-    }
-    meta_items.push(author.to_string());
+    // if let Some(start_date) = start_date {
+        // meta_items.push(start_date.to_string());
+    // }
+    // if let Some(end_date) = end_date {
+        // meta_items.push(end_date.to_string());
+    // }
+    // meta_items.push(author.to_string());
     meta_items.append(&mut etc);
 
     let items = meta_items
@@ -52,7 +52,7 @@ pub fn html_entry_header(
 }
 
 pub fn html_image(image_src: &str) -> String {
-    format!("<img src = \"{image_src}\" />")
+    format!(r#"<img src = "{image_src}" />"#)
 }
 
 pub fn html_center_image(image_src: &str) -> String {
@@ -109,6 +109,9 @@ fn html_toc_li(data: &CatalogItem, counter: &Counter) -> String {
     let mut class_name: Vec<String> = vec![];
     if data.summary {
         class_name.push("item-summary".to_string());
+    }
+    if data.hide {
+        class_name.push("display-none".to_string());
     }
 
     html!(li class = {class_name.join(" ")} => 

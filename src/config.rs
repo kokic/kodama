@@ -7,9 +7,15 @@ use std::{
 pub static ROOT_DIR: Mutex<String> = Mutex::new(String::new());
 pub static OUTPUT_DIR: Mutex<String> = Mutex::new(String::new());
 
+pub static HISTORY_HTML: Mutex<Vec<String>> = Mutex::new(vec![]);
+
 pub const CACHE_DIR: &str = "./.cache";
 pub const HASH_DIR_NAME: &str = "hash";
 pub const ENTRY_DIR_NAME: &str = "entry";
+
+pub fn history() -> std::sync::MutexGuard<'static, Vec<std::string::String>> {
+    HISTORY_HTML.lock().unwrap()
+}
 
 pub fn dir_config(source: &Mutex<String>, target: String) {
     let mut path = source.lock().unwrap();
@@ -68,6 +74,13 @@ pub fn auto_create_dir_path(paths: Vec<&str>) -> String {
 
 pub fn output_path(path: &str) -> String {
     auto_create_dir_path(vec![&OUTPUT_DIR.lock().unwrap(), path])
+}
+
+pub fn relativize(path: &str) -> String {
+    match path.starts_with("/") {
+        true => format!(".{}", path), 
+        _ => path.to_string()
+    }
 }
 
 #[allow(dead_code)]
@@ -170,7 +183,7 @@ pub fn delete_modified_markdown_hash() -> Result<(), std::io::Error> {
         let content = std::fs::read_to_string(path);
         if let Ok(content) = content {
             let (is_modified, _) = is_hash_updated(&content, hash_path);
-            return is_modified
+            return is_modified;
         }
         true
     })
