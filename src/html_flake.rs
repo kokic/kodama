@@ -27,19 +27,9 @@ pub fn html_section(
 }
 
 pub fn html_entry_header(
-    // author: &str,
-    // start_date: Option<&String>,
-    // end_date: Option<&String>,
     mut etc: Vec<String>,
 ) -> String {
     let mut meta_items: Vec<String> = vec![];
-    // if let Some(start_date) = start_date {
-        // meta_items.push(start_date.to_string());
-    // }
-    // if let Some(end_date) = end_date {
-        // meta_items.push(end_date.to_string());
-    // }
-    // meta_items.push(author.to_string());
     meta_items.append(&mut etc);
 
     let items = meta_items
@@ -124,7 +114,6 @@ fn html_toc_li(data: &CatalogItem, counter: &Counter) -> String {
 }
 
 pub fn html_toc_block(data: &Catalog) -> String {
-    // let mut taxon_map: HashMap<String, String> = HashMap::new();
     let mut counter = Counter::init();
     let items = data
         .iter()

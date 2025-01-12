@@ -107,9 +107,6 @@ pub fn entry_path(path: &str) -> PathBuf {
 
 /// Return is file modified i.e. is hash updated.
 pub fn is_hash_updated<P: AsRef<Path>>(content: &str, hash_path: P) -> (bool, u64) {
-    // match std::fs::read_to_string(path) {
-    // Err(_) => return (true, 0), // target file not exists.
-    // Ok(src) => {
     let mut hasher = std::hash::DefaultHasher::new();
     std::hash::Hash::hash(&content, &mut hasher);
     let current_hash = std::hash::Hasher::finish(&hasher);
@@ -119,8 +116,6 @@ pub fn is_hash_updated<P: AsRef<Path>>(content: &str, hash_path: P) -> (bool, u6
         .unwrap_or(0); // no file: 0
 
     (current_hash != history_hash, current_hash)
-    // }
-    // }
 }
 
 /// Return is file modified i.e. is hash updated.

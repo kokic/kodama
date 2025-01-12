@@ -34,7 +34,6 @@ impl Handler for Embed {
 
                     let filename = format!(".{}.md", &url);
                     compile_to_html(&filename);
-                    // parse_markdown(&config::relativize(&url));
                 }
             }
             Tag::MetadataBlock(_kind) => {
@@ -77,7 +76,7 @@ impl Handler for Embed {
                     match curr {
                         '+' => use_numbering = true,
                         '-' => open_section = false,
-                        '.' => hide_in_catalog = true, 
+                        '.' => hide_in_catalog = true,
                         _ => break,
                     }
                     index += 1;
@@ -117,10 +116,7 @@ impl Handler for Embed {
                 inline_article
             };
 
-            let mut html_entry = parse_markdown(
-                // &parent_dir,
-                &file_path,
-            );
+            let mut html_entry = parse_markdown(&file_path);
             let inline_article = inline_article(&mut html_entry);
             recorder.exit();
             return Some(inline_article);
@@ -135,7 +131,12 @@ impl Handler for Embed {
                 .unwrap_or(url.as_str())
                 .to_string();
             recorder.exit();
-            return Some(html_link(&url, &text, &text, Context::LocalLink.strify()));
+            return Some(html_link(
+                &config::relativize(&url),
+                &text,
+                &text,
+                Context::LocalLink.strify(),
+            ));
         }
 
         if *tag == TagEnd::Link && recorder.context == Context::ExternalLink {
@@ -199,7 +200,7 @@ pub fn write_to_html(filepath: &str, entry: &HtmlEntry) {
     let catalog_html = html_toc_block(&entry.catalog);
     let article_inner = html_article_inner(entry, false, true);
     let html = html_doc(&article_inner, &catalog_html);
-    
+
     let history = config::history();
     let key = filepath.to_string();
 

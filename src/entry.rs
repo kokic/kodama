@@ -1,19 +1,10 @@
-use crate::{
-    html, html_flake::html_entry_header, recorder::Catalog,
-};
+use crate::{html, html_flake::html_entry_header, recorder::Catalog};
 use std::collections::HashMap;
 
 #[derive(serde::Serialize, serde::Deserialize)]
 pub struct EntryMetaData(pub HashMap<String, String>);
 
-const PRESET_METADATA: [&'static str; 3] = [
-    "taxon", "title",
-    "slug",
-    // "author",
-    // "date",
-    // "start_date",
-    // "end_date",
-];
+const PRESET_METADATA: [&'static str; 3] = ["taxon", "title", "slug"];
 
 impl EntryMetaData {
     pub fn to_header(&self) -> String {
@@ -25,14 +16,7 @@ impl EntryMetaData {
             .unwrap_or("[no_title]");
 
         let slug = self.get("slug").unwrap();
-        let slug_url = format!("/{}.html", &slug);
-
-        // let author = self
-        // .get("author")
-        // .map(|s| s.as_str())
-        // .unwrap_or("Anonymous");
-        // let start_date = self.get("date").or(self.get("start_date"));
-        // let end_date = self.get("end_date");
+        let slug_url = format!("./{}.html", &slug);
         let span_class: Vec<String> = vec!["taxon".to_string()];
 
         html!(header =>
@@ -41,9 +25,7 @@ impl EntryMetaData {
             {title}
             {" "}
             (html!(a class = "slug", href = {slug_url} => "["{&slug}"]"))))
-          (html!(html_entry_header(
-            // author, start_date, end_date, 
-            self.etc()))))
+          (html!(html_entry_header(self.etc()))))
     }
 
     pub fn is_custom_metadata(s: &str) -> bool {

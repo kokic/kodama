@@ -1,15 +1,14 @@
-
 #[derive(Debug, PartialEq)]
 pub enum Context {
     None,
     Embed,
-    Shared, // shared for inline typst
+    Shared,      // shared for inline typst
     InlineTypst, // typst
     ImageSpan,   // display: inline
     ImageBlock,  // display: block; text-align: center
     Metadata,
 
-    Figure, 
+    Figure,
 
     LocalLink,
     ExternalLink,
@@ -24,10 +23,10 @@ impl Context {
             Context::ImageSpan => "span",
             Context::ImageBlock => "block",
             Context::Metadata => "metadata",
-            Context::LocalLink => "local", // style class name
+            Context::LocalLink => "local",       // style class name
             Context::ExternalLink => "external", // style class name
             Context::Shared => "shared",
-            Context::Figure => "figure", 
+            Context::Figure => "figure",
         }
     }
 }
@@ -36,10 +35,10 @@ impl Context {
 pub struct CatalogItem {
     pub slug: String,
     pub text: String,
-    pub taxon: String, 
-    pub number: bool, 
-    pub summary: bool,  
-    pub hide: bool, 
+    pub taxon: String,
+    pub number: bool,
+    pub summary: bool,
+    pub hide: bool,
     pub children: Vec<Box<CatalogItem>>,
 }
 
@@ -49,23 +48,17 @@ pub type Catalog = Vec<Box<CatalogItem>>;
 pub struct Recorder {
     pub context: Context,
     pub data: Vec<String>,
-    // pub relative_dir: String,
-    pub catalog: Catalog, 
-    pub shareds: Vec<String>, 
-    // pub taxon_map: HashMap<String, String>, 
+    pub catalog: Catalog,
+    pub shareds: Vec<String>,
 }
 
 impl Recorder {
-    pub fn new(
-        // relative_dir: &str
-    ) -> Recorder {
+    pub fn new() -> Recorder {
         return Recorder {
             context: Context::None,
             data: vec![],
-            // relative_dir: relative_dir.to_string(),
             catalog: vec![],
-            shareds: vec![], 
-            // taxon_map: HashMap::new(), 
+            shareds: vec![],
         };
     }
 

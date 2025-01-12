@@ -15,7 +15,6 @@ use recorder::{Context, Recorder};
 use std::collections::HashMap;
 
 pub fn prepare_container(
-    // relative_dir: &str,
     filename: &str,
 ) -> (
     String,
@@ -25,13 +24,10 @@ pub fn prepare_container(
     // global data store
     let mut metadata: HashMap<String, String> = HashMap::new();
     let fullname = filename;
-    // join_path(relative_dir, filename);
     metadata.insert("slug".to_string(), slug::to_slug(&fullname));
 
     // local contents recorder
-    let recorder = Recorder::new(
-        // relative_dir
-    );
+    let recorder = Recorder::new();
 
     let markdown_path = input_path(&fullname);
     let expect = format!("file not found: {}", markdown_path);
@@ -48,10 +44,7 @@ const OPTIONS: Options = Options::ENABLE_MATH
 
 /// markdown + typst => markdown + svg + css
 pub fn eliminate_typst(filename: &str, holder: &mut String) {
-    let (markdown_input, mut metadata, mut recorder) = prepare_container(
-        // relative_dir,
-        filename,
-    );
+    let (markdown_input, mut metadata, mut recorder) = prepare_container(filename);
 
     let mut handlers: Vec<Box<dyn Handler>> = vec![
         Box::new(handler::typst_image::TypstImage {}),
@@ -126,30 +119,12 @@ pub fn eliminate_typst(filename: &str, holder: &mut String) {
     cmark(parser, holder).unwrap();
 }
 
-// pub enum ParseInterrupt {
-//     Skiped,
-//     Fail,
-// }
-
-// impl ParseInterrupt {
-//     pub fn message(&self, info: Option<&str>) -> String {
-//         let info = info.map(|s| format!(": {}", s)).unwrap_or(".".to_string());
-//         match self {
-//             ParseInterrupt::Skiped => format!("Skip compilation of unmodified{}", info),
-//             ParseInterrupt::Fail => format!("Parse failed{}", info),
-//         }
-//     }
-// }
-
 /// parse markdown and generate HTML
-pub fn parse_markdown(
-    // relative_dir: &str,
-    filename: &str,
-) -> HtmlEntry {
+pub fn parse_markdown(filename: &str) -> HtmlEntry {
     let (markdown_input, mut metadata, mut recorder) = prepare_container(filename);
 
     let mut handlers: Vec<Box<dyn Handler>> = vec![
-        Box::new(handler::figure::Figure), 
+        Box::new(handler::figure::Figure),
         Box::new(handler::typst_image::TypstImage),
         Box::new(handler::katex_compat::KatexCompact),
         Box::new(handler::embed_markdown::Embed),
