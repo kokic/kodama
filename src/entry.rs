@@ -1,4 +1,4 @@
-use crate::{html, html_flake::html_entry_header, recorder::Catalog};
+use crate::{config, html, html_flake::html_entry_header, recorder::Catalog};
 use std::collections::HashMap;
 
 #[derive(serde::Serialize, serde::Deserialize)]
@@ -16,7 +16,7 @@ impl EntryMetaData {
             .unwrap_or("[no_title]");
 
         let slug = self.get("slug").unwrap();
-        let slug_url = format!("./{}.html", &slug);
+        let slug_url = config::full_url(&format!("{}.html", &slug));
         let span_class: Vec<String> = vec!["taxon".to_string()];
 
         html!(header =>

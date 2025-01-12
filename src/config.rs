@@ -6,6 +6,7 @@ use std::{
 
 pub static ROOT_DIR: Mutex<String> = Mutex::new(String::new());
 pub static OUTPUT_DIR: Mutex<String> = Mutex::new(String::new());
+pub static BASE_URL: Mutex<String> = Mutex::new(String::new());
 
 pub static HISTORY_HTML: Mutex<Vec<String>> = Mutex::new(vec![]);
 
@@ -24,6 +25,26 @@ pub fn dir_config(source: &Mutex<String>, target: String) {
 
 pub fn root_dir() -> String {
     ROOT_DIR.lock().unwrap().to_string()
+}
+
+pub fn base_url() -> String {
+    BASE_URL.lock().unwrap().to_string()
+}
+
+pub fn full_url(path: &str) -> String {
+    if path.starts_with("/") {
+        return format!("{}{}", base_url(), path[1..].to_string());
+    } else if path.starts_with("./") {
+        return format!("{}{}", base_url(), path[2..].to_string());
+    }
+    format!("{}{}", base_url(), path)
+}
+
+pub fn relativize(path: &str) -> String {
+    match path.starts_with("/") {
+        true => format!(".{}", path), 
+        _ => path.to_string()
+    }
 }
 
 pub fn parent_dir(path: &str) -> (String, String) {
@@ -49,7 +70,7 @@ pub fn parent_dir_create_all(path: &str) -> (String, String) {
 pub fn join_path(dir: &str, name: &str) -> String {
     let mut input_dir: PathBuf = dir.into();
     input_dir.push(name);
-    input_dir.to_str().unwrap().to_string()
+    input_dir.to_str().unwrap().to_string().replace("\\", "/")
 }
 
 pub fn input_path<P: AsRef<Path>>(path: P) -> String {
@@ -74,13 +95,6 @@ pub fn auto_create_dir_path(paths: Vec<&str>) -> String {
 
 pub fn output_path(path: &str) -> String {
     auto_create_dir_path(vec![&OUTPUT_DIR.lock().unwrap(), path])
-}
-
-pub fn relativize(path: &str) -> String {
-    match path.starts_with("/") {
-        true => format!(".{}", path), 
-        _ => path.to_string()
-    }
 }
 
 #[allow(dead_code)]

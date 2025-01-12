@@ -5,7 +5,8 @@ use crate::{config::{self, verify_and_update_file_hash}, html};
 pub fn write_svg(typst_path: &str, svg_path: &str) {
     if !verify_and_update_file_hash(typst_path) {
         println!(
-            "Skip compilation of unmodified: {}",
+            // "Skip compilation of unmodified: {}",
+            "Skip: {}",
             crate::slug::pretty_path(std::path::Path::new(typst_path))
         );
         return;

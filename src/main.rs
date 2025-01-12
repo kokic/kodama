@@ -49,6 +49,10 @@ struct CompileCommand {
     /// Path to input Typst file.
     input: String,
 
+    /// Base URL or publish URL (e.g. https://www.example.com/)
+    #[arg(short, long, default_value_t = format!("/"))]
+    base: String, 
+
     /// Path to output dir.
     #[arg(short, long, default_value_t = format!("./publish"))]
     output: String,
@@ -92,6 +96,8 @@ fn main() {
             let output = compile_command.output.as_str();
             dir_config(&config::OUTPUT_DIR, output.to_string());
             dir_config(&config::ROOT_DIR, compile_command.root.to_string());
+            dir_config(&config::BASE_URL, compile_command.base.to_string());
+
             // let (parent, filename) = parent_dir(&input);
             compile_to_html(input);
         }

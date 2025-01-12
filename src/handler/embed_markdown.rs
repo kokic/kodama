@@ -132,7 +132,7 @@ impl Handler for Embed {
                 .to_string();
             recorder.exit();
             return Some(html_link(
-                &config::relativize(&url),
+                &config::full_url(&url),
                 &text,
                 &text,
                 Context::LocalLink.strify(),
