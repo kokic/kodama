@@ -100,6 +100,7 @@ fn main() {
 
             // let (parent, filename) = parent_dir(&input);
             compile_to_html(input);
+            kodama::compile_links();
         }
         Command::Clean(clean_command) => {
             dir_config(&config::ROOT_DIR, clean_command.root.to_string());

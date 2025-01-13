@@ -5,7 +5,7 @@ use crate::{
     config::{self, verify_and_update_content_hash},
     entry::HtmlEntry,
     html_flake::{html_doc, html_link, html_toc_block},
-    kodama::{adjust_name, compile_to_html, html_article_inner, parse_markdown},
+    kodama::{compile_to_html, html_article_inner},
     recorder::{CatalogItem, Context, Recorder},
 };
 use pulldown_cmark::{Tag, TagEnd};
@@ -32,8 +32,16 @@ impl Handler for Embed {
                     recorder.enter(Context::LocalLink);
                     recorder.push(url.to_string());
 
-                    let filename = format!(".{}.md", &url);
-                    compile_to_html(&filename);
+                    let mut linked = config::LINKED.lock().unwrap();
+                    /*
+                     * The reason why the `url` can be directly processed like this is that
+                     * the link format used by the user must be an absolute path relative to
+                     * the entire workspace, that is, a URL in the form of "/path/to/file".
+                     *
+                     * Finally, the prefix and suffix like `"./{}.html"` are used to
+                     * maintain a consistent format when comparing with `history`.
+                     */
+                    linked.push(format!(".{}.md", url));
                 }
             }
             Tag::MetadataBlock(_kind) => {
@@ -52,9 +60,8 @@ impl Handler for Embed {
 
             // url & path
             let file_path = entry_url;
-            let mut html_url = adjust_name(&file_path, ".md", ".html");
             // let file_path = config::join_path(&parent_dir, &html_url);
-            html_url = crate::config::output_path(&html_url);
+            // html_url = crate::config::output_path(&html_url);
 
             let mut update_catalog = |html_entry: &HtmlEntry| {
                 let slug = html_entry.get("slug").map_or("[no_slug]", |s| s);
@@ -101,22 +108,15 @@ impl Handler for Embed {
                 (inline_title.to_string(), open_section)
             };
 
-            let inline_article = |html_entry: &mut HtmlEntry| {
-                let taxon = display_option_taxon(html_entry.metadata.taxon());
-                html_entry.update("taxon".to_string(), taxon);
-                write_to_html(&html_url, html_entry);
-                let mut history = config::history();
-                history.push(html_url);
-
+            let mut inline_article = |html_entry: &mut HtmlEntry| {
                 // generate inline article
                 let (title, open) = update_catalog(&html_entry);
                 html_entry.update("title".to_string(), title);
                 let inline_article = html_article_inner(&html_entry, true, open);
-
                 inline_article
             };
 
-            let mut html_entry = parse_markdown(&file_path);
+            let mut html_entry = compile_to_html(&file_path);
             let inline_article = inline_article(&mut html_entry);
             recorder.exit();
             return Some(inline_article);
@@ -196,22 +196,32 @@ impl Handler for Embed {
     }
 }
 
-pub fn write_to_html(filepath: &str, entry: &HtmlEntry) {
+pub fn update_taxon(html_entry: &mut HtmlEntry) {
+    let taxon = display_option_taxon(html_entry.metadata.taxon());
+    html_entry.update("taxon".to_string(), taxon);
+}
+
+pub fn write_to_html(html_url: &str, entry: &mut HtmlEntry) {
+    update_taxon(entry);
     let catalog_html = html_toc_block(&entry.catalog);
     let article_inner = html_article_inner(entry, false, true);
     let html = html_doc(&article_inner, &catalog_html);
 
-    let history = config::history();
-    let key = filepath.to_string();
+    // let mut history = config::history();
+    // let key = html_url.to_string();
 
-    if !history.contains(&key) && verify_and_update_content_hash(&filepath, &html) {
-        let _ = std::fs::write(filepath, html);
+    // if !history.contains(&key) {
+    let filepath = crate::config::output_path(&html_url);
+    if verify_and_update_content_hash(&filepath, &html) {
+        let _ = std::fs::write(&filepath, html);
         println!(
             "Output: {:?} {}",
             entry.metadata.title().map_or("", |s| s),
-            crate::slug::pretty_path(Path::new(filepath))
+            crate::slug::pretty_path(Path::new(&filepath))
         );
     }
+    // history.push(key);
+    // }
 }
 
 pub fn display_taxon(s: &str) -> String {

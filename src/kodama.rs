@@ -1,5 +1,5 @@
 use crate::{
-    config::{self, output_path},
+    config::{self},
     entry,
     handler::{self, embed_markdown::write_to_html},
     html_flake, recorder, slug,
@@ -213,11 +213,28 @@ pub fn html_article_inner(entry: &HtmlEntry, hide_metadata: bool, open: bool) ->
     )
 }
 
-pub fn compile_to_html(filename: &str) {
-    let entry = parse_markdown(&filename);
-    let html_path = adjust_name(&filename, ".md", ".html");
-    let html_path = output_path(&html_path);
-    write_to_html(&html_path, &entry);
+pub fn compile_to_html(filename: &str) -> HtmlEntry {
+    let html_url = adjust_name(&filename, ".md", ".html");
+    let mut entry = parse_markdown(&filename);
+    write_to_html(&html_url, &mut entry);
+
+    let mut history = config::HISTORY.lock().unwrap();
+    history.push(filename.to_string());
+
+    entry
+}
+
+pub fn compile_links() {
+    let linked = config::LINKED.lock().unwrap();
+    let history = config::HISTORY.lock().unwrap().to_vec(); // read-only
+
+    // drop all history from linked
+    let linked: std::collections::HashSet<_> = linked.iter().collect();
+    for linked_url in linked {
+        if !history.contains(&linked_url) {
+            compile_to_html(&linked_url);
+        }
+    }
 }
 
 pub fn adjust_name(path: &str, expect: &str, target: &str) -> String {

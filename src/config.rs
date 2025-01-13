@@ -8,15 +8,15 @@ pub static ROOT_DIR: Mutex<String> = Mutex::new(String::new());
 pub static OUTPUT_DIR: Mutex<String> = Mutex::new(String::new());
 pub static BASE_URL: Mutex<String> = Mutex::new(String::new());
 
-pub static HISTORY_HTML: Mutex<Vec<String>> = Mutex::new(vec![]);
+/// compiled & written markdown URLs
+pub static HISTORY: Mutex<Vec<String>> = Mutex::new(vec![]);
+
+/// linked markdown URLs
+pub static LINKED: Mutex<Vec<String>> = Mutex::new(vec![]);
 
 pub const CACHE_DIR: &str = "./.cache";
 pub const HASH_DIR_NAME: &str = "hash";
 pub const ENTRY_DIR_NAME: &str = "entry";
-
-pub fn history() -> std::sync::MutexGuard<'static, Vec<std::string::String>> {
-    HISTORY_HTML.lock().unwrap()
-}
 
 pub fn dir_config(source: &Mutex<String>, target: String) {
     let mut path = source.lock().unwrap();
