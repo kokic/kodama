@@ -1,14 +1,14 @@
-mod kodama;
 mod base36;
 mod config;
 mod entry;
 mod handler;
 mod html_flake;
 mod html_macro;
+mod kodama;
 mod recorder;
 mod slug;
-mod typst_cli;
 mod traverse;
+mod typst_cli;
 
 use clap::Parser;
 use config::{dir_config, output_path};
@@ -51,7 +51,7 @@ struct CompileCommand {
 
     /// Base URL or publish URL (e.g. https://www.example.com/)
     #[arg(short, long, default_value_t = format!("/"))]
-    base: String, 
+    base: String,
 
     /// Path to output dir.
     #[arg(short, long, default_value_t = format!("./publish"))]

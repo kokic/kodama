@@ -29,6 +29,9 @@ pub trait Handler {
     fn display_math(&self, s: &CowStr<'_>, recorder: &mut Recorder) -> Option<String> {
         None
     }
+
+    #[allow(dead_code, unused_variables)]
+    fn inline_html(&self, s: &CowStr<'_>, recorder: &mut Recorder, metadata: &mut HashMap<String, String>) {}
 }
 
 pub fn url_action(dest_url: &CowStr<'_>) -> (String, String) {

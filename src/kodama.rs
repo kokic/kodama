@@ -36,6 +36,40 @@ pub fn prepare_container(
     return (markdown_input, metadata, recorder);
 }
 
+mod test {
+    use pulldown_cmark::{Event, Options};
+
+    #[test]
+    fn pulldown_test() {
+        // Create parser with example Markdown text.
+        let markdown_input = "hello world [what-is--this](i-am-url)";
+        let parser = pulldown_cmark::Parser::new_ext(markdown_input, Options::all());
+        let parser = parser.map(|event| {
+            match &event {
+                Event::Start(tag) => println!("Start: {:?}", tag),
+                Event::End(tag) => println!("End: {:?}", tag),
+                Event::Html(s) => println!("Html: {:?}", s),
+                Event::InlineHtml(s) => println!("InlineHtml: {:?}", s),
+                Event::Text(s) => println!("Text: {:?}", s),
+                Event::Code(s) => println!("Code: {:?}", s),
+                Event::DisplayMath(s) => println!("DisplayMath: {:?}", s),
+                Event::InlineMath(s) => println!("Math: {:?}", s),
+                Event::FootnoteReference(s) => println!("FootnoteReference: {:?}", s),
+                Event::TaskListMarker(b) => println!("TaskListMarker: {:?}", b),
+                Event::SoftBreak => println!("SoftBreak"),
+                Event::HardBreak => println!("HardBreak"),
+                Event::Rule => println!("Rule"),
+            };
+            event
+        });
+
+        // Write to a new String buffer.
+        let mut html_output = String::new();
+        pulldown_cmark::html::push_html(&mut html_output, parser);
+        // assert_eq!(&html_output, "<p>hello world</p>\n");
+    }
+}
+
 const OPTIONS: Options = Options::ENABLE_MATH
     .union(Options::ENABLE_YAML_STYLE_METADATA_BLOCKS)
     .union(Options::ENABLE_TABLES)
@@ -169,8 +203,13 @@ pub fn parse_markdown(filename: &str) -> HtmlEntry {
                 event = Event::Html(CowStr::Boxed(html.into()));
             }
 
+            Event::InlineHtml(s) => {
+                handlers
+                    .iter_mut()
+                    .for_each(|handler| handler.inline_html(s, &mut recorder, &mut metadata));
+            }
+
             Event::Html(_s) => { /* println!("Html: {:?}", s) */ }
-            Event::InlineHtml(_s) => { /*println!("InlineHtml: {:?}", s)*/ }
             Event::Code(_s) => { /* println!("Code: {:?}", s) */ }
             Event::FootnoteReference(_s) => { /* println!("FootnoteReference: {:?}", s) */ }
             Event::TaskListMarker(_b) => { /* println!("TaskListMarker: {:?}", b) */ }
@@ -225,7 +264,7 @@ pub fn compile_to_html(filename: &str) -> HtmlEntry {
 }
 
 pub fn compile_links() {
-    let linked = config::LINKED.lock().unwrap();
+    let linked = config::LINKED.lock().unwrap().to_vec(); // read-only
     let history = config::HISTORY.lock().unwrap().to_vec(); // read-only
 
     // drop all history from linked

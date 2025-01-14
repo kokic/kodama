@@ -124,12 +124,10 @@ impl Handler for Embed {
 
         if *tag == TagEnd::Link && recorder.context == Context::LocalLink {
             let url = recorder.data.get(0).unwrap().to_string();
-            let text = recorder
-                .data
-                .get(1)
-                .map(|s| s.as_str())
-                .unwrap_or(url.as_str())
-                .to_string();
+            let text = match recorder.data.len() > 1 {
+                true  => recorder.data[1..].join(""), 
+                false => url.to_string()
+            };
             recorder.exit();
             return Some(html_link(
                 &config::full_url(&url),
@@ -141,12 +139,10 @@ impl Handler for Embed {
 
         if *tag == TagEnd::Link && recorder.context == Context::ExternalLink {
             let url = recorder.data.get(0).unwrap().to_string();
-            let text = recorder
-                .data
-                .get(1)
-                .map(|s| s.as_str())
-                .unwrap_or(url.as_str())
-                .to_string();
+            let text = match recorder.data.len() > 1 {
+                true  => recorder.data[1..].join(""), 
+                false => url.to_string()
+            };
             recorder.exit();
             return Some(html_link(
                 &url,
@@ -173,7 +169,7 @@ impl Handler for Embed {
             || recorder.context == Context::LocalLink
             || recorder.context == Context::ExternalLink
         {
-            return recorder.push(s.to_string()); // [1]: Text
+            return recorder.push(s.to_string()); // [1, 2, ...]: Text
         }
 
         if recorder.context == Context::Metadata && s.trim().len() != 0 {
