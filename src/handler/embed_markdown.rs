@@ -55,14 +55,7 @@ impl Handler for Embed {
         if *tag == TagEnd::Link && recorder.context == Context::Embed {
             let entry_url = recorder.data.get(0).unwrap().as_str();
             let entry_url = crate::config::relativize(entry_url);
-            // let entry_url = config::join_path(&recorder.relative_dir, entry_url);
-            // let (parent_dir, filename) = crate::config::parent_dir(&entry_url);
-
-            // url & path
-            let file_path = entry_url;
-            // let file_path = config::join_path(&parent_dir, &html_url);
-            // html_url = crate::config::output_path(&html_url);
-
+                        
             let mut update_catalog = |html_entry: &HtmlEntry| {
                 let slug = html_entry.get("slug").map_or("[no_slug]", |s| s);
                 let title = html_entry.metadata.title().map_or("[no_title]", |s| s);
@@ -116,6 +109,7 @@ impl Handler for Embed {
                 inline_article
             };
 
+            let file_path = entry_url;
             let mut html_entry = compile_to_html(&file_path);
             let inline_article = inline_article(&mut html_entry);
             recorder.exit();
@@ -125,8 +119,8 @@ impl Handler for Embed {
         if *tag == TagEnd::Link && recorder.context == Context::LocalLink {
             let url = recorder.data.get(0).unwrap().to_string();
             let text = match recorder.data.len() > 1 {
-                true  => recorder.data[1..].join(""), 
-                false => url.to_string()
+                true => recorder.data[1..].join(""),
+                false => url.to_string(),
             };
             recorder.exit();
             return Some(html_link(
@@ -140,8 +134,8 @@ impl Handler for Embed {
         if *tag == TagEnd::Link && recorder.context == Context::ExternalLink {
             let url = recorder.data.get(0).unwrap().to_string();
             let text = match recorder.data.len() > 1 {
-                true  => recorder.data[1..].join(""), 
-                false => url.to_string()
+                true => recorder.data[1..].join(""),
+                false => url.to_string(),
             };
             recorder.exit();
             return Some(html_link(
@@ -203,10 +197,6 @@ pub fn write_to_html(html_url: &str, entry: &mut HtmlEntry) {
     let article_inner = html_article_inner(entry, false, true);
     let html = html_doc(&article_inner, &catalog_html);
 
-    // let mut history = config::history();
-    // let key = html_url.to_string();
-
-    // if !history.contains(&key) {
     let filepath = crate::config::output_path(&html_url);
     if verify_and_update_content_hash(&filepath, &html) {
         let _ = std::fs::write(&filepath, html);
@@ -216,8 +206,6 @@ pub fn write_to_html(html_url: &str, entry: &mut HtmlEntry) {
             crate::slug::pretty_path(Path::new(&filepath))
         );
     }
-    // history.push(key);
-    // }
 }
 
 pub fn display_taxon(s: &str) -> String {

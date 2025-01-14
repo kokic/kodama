@@ -132,8 +132,8 @@ pub fn is_hash_updated<P: AsRef<Path>>(content: &str, hash_path: P) -> (bool, u6
     (current_hash != history_hash, current_hash)
 }
 
-/// Return is file modified i.e. is hash updated.
-/// Update hash when file modified.
+/// Checks whether the file has been modified by comparing its current hash with the stored hash.
+/// If the file is modified, updates the stored hash to reflect the latest state.
 pub fn verify_and_update_file_hash(path: &str) -> bool {
     let hash_path = hash_path(&format!("{}.hash", path));
     let content = std::fs::read_to_string(path);
@@ -147,8 +147,8 @@ pub fn verify_and_update_file_hash(path: &str) -> bool {
     true
 }
 
-/// Return is content modified i.e. is hash updated.
-/// Update hash when content modified.
+/// Checks whether the content has been modified by comparing its current hash with the stored hash.
+/// If the content is modified, updates the stored hash to reflect the latest state.
 pub fn verify_and_update_content_hash(path: &str, content: &str) -> bool {
     let hash_path = hash_path(&format!("{}.hash", path));
     let (is_modified, current_hash) = is_hash_updated(&content, &hash_path);

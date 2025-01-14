@@ -40,7 +40,6 @@ impl Handler for TypstImage {
 
     fn end(&mut self, tag: &TagEnd, recorder: &mut Recorder) -> Option<String> {
         if tag == &TagEnd::Link {
-            // let relative_dir = &recorder.relative_dir;
             match recorder.context {
                 Context::InlineTypst => {
                     let shareds = recorder.shareds.join("\n");
@@ -69,7 +68,6 @@ impl Handler for TypstImage {
                 }
                 Context::ImageSpan => {
                     let typst_url = recorder.data.get(0).unwrap().as_str();
-                    // let typst_url = join_path(relative_dir, typst_url);
                     let typst_url = config::relativize(typst_url);
                     let (parent_dir, filename) = parent_dir(&typst_url);
 
@@ -83,7 +81,6 @@ impl Handler for TypstImage {
                 }
                 Context::ImageBlock => {
                     let typst_url = recorder.data.get(0).unwrap().as_str();
-                    // let typst_url = join_path(relative_dir, typst_url);
                     let typst_url = config::relativize(typst_url);
                     let (parent_dir, filename) = parent_dir(&typst_url);
 
