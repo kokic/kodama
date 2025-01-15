@@ -1,7 +1,7 @@
 use crate::{config, html, html_flake::html_entry_header, recorder::Catalog};
 use std::collections::HashMap;
 
-#[derive(serde::Serialize, serde::Deserialize)]
+// #[derive(serde::Serialize, serde::Deserialize)]
 pub struct EntryMetaData(pub HashMap<String, String>);
 
 const PRESET_METADATA: [&'static str; 3] = ["taxon", "title", "slug"];
@@ -63,7 +63,7 @@ impl EntryMetaData {
     }
 }
 
-#[derive(serde::Serialize, serde::Deserialize)]
+// #[derive(serde::Serialize, serde::Deserialize)]
 pub struct HtmlEntry {
     pub metadata: EntryMetaData,
     pub catalog: Catalog,

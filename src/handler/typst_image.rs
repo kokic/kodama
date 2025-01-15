@@ -57,9 +57,10 @@ impl Handler for TypstImage {
                     }
 
                     let inline_typst = format!("{}\n{}", shareds, inline_typst);
+                    let x = args.get(0);
                     let config = InlineConfig {
-                        margin_x: args.get(0).map(|s| s.to_string()),
-                        margin_y: args.get(1).or(args.get(0)).map(|s| s.to_string()),
+                        margin_x: x.map(|s| s.to_string()),
+                        margin_y: args.get(1).or(x).map(|s| s.to_string()),
                         root_dir: config::root_dir(), 
                     };
                     let s = typst_cli::source_to_inline_svg(&inline_typst, config);

@@ -21,7 +21,7 @@ impl Handler for Embed {
                 title: _,
                 id: _,
             } => {
-                let (url, action) = url_action(dest_url);
+                let (mut url, action) = url_action(dest_url);
                 if action == Context::Embed.strify() {
                     recorder.enter(Context::Embed);
                     recorder.push(url); // [0]
@@ -30,6 +30,10 @@ impl Handler for Embed {
                     recorder.push(url);
                 } else if is_local_link(&dest_url) {
                     recorder.enter(Context::LocalLink);
+
+                    if url.ends_with(".md") {
+                        url.truncate(url.len() - 3);
+                    }
                     recorder.push(url.to_string());
 
                     let mut linked = config::LINKED.lock().unwrap();
@@ -55,7 +59,7 @@ impl Handler for Embed {
         if *tag == TagEnd::Link && recorder.context == Context::Embed {
             let entry_url = recorder.data.get(0).unwrap().as_str();
             let entry_url = crate::config::relativize(entry_url);
-                        
+
             let mut update_catalog = |html_entry: &HtmlEntry| {
                 let slug = html_entry.get("slug").map_or("[no_slug]", |s| s);
                 let title = html_entry.metadata.title().map_or("[no_title]", |s| s);

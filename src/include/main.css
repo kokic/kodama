@@ -49,6 +49,11 @@ pre>code {
 }
 
 /* !forest */
+.footnote-definition:last-child {
+  margin-bottom: 1em;
+}
+
+/* !forest */
 .footnote-definition>p {
   display: inline;
 }

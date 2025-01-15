@@ -31,7 +31,7 @@ impl Context {
     }
 }
 
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone)]
 pub struct CatalogItem {
     pub slug: String,
     pub text: String,
@@ -80,7 +80,7 @@ impl Recorder {
     }
 }
 
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone)]
 pub struct Counter {
     pub numbers: Vec<u8>,
 }

@@ -3,8 +3,7 @@
 
 A [Typst](https://github.com/typst/typst)-friendly static site generator.
 
-[[Chinese README](./README.zh-CN.md)]
-
+[[Chinese README](./README.zh-CN.md)] [[Tutorials]](https://kokic.github.io/echo/tutorials.html)
 
 ## Feature List
 
@@ -47,7 +46,7 @@ Third, complex Typst text must be written in an external file and embedded into 
 ### Markdown Embedding
 
 ```
-[title](path/to/file.md#:embed)
+[title](/path/to/file.md#:embed)
 ```
 
 ### Typst Embedding
@@ -55,13 +54,13 @@ Third, complex Typst text must be written in an external file and embedded into 
 #### Inline Figure
 
 ```
-[](path/to/file.typ#:span)
+[](/path/to/file.typ#:span)
 ```
 
 #### Block Figure
 
 ```
-[figure caption](path/to/file.typ#:block)
+[figure caption](/path/to/file.typ#:block)
 ```
 
 ### Typst Inline

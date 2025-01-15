@@ -3,7 +3,7 @@
 
 一个 [Typst](https://github.com/typst/typst) 友好的静态站点生成器. 
 
-[[英语说明](./README.md)]
+[[英语说明](./README.md)] [[Tutorials]](https://kokic.github.io/echo/tutorials.html)
 
 ## 特性列表
 
@@ -46,7 +46,7 @@ Kodama 目前能够嵌入两种类型的文件, `.md` 和 `.typ`. 前者是为�
 ### Markdown 嵌入
 
 ```
-[title](path/to/file.md#:embed)
+[title](/path/to/file.md#:embed)
 ```
 
 ### Typst 嵌入
@@ -54,13 +54,13 @@ Kodama 目前能够嵌入两种类型的文件, `.md` 和 `.typ`. 前者是为�
 #### 段级插图
 
 ```
-[](path/to/file.typ#:span)
+[](/path/to/file.typ#:span)
 ```
 
 #### 块级插图
 
 ```
-[figure caption](path/to/file.typ#:block)
+[figure caption](/path/to/file.typ#:block)
 ```
 
 ### Typst 内联
