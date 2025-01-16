@@ -1,5 +1,5 @@
 #[derive(Debug, PartialEq)]
-pub enum Context {
+pub enum State {
     None,
     Embed,
     Shared,      // shared for inline typst
@@ -14,19 +14,19 @@ pub enum Context {
     ExternalLink,
 }
 
-impl Context {
+impl State {
     pub fn strify(&self) -> &str {
         match self {
-            Context::None => "none",
-            Context::Embed => "embed",
-            Context::InlineTypst => "inline",
-            Context::ImageSpan => "span",
-            Context::ImageBlock => "block",
-            Context::Metadata => "metadata",
-            Context::LocalLink => "local",       // style class name
-            Context::ExternalLink => "external", // style class name
-            Context::Shared => "shared",
-            Context::Figure => "figure",
+            State::None => "none",
+            State::Embed => "embed",
+            State::InlineTypst => "inline",
+            State::ImageSpan => "span",
+            State::ImageBlock => "block",
+            State::Metadata => "metadata",
+            State::LocalLink => "local",       // style class name
+            State::ExternalLink => "external", // style class name
+            State::Shared => "shared",
+            State::Figure => "figure",
         }
     }
 }
@@ -46,28 +46,30 @@ pub type Catalog = Vec<Box<CatalogItem>>;
 
 #[derive(Debug)]
 pub struct Recorder {
-    pub context: Context,
+    pub state: State,
+    pub current: String, 
     pub data: Vec<String>,
     pub catalog: Catalog,
     pub shareds: Vec<String>,
 }
 
 impl Recorder {
-    pub fn new() -> Recorder {
+    pub fn new(current: String) -> Recorder {
         return Recorder {
-            context: Context::None,
+            state: State::None,
+            current, 
             data: vec![],
             catalog: vec![],
             shareds: vec![],
         };
     }
 
-    pub fn enter(&mut self, form: Context) {
-        self.context = form;
+    pub fn enter(&mut self, form: State) {
+        self.state = form;
     }
 
     pub fn exit(&mut self) {
-        self.context = Context::None;
+        self.state = State::None;
         self.data.clear();
     }
 
@@ -76,7 +78,7 @@ impl Recorder {
     }
 
     pub fn is_none(&self) -> bool {
-        matches!(self.context, Context::None)
+        matches!(self.state, State::None)
     }
 }
 

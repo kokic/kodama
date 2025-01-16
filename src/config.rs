@@ -11,8 +11,20 @@ pub static BASE_URL: Mutex<String> = Mutex::new(String::new());
 /// compiled & written markdown URLs
 pub static HISTORY: Mutex<Vec<String>> = Mutex::new(vec![]);
 
+#[derive(Clone, Hash, PartialEq, Eq)]
+pub struct Blink {
+    pub source: String, 
+    pub target: String, 
+}
+
+impl Blink {
+    pub fn new(source: String, target: String) -> Self {
+        return Blink { source, target };
+    }
+}
+
 /// linked markdown URLs
-pub static LINKED: Mutex<Vec<String>> = Mutex::new(vec![]);
+pub static LINKED: Mutex<Vec<Blink>> = Mutex::new(vec![]);
 
 pub const CACHE_DIR: &str = "./.cache";
 pub const HASH_DIR_NAME: &str = "hash";

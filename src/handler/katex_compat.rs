@@ -1,6 +1,6 @@
 use pulldown_cmark::CowStr;
 
-use crate::recorder::Context;
+use crate::recorder::State;
 
 use super::Handler;
 
@@ -18,8 +18,8 @@ impl Handler for KatexCompact {
         s: &pulldown_cmark::CowStr<'_>,
         recorder: &mut crate::recorder::Recorder,
     ) -> Option<std::string::String> {
-        match recorder.context {
-            Context::InlineTypst => {
+        match recorder.state {
+            State::InlineTypst => {
                 let inline_typst = format!("${}$", s);
                 recorder.push(inline_typst);
                 None

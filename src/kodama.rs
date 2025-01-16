@@ -11,29 +11,30 @@ use handler::Handler;
 use html_flake::html_section;
 use pulldown_cmark::{html, CowStr, Event, Options};
 use pulldown_cmark_to_cmark::cmark;
-use recorder::{Context, Recorder};
+use recorder::{State, Recorder};
 use std::collections::HashMap;
 
 pub fn prepare_container(
     filename: &str,
-) -> (
+) -> Result<(
     String,
     HashMap<std::string::String, std::string::String>,
     Recorder,
-) {
+), CompileError> {
     // global data store
     let mut metadata: HashMap<String, String> = HashMap::new();
     let fullname = filename;
     metadata.insert("slug".to_string(), slug::to_slug(&fullname));
 
     // local contents recorder
-    let recorder = Recorder::new();
-
+    let recorder = Recorder::new(fullname.to_string());
     let markdown_path = input_path(&fullname);
-    let expect = format!("file not found: {}", markdown_path);
-    let markdown_input = std::fs::read_to_string(markdown_path).expect(&expect);
-
-    return (markdown_input, metadata, recorder);
+    match std::fs::read_to_string(&markdown_path) {
+        Err(err) => Err(CompileError::FileNotFound(err, markdown_path)),
+        Ok(markdown_input) => {
+            return Ok((markdown_input, metadata, recorder));
+        },
+    }
 }
 
 const OPTIONS: Options = Options::ENABLE_MATH
@@ -43,8 +44,8 @@ const OPTIONS: Options = Options::ENABLE_MATH
     .union(Options::ENABLE_FOOTNOTES);
 
 /// markdown + typst => markdown + svg + css
-pub fn eliminate_typst(filename: &str, holder: &mut String) {
-    let (markdown_input, mut metadata, mut recorder) = prepare_container(filename);
+pub fn eliminate_typst(filename: &str, holder: &mut String) -> Result<(), CompileError> {
+    let (markdown_input, mut metadata, mut recorder) = prepare_container(filename)?;
 
     let mut handlers: Vec<Box<dyn Handler>> = vec![
         Box::new(handler::typst_image::TypstImage {}),
@@ -74,8 +75,8 @@ pub fn eliminate_typst(filename: &str, holder: &mut String) {
                     .iter_mut()
                     .for_each(|handler| handler.text(s, &mut recorder, &mut metadata));
 
-                match recorder.context {
-                    Context::Metadata if s.trim().len() != 0 => {
+                match recorder.state {
+                    State::Metadata if s.trim().len() != 0 => {
                         let pos = s.find(':').expect("metadata item expect `name: value`");
                         let key = s[0..pos].trim();
                         let val = s[pos + 1..].trim();
@@ -117,11 +118,12 @@ pub fn eliminate_typst(filename: &str, holder: &mut String) {
     });
 
     cmark(parser, holder).unwrap();
+    Ok(())
 }
 
 /// parse markdown and generate HTML
-pub fn parse_markdown(filename: &str) -> HtmlEntry {
-    let (markdown_input, mut metadata, mut recorder) = prepare_container(filename);
+pub fn parse_markdown(filename: &str) -> Result<HtmlEntry, CompileError> {
+    let (markdown_input, mut metadata, mut recorder) = prepare_container(filename)?;
 
     let mut handlers: Vec<Box<dyn Handler>> = vec![
         Box::new(handler::figure::Figure),
@@ -196,11 +198,11 @@ pub fn parse_markdown(filename: &str) -> HtmlEntry {
     let metadata = EntryMetaData(metadata);
     let content = html_output;
 
-    return HtmlEntry {
+    return Ok(HtmlEntry {
         metadata,
         content,
         catalog: recorder.catalog,
-    };
+    });
 }
 
 pub fn html_article_inner(entry: &HtmlEntry, hide_metadata: bool, open: bool) -> String {
@@ -218,7 +220,23 @@ pub fn html_article_inner(entry: &HtmlEntry, hide_metadata: bool, open: bool) ->
     )
 }
 
-pub fn compile_to_html(filename: &str) -> HtmlEntry {
+pub enum CompileError {
+    FileNotFound(std::io::Error, String),
+}
+
+impl std::fmt::Debug for CompileError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::FileNotFound(err, path) => 
+            f.debug_struct("FileNotFound")
+            .field("err", err)
+            .field("path" ,path)
+            .finish(),
+        }
+    }
+}
+
+pub fn compile_to_html(filename: &str) -> Result<HtmlEntry, CompileError> {
     let html_url = adjust_name(&filename, ".md", ".html");
     /*
      * An improvement that can be implemented here is to store (in memory or on disk)
@@ -227,13 +245,13 @@ pub fn compile_to_html(filename: &str) -> HtmlEntry {
      *
      * Of course, in general, the likelihood of this scenario occurring is quite low.
      */
-    let mut entry = parse_markdown(&filename);
+    let mut entry = parse_markdown(&filename)?;
     write_to_html(&html_url, &mut entry);
 
     let mut history = config::HISTORY.lock().unwrap();
     history.push(filename.to_string());
 
-    entry
+    Ok(entry)
 }
 
 pub fn compile_links() {
@@ -242,9 +260,13 @@ pub fn compile_links() {
 
     // drop all history from linked
     let linked: std::collections::HashSet<_> = linked.iter().collect();
-    for linked_url in linked {
+    for blink in linked {
+        let (source, linked_url) = (&blink.source, &blink.target);
         if !history.contains(&linked_url) {
-            compile_to_html(&linked_url);
+            match compile_to_html(&linked_url) {
+                Err(err) => eprintln!("{:?} at {}", err, source),
+                _ => ()
+            }
         }
     }
 }

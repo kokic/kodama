@@ -87,7 +87,7 @@ fn main() {
             dir_config(&config::ROOT_DIR, compile_command.root.to_string());
 
             let mut markdown = String::new();
-            eliminate_typst(&filename, &mut markdown);
+            let _ = eliminate_typst(&filename, &mut markdown);
             let filepath = output_path(&filename);
             let _ = std::fs::write(filepath, markdown);
         }
@@ -99,7 +99,10 @@ fn main() {
             dir_config(&config::BASE_URL, compile_command.base.to_string());
 
             // let (parent, filename) = parent_dir(&input);
-            compile_to_html(input);
+            match compile_to_html(input) {
+                Err(err) => eprintln!("{:?}", err),
+                _ => ()
+            }
             kodama::compile_links();
         }
         Command::Clean(clean_command) => {

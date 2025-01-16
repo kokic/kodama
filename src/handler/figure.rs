@@ -1,6 +1,6 @@
 use pulldown_cmark::{Tag, TagEnd};
 
-use crate::recorder::{Context, Recorder};
+use crate::recorder::{State, Recorder};
 
 use super::Handler;
 
@@ -15,7 +15,7 @@ impl Handler for Figure {
                 title: _,
                 id: _,
             } => {
-                recorder.enter(Context::Figure);
+                recorder.enter(State::Figure);
                 recorder.push(dest_url.to_string()); // [0]
             }
             _ => (),
@@ -23,7 +23,7 @@ impl Handler for Figure {
     }
 
     fn end(&mut self, _tag: &TagEnd, recorder: &mut Recorder) -> Option<String> {
-        if recorder.context == Context::Figure {
+        if recorder.state == State::Figure {
             let url = recorder.data.get(0).unwrap();
             let alt = recorder.data.get(1).unwrap();
             let html = format!(r#"<img src={} title={} alt={}>"#, url, alt, alt);
@@ -39,7 +39,7 @@ impl Handler for Figure {
         recorder: &mut Recorder,
         _metadata: &mut std::collections::HashMap<String, String>,
     ) {
-        if recorder.context == Context::Figure {
+        if recorder.state == State::Figure {
             recorder.push(s.to_string()); // [1]: alt text
         }
     }

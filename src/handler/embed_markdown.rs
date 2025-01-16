@@ -2,11 +2,11 @@ use std::{collections::HashMap, path::Path};
 
 use super::{url_action, Handler};
 use crate::{
-    config::{self, verify_and_update_content_hash},
+    config::{self, verify_and_update_content_hash, Blink},
     entry::HtmlEntry,
     html_flake::{html_doc, html_link, html_toc_block},
     kodama::{compile_to_html, html_article_inner},
-    recorder::{CatalogItem, Context, Recorder},
+    recorder::{CatalogItem, Recorder, State},
 };
 use pulldown_cmark::{Tag, TagEnd};
 
@@ -22,14 +22,14 @@ impl Handler for Embed {
                 id: _,
             } => {
                 let (mut url, action) = url_action(dest_url);
-                if action == Context::Embed.strify() {
-                    recorder.enter(Context::Embed);
+                if action == State::Embed.strify() {
+                    recorder.enter(State::Embed);
                     recorder.push(url); // [0]
                 } else if is_external_link(&url) {
-                    recorder.enter(Context::ExternalLink);
+                    recorder.enter(State::ExternalLink);
                     recorder.push(url);
                 } else if is_local_link(&dest_url) {
-                    recorder.enter(Context::LocalLink);
+                    recorder.enter(State::LocalLink);
 
                     if url.ends_with(".md") {
                         url.truncate(url.len() - 3);
@@ -45,18 +45,21 @@ impl Handler for Embed {
                      * Finally, the prefix and suffix like `"./{}.html"` are used to
                      * maintain a consistent format when comparing with `history`.
                      */
-                    linked.push(format!(".{}.md", url));
+                    linked.push(Blink::new(
+                        recorder.current.to_string(),
+                        format!(".{}.md", url),
+                    ));
                 }
             }
             Tag::MetadataBlock(_kind) => {
-                recorder.enter(Context::Metadata);
+                recorder.enter(State::Metadata);
             }
             _ => {}
         }
     }
 
     fn end(&mut self, tag: &TagEnd, recorder: &mut Recorder) -> Option<String> {
-        if *tag == TagEnd::Link && recorder.context == Context::Embed {
+        if *tag == TagEnd::Link && recorder.state == State::Embed {
             let entry_url = recorder.data.get(0).unwrap().as_str();
             let entry_url = crate::config::relativize(entry_url);
 
@@ -114,13 +117,17 @@ impl Handler for Embed {
             };
 
             let file_path = entry_url;
-            let mut html_entry = compile_to_html(&file_path);
-            let inline_article = inline_article(&mut html_entry);
-            recorder.exit();
-            return Some(inline_article);
+            match compile_to_html(&file_path) {
+                Ok(mut html_entry) => {
+                    let inline_article = inline_article(&mut html_entry);
+                    recorder.exit();
+                    return Some(inline_article);
+                }
+                Err(err) => eprintln!("{:?} at {}", err, recorder.current),
+            }
         }
 
-        if *tag == TagEnd::Link && recorder.context == Context::LocalLink {
+        if *tag == TagEnd::Link && recorder.state == State::LocalLink {
             let url = recorder.data.get(0).unwrap().to_string();
             let text = match recorder.data.len() > 1 {
                 true => recorder.data[1..].join(""),
@@ -131,23 +138,18 @@ impl Handler for Embed {
                 &config::full_url(&url),
                 &text,
                 &text,
-                Context::LocalLink.strify(),
+                State::LocalLink.strify(),
             ));
         }
 
-        if *tag == TagEnd::Link && recorder.context == Context::ExternalLink {
+        if *tag == TagEnd::Link && recorder.state == State::ExternalLink {
             let url = recorder.data.get(0).unwrap().to_string();
             let text = match recorder.data.len() > 1 {
                 true => recorder.data[1..].join(""),
                 false => url.to_string(),
             };
             recorder.exit();
-            return Some(html_link(
-                &url,
-                &text,
-                &text,
-                Context::ExternalLink.strify(),
-            ));
+            return Some(html_link(&url, &text, &text, State::ExternalLink.strify()));
         }
 
         match tag {
@@ -163,14 +165,14 @@ impl Handler for Embed {
         recorder: &mut Recorder,
         metadata: &mut HashMap<String, String>,
     ) {
-        if recorder.context == Context::Embed
-            || recorder.context == Context::LocalLink
-            || recorder.context == Context::ExternalLink
+        if recorder.state == State::Embed
+            || recorder.state == State::LocalLink
+            || recorder.state == State::ExternalLink
         {
             return recorder.push(s.to_string()); // [1, 2, ...]: Text
         }
 
-        if recorder.context == Context::Metadata && s.trim().len() != 0 {
+        if recorder.state == State::Metadata && s.trim().len() != 0 {
             /*
              * It is known that the behavior differs between the two architectures
              * (I) `x86_64-pc-windows-msvc` and (II) `aarch64-unknown-linux-musl`.
