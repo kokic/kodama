@@ -13,7 +13,7 @@ impl EntryMetaData {
             .0
             .get("title")
             .map(|s| s.as_str())
-            .unwrap_or("[no_title]");
+            .unwrap_or("");
 
         let slug = self.get("slug").unwrap();
         let slug_url = config::full_url(&format!("{}.html", &slug));

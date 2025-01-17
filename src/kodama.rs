@@ -9,18 +9,14 @@ use config::input_path;
 use entry::{EntryMetaData, HtmlEntry};
 use handler::Handler;
 use html_flake::html_section;
-use pulldown_cmark::{html, CowStr, Event, Options};
+use pulldown_cmark::{html, CowStr, Event, Options, Tag, TagEnd};
 use pulldown_cmark_to_cmark::cmark;
-use recorder::{State, Recorder};
+use recorder::{Recorder, State};
 use std::collections::HashMap;
 
 pub fn prepare_container(
     filename: &str,
-) -> Result<(
-    String,
-    HashMap<std::string::String, std::string::String>,
-    Recorder,
-), CompileError> {
+) -> Result<(String, HashMap<String, String>, Recorder), CompileError> {
     // global data store
     let mut metadata: HashMap<String, String> = HashMap::new();
     let fullname = filename;
@@ -33,7 +29,7 @@ pub fn prepare_container(
         Err(err) => Err(CompileError::FileNotFound(err, markdown_path)),
         Ok(markdown_input) => {
             return Ok((markdown_input, metadata, recorder));
-        },
+        }
     }
 }
 
@@ -42,6 +38,208 @@ const OPTIONS: Options = Options::ENABLE_MATH
     .union(Options::ENABLE_TABLES)
     .union(Options::ENABLE_SMART_PUNCTUATION)
     .union(Options::ENABLE_FOOTNOTES);
+
+pub fn parse_content(
+    markdown_input: &str,
+    recorder: &mut Recorder,
+    metadata: &mut HashMap<String, String>,
+    handlers: &mut Vec<Box<dyn Handler>>,
+    ignore_paragraph: bool,
+) -> Result<String, CompileError> {
+    let parser = pulldown_cmark::Parser::new_ext(&markdown_input, OPTIONS);
+    let parser = parser.filter_map(|mut event| {
+        match &event {
+            Event::Start(tag) => {
+                if ignore_paragraph {
+                    match tag {
+                        Tag::Paragraph => return None,
+                        _ => (),
+                    }
+                }
+                handlers
+                    .iter_mut()
+                    .for_each(|handler| handler.start(&tag, recorder));
+            }
+
+            Event::End(tag) => {
+                if ignore_paragraph {
+                    match tag {
+                        TagEnd::Paragraph => return None,
+                        _ => (),
+                    }
+                }
+                let mut html: Option<String> = None;
+                for handler in handlers.iter_mut() {
+                    html = html.or(handler.end(&tag, recorder));
+                }
+                html.map(|s| event = Event::Html(CowStr::Boxed(s.into())));
+            }
+
+            Event::Text(s) => {
+                handlers
+                    .iter_mut()
+                    .for_each(|handler| handler.text(s, recorder, metadata));
+            }
+
+            Event::InlineMath(s) => {
+                let mut html = String::new();
+                handlers.iter_mut().for_each(|handler| {
+                    handler.inline_math(&s, recorder).map(|s| html = s);
+                });
+                event = Event::Html(CowStr::Boxed(html.into()));
+            }
+
+            Event::DisplayMath(s) => {
+                let mut html = String::new();
+                handlers.iter_mut().for_each(|handler| {
+                    handler.display_math(&s, recorder).map(|s| html = s);
+                });
+                event = Event::Html(CowStr::Boxed(html.into()));
+            }
+
+            Event::InlineHtml(s) => {
+                handlers
+                    .iter_mut()
+                    .for_each(|handler| handler.inline_html(s, recorder, metadata));
+            }
+
+            _ => (),
+        };
+
+        match recorder.is_html_writable() {
+            true => Some(event),
+            _ => None,
+        }
+    });
+
+    let mut html_output = String::new();
+    html::push_html(&mut html_output, parser);
+    return Ok(html_output);
+}
+
+/// parse markdown and generate HTML
+pub fn parse_markdown(filename: &str) -> Result<HtmlEntry, CompileError> {
+    let mut handlers: Vec<Box<dyn Handler>> = vec![
+        Box::new(handler::figure::Figure),
+        Box::new(handler::typst_image::TypstImage),
+        Box::new(handler::katex_compat::KatexCompact),
+        Box::new(handler::embed_markdown::Embed),
+    ];
+
+    let (markdown_input, mut metadata, mut recorder) = prepare_container(filename)?;
+    let content = parse_content(
+        &markdown_input,
+        &mut recorder,
+        &mut metadata,
+        &mut handlers,
+        false,
+    )?;
+    let metadata = EntryMetaData(metadata);
+
+    return Ok(HtmlEntry {
+        metadata,
+        content,
+        catalog: recorder.catalog,
+    });
+}
+
+pub fn html_article_inner(entry: &HtmlEntry, hide_metadata: bool, open: bool) -> String {
+    let metadata = &entry.metadata;
+    let summary = metadata.to_header();
+    let content = &entry.content;
+    let article_id = metadata.id();
+    html_section(
+        &summary,
+        content,
+        hide_metadata,
+        open,
+        article_id,
+        metadata.taxon(),
+    )
+}
+
+pub enum CompileError {
+    FileNotFound(std::io::Error, String),
+}
+
+impl std::fmt::Debug for CompileError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::FileNotFound(err, path) => f
+                .debug_struct("FileNotFound")
+                .field("err", err)
+                .field("path", path)
+                .finish(),
+        }
+    }
+}
+
+pub fn compile_to_html(filename: &str) -> Result<HtmlEntry, CompileError> {
+    let html_url = adjust_name(&filename, ".md", ".html");
+    /*
+     * An improvement that can be implemented here is to store (in memory or on disk)
+     * the `HtmlEntry` instances that have already been generated, and then reuse
+     * these `HtmlEntry` instances when parsing files that have already been processed.
+     *
+     * Of course, in general, the likelihood of this scenario occurring is quite low.
+     */
+    let mut entry = parse_markdown(&filename)?;
+    write_to_html(&html_url, &mut entry);
+
+    let mut history = config::HISTORY.lock().unwrap();
+    history.push(filename.to_string());
+
+    Ok(entry)
+}
+
+pub fn compile_links() {
+    let linked = config::LINKED.lock().unwrap().to_vec(); // read-only
+    let history = config::HISTORY.lock().unwrap().to_vec(); // read-only
+
+    // drop all history from linked
+    let linked: std::collections::HashSet<_> = linked.iter().collect();
+    for blink in linked {
+        let (source, linked_url) = (&blink.source, &blink.target);
+        if !history.contains(&linked_url) {
+            match compile_to_html(&linked_url) {
+                Err(err) => eprintln!("{:?} at {}", err, source),
+                _ => (),
+            }
+        }
+    }
+}
+
+pub fn adjust_name(path: &str, expect: &str, target: &str) -> String {
+    let prefix = if path.ends_with(expect) {
+        &path[0..path.len() - expect.len()]
+    } else {
+        path
+    };
+    format!("{}{}", prefix, target)
+}
+
+pub fn parse_metadata(
+    markdown_input: &str,
+    current: String,
+) -> Result<String, CompileError> {
+    let mut recorder = Recorder::new(current);
+    let mut metadata = HashMap::new();
+    let mut handlers: Vec<Box<dyn Handler>> = vec![
+        Box::new(handler::figure::Figure),
+        Box::new(handler::typst_image::TypstImage),
+        Box::new(handler::katex_compat::KatexCompact),
+        Box::new(handler::embed_markdown::Embed),
+    ];
+
+    let html_output = parse_content(
+        &markdown_input,
+        &mut recorder,
+        &mut metadata,
+        &mut handlers,
+        true,
+    )?;
+    return Ok(html_output);
+}
 
 /// markdown + typst => markdown + svg + css
 pub fn eliminate_typst(filename: &str, holder: &mut String) -> Result<(), CompileError> {
@@ -93,6 +291,7 @@ pub fn eliminate_typst(filename: &str, holder: &mut String) -> Result<(), Compil
                 });
                 event = Event::Html(CowStr::Boxed(html.into()));
             }
+
             Event::DisplayMath(s) => {
                 let mut html = String::new();
                 handlers.iter_mut().for_each(|handler| {
@@ -101,17 +300,10 @@ pub fn eliminate_typst(filename: &str, holder: &mut String) -> Result<(), Compil
                 event = Event::Html(CowStr::Boxed(html.into()));
             }
 
-            Event::Html(_s) => { /* println!("Html: {:?}", s) */ }
-            Event::InlineHtml(s) => println!("InlineHtml: {:?}", s),
-            Event::Code(s) => println!("Code: {:?}", s),
-            Event::FootnoteReference(s) => println!("FootnoteReference: {:?}", s),
-            Event::TaskListMarker(b) => println!("TaskListMarker: {:?}", b),
-            Event::SoftBreak => { /* println!("SoftBreak") */ }
-            Event::HardBreak => println!("HardBreak"),
-            Event::Rule => println!("Rule"),
+            _ => (),
         };
 
-        match recorder.is_none() {
+        match recorder.is_html_writable() {
             true => Some(event),
             _ => None,
         }
@@ -119,163 +311,4 @@ pub fn eliminate_typst(filename: &str, holder: &mut String) -> Result<(), Compil
 
     cmark(parser, holder).unwrap();
     Ok(())
-}
-
-/// parse markdown and generate HTML
-pub fn parse_markdown(filename: &str) -> Result<HtmlEntry, CompileError> {
-    let (markdown_input, mut metadata, mut recorder) = prepare_container(filename)?;
-
-    let mut handlers: Vec<Box<dyn Handler>> = vec![
-        Box::new(handler::figure::Figure),
-        Box::new(handler::typst_image::TypstImage),
-        Box::new(handler::katex_compat::KatexCompact),
-        Box::new(handler::embed_markdown::Embed),
-    ];
-
-    let parser = pulldown_cmark::Parser::new_ext(&markdown_input, OPTIONS);
-
-    let parser = parser.filter_map(|mut event| {
-        match &event {
-            Event::Start(tag) => {
-                handlers
-                    .iter_mut()
-                    .for_each(|handler| handler.start(&tag, &mut recorder));
-            }
-
-            Event::End(tag) => {
-                let mut html: Option<String> = None;
-                for handler in handlers.iter_mut() {
-                    html = html.or(handler.end(&tag, &mut recorder));
-                }
-                html.map(|s| event = Event::Html(CowStr::Boxed(s.into())));
-            }
-
-            Event::Text(s) => {
-                handlers
-                    .iter_mut()
-                    .for_each(|handler| handler.text(s, &mut recorder, &mut metadata));
-            }
-
-            Event::InlineMath(s) => {
-                let mut html = String::new();
-                handlers.iter_mut().for_each(|handler| {
-                    handler.inline_math(&s, &mut recorder).map(|s| html = s);
-                });
-                event = Event::Html(CowStr::Boxed(html.into()));
-            }
-            Event::DisplayMath(s) => {
-                let mut html = String::new();
-                handlers.iter_mut().for_each(|handler| {
-                    handler.display_math(&s, &mut recorder).map(|s| html = s);
-                });
-                event = Event::Html(CowStr::Boxed(html.into()));
-            }
-
-            Event::InlineHtml(s) => {
-                handlers
-                    .iter_mut()
-                    .for_each(|handler| handler.inline_html(s, &mut recorder, &mut metadata));
-            }
-
-            Event::Html(_s) => { /* println!("Html: {:?}", s) */ }
-            Event::Code(_s) => { /* println!("Code: {:?}", s) */ }
-            Event::FootnoteReference(_s) => { /* println!("FootnoteReference: {:?}", s) */ }
-            Event::TaskListMarker(_b) => { /* println!("TaskListMarker: {:?}", b) */ }
-            Event::SoftBreak => { /* println!("SoftBreak") */ }
-            Event::HardBreak => { /* println!("HardBreak") */ }
-            Event::Rule => { /* println!("Rule") */ }
-        };
-
-        match recorder.is_none() {
-            true => Some(event),
-            _ => None,
-        }
-    });
-
-    let mut html_output = String::new();
-    html::push_html(&mut html_output, parser);
-
-    let metadata = EntryMetaData(metadata);
-    let content = html_output;
-
-    return Ok(HtmlEntry {
-        metadata,
-        content,
-        catalog: recorder.catalog,
-    });
-}
-
-pub fn html_article_inner(entry: &HtmlEntry, hide_metadata: bool, open: bool) -> String {
-    let metadata = &entry.metadata;
-    let summary = metadata.to_header();
-    let content = &entry.content;
-    let article_id = metadata.id();
-    html_section(
-        &summary,
-        content,
-        hide_metadata,
-        open,
-        article_id,
-        metadata.taxon(),
-    )
-}
-
-pub enum CompileError {
-    FileNotFound(std::io::Error, String),
-}
-
-impl std::fmt::Debug for CompileError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::FileNotFound(err, path) => 
-            f.debug_struct("FileNotFound")
-            .field("err", err)
-            .field("path" ,path)
-            .finish(),
-        }
-    }
-}
-
-pub fn compile_to_html(filename: &str) -> Result<HtmlEntry, CompileError> {
-    let html_url = adjust_name(&filename, ".md", ".html");
-    /*
-     * An improvement that can be implemented here is to store (in memory or on disk)
-     * the `HtmlEntry` instances that have already been generated, and then reuse
-     * these `HtmlEntry` instances when parsing files that have already been processed.
-     *
-     * Of course, in general, the likelihood of this scenario occurring is quite low.
-     */
-    let mut entry = parse_markdown(&filename)?;
-    write_to_html(&html_url, &mut entry);
-
-    let mut history = config::HISTORY.lock().unwrap();
-    history.push(filename.to_string());
-
-    Ok(entry)
-}
-
-pub fn compile_links() {
-    let linked = config::LINKED.lock().unwrap().to_vec(); // read-only
-    let history = config::HISTORY.lock().unwrap().to_vec(); // read-only
-
-    // drop all history from linked
-    let linked: std::collections::HashSet<_> = linked.iter().collect();
-    for blink in linked {
-        let (source, linked_url) = (&blink.source, &blink.target);
-        if !history.contains(&linked_url) {
-            match compile_to_html(&linked_url) {
-                Err(err) => eprintln!("{:?} at {}", err, source),
-                _ => ()
-            }
-        }
-    }
-}
-
-pub fn adjust_name(path: &str, expect: &str, target: &str) -> String {
-    let prefix = if path.ends_with(expect) {
-        &path[0..path.len() - expect.len()]
-    } else {
-        path
-    };
-    format!("{}{}", prefix, target)
 }

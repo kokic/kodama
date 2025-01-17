@@ -1,6 +1,7 @@
 #[derive(Debug, PartialEq)]
 pub enum State {
-    None,
+    None, // writable
+
     Embed,
     Shared,      // shared for inline typst
     InlineTypst, // typst
@@ -77,7 +78,7 @@ impl Recorder {
         self.data.push(s);
     }
 
-    pub fn is_none(&self) -> bool {
+    pub fn is_html_writable(&self) -> bool {
         matches!(self.state, State::None)
     }
 }

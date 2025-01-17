@@ -212,7 +212,7 @@ hr {
   content: "";
 }
 
-.metadata ul li {
+.metadata * {
   display: inline;
 }
 

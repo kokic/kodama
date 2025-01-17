@@ -5,7 +5,7 @@ use crate::{
     config::{self, verify_and_update_content_hash, Blink},
     entry::HtmlEntry,
     html_flake::{html_doc, html_link, html_toc_block},
-    kodama::{compile_to_html, html_article_inner},
+    kodama::{compile_to_html, html_article_inner, parse_metadata},
     recorder::{CatalogItem, Recorder, State},
 };
 use pulldown_cmark::{Tag, TagEnd};
@@ -64,8 +64,10 @@ impl Handler for Embed {
             let entry_url = crate::config::relativize(entry_url);
 
             let mut update_catalog = |html_entry: &HtmlEntry| {
-                let slug = html_entry.get("slug").map_or("[no_slug]", |s| s);
-                let title = html_entry.metadata.title().map_or("[no_title]", |s| s);
+                let slug = html_entry
+                    .get("slug")
+                    .expect("the field `slug` must exist!");
+                let title = html_entry.metadata.title().map_or("", |s| s);
 
                 let mut inline_title = recorder
                     .data
@@ -185,7 +187,17 @@ impl Handler for Embed {
                     let pos = s.find(':').expect("metadata item expect `name: value`");
                     let key = s[0..pos].trim();
                     let val = s[pos + 1..].trim();
-                    metadata.insert(key.to_string(), val.to_string());
+
+                    let current = recorder.current.to_string();
+                    let html = match parse_metadata(val, current) {
+                        Ok(html) => html,
+                        Err(err) => {
+                            eprintln!("{:?}", err);
+                            val.to_string()
+                        }
+                    };
+                    metadata.insert(key.to_string(), html);
+                    return;
                 }
             }
         }
