@@ -21,7 +21,7 @@ pub fn html_section(
 
     let inner_html = format!("{}{}", (html!(summary => {summary})), content);
     let html_details = format!(r#"
-      <details id={} {}>{}</details>
+      <details id="{}" {}>{}</details>
     "#, id, open, inner_html);
     html!(section class = {class_name.join(" ")}, data_taxon = {taxon} => {html_details})
 }
