@@ -96,12 +96,18 @@ fn main() {
             let output = compile_command.output.as_str();
             dir_config(&config::OUTPUT_DIR, output.to_string());
             dir_config(&config::ROOT_DIR, compile_command.root.to_string());
-            dir_config(&config::BASE_URL, compile_command.base.to_string());
+
+            let base_url = compile_command.base.to_string();
+            let base_url = match base_url.ends_with("/") {
+                true => base_url,
+                false => format!("{}/", base_url),
+            };
+            dir_config(&config::BASE_URL, base_url);
 
             // let (parent, filename) = parent_dir(&input);
             match compile_to_html(input) {
                 Err(err) => eprintln!("{:?}", err),
-                _ => ()
+                _ => (),
             }
             kodama::compile_links();
         }

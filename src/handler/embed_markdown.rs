@@ -240,10 +240,14 @@ pub fn display_option_taxon(taxon: Option<&String>) -> String {
     }
 }
 
+/* 
+ * URI scheme:  
+ *   http, https, ftp, mailto, file, data and irc
+ */
 fn is_external_link(url: &str) -> bool {
     url.starts_with("http://") || url.starts_with("https://") || url.starts_with("www.")
 }
 
 fn is_local_link(url: &str) -> bool {
-    !super::typst_image::is_inline_typst(url) && !is_external_link(url) && !url.contains("#:")
+    !super::typst_image::is_inline_typst(url) && !is_external_link(url) && !url.contains(":")
 }
