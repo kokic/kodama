@@ -1,0 +1,9 @@
+[package]
+name = "kodama"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+clap = { version = "4.5.23", features = ["derive"] }
+pulldown-cmark = { version = "0.12.2", default-features = false, features = ["html"] }
+pulldown-cmark-to-cmark = "20.0.0"
