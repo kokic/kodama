@@ -6,7 +6,6 @@ mod html_macro;
 mod kodama;
 mod recorder;
 mod slug;
-mod traverse;
 mod typst_cli;
 
 use clap::Parser;
@@ -32,12 +31,6 @@ enum Command {
 
     /// Clean all build files (.cache & publish).
     Clean(CleanCommand),
-}
-
-#[derive(clap::Args)]
-struct NewCommand {
-    // Categorial name.
-    category: String,
 }
 
 #[derive(clap::Args)]
