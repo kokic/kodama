@@ -202,6 +202,20 @@ impl Handler for Embed {
             }
         }
     }
+
+    fn inline_math(
+        &self,
+        s: &pulldown_cmark::CowStr<'_>,
+        recorder: &mut crate::recorder::Recorder,
+    ) -> Option<std::string::String> {
+        if recorder.state == State::Embed
+            || recorder.state == State::LocalLink
+            || recorder.state == State::ExternalLink
+        {
+            recorder.push(format!("${}$", s)); // [1, 2, ...]: Text
+        }
+        None
+    }
 }
 
 pub fn update_taxon(html_entry: &mut HtmlEntry) {

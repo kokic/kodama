@@ -16,7 +16,8 @@ impl EntryMetaData {
             .unwrap_or("");
 
         let slug = self.get("slug").unwrap();
-        let slug_url = config::full_url(&format!("{}.html", &slug));
+        // enable pretty urls or `&format!("{}.html", &slug)`
+        let slug_url = config::full_url(slug);
         let span_class: Vec<String> = vec!["taxon".to_string()];
 
         html!(header =>

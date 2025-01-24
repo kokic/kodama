@@ -74,7 +74,8 @@ pub fn html_doc(article_inner: &str, catalog_html: &str) -> String {
 <meta name="viewport" content="width=device-width"> 
 <title></title>"#
         (html_import_fonts())
-        (html_import_katex())))
+        (html_import_katex())
+        (html_auto_render())))
         (html_css())
         (html_javascript())
       (html!(body => {body_inner})));
@@ -148,11 +149,15 @@ pub fn html_css() -> String {
 }
 
 pub fn html_import_fonts() -> &'static str {
-  return include_str!("include/import-fonts.html");
+    return include_str!("include/import-fonts.html");
 }
 
 pub fn html_import_katex() -> &'static str {
     return include_str!("include/import-katex.html");
+}
+
+pub fn html_auto_render() -> &'static str {
+    return include_str!("include/auto-render.html");
 }
 
 pub fn html_main_style() -> &'static str {
