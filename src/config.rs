@@ -144,7 +144,8 @@ pub fn verify_and_update_content_hash(path: &str, content: &str) -> bool {
 }
 
 pub fn delete_all_build_files() -> Result<(), std::io::Error> {
-    std::fs::remove_dir_all(join_path(&root_dir(), CACHE_DIR))?;
-    std::fs::remove_dir_all(join_path(&root_dir(), &OUTPUT_DIR.lock().unwrap()))?;
+    let root_dir = root_dir();
+    std::fs::remove_dir_all(join_path(&root_dir, CACHE_DIR))?;
+    std::fs::remove_dir_all(join_path(&root_dir, &OUTPUT_DIR.lock().unwrap()))?;
     Ok(())
 }

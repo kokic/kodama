@@ -53,7 +53,10 @@ struct CompileCommand {
 
 #[derive(clap::Args)]
 struct CleanCommand {
-    // target: CleanTarget,
+    /// Path to output dir.
+    #[arg(short, long, default_value_t = format!("./publish"))]
+    output: String,
+
     /// Configures the project root (for absolute paths)
     #[arg(short, long, default_value_t = format!("./"))]
     root: String,
@@ -95,7 +98,10 @@ fn main() {
             kodama::compile_links();
         }
         Command::Clean(clean_command) => {
+            let output = clean_command.output.as_str();
+            dir_config(&config::OUTPUT_DIR, output.to_string());
             dir_config(&config::ROOT_DIR, clean_command.root.to_string());
+
             let _ = config::delete_all_build_files();
         }
     }
