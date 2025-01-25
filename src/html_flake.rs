@@ -84,7 +84,8 @@ pub fn html_doc(article_inner: &str, catalog_html: &str) -> String {
 
 fn html_toc_li(data: &CatalogItem, counter: &Counter) -> String {
     let (slug, taxon, text) = (data.slug.as_str(), data.taxon.as_str(), data.text.as_str());
-    let slug_url = format!("{}.html", slug);
+    // enable pretty urls or `&format!("{}.html", slug)`
+    let slug_url = slug;
     let title = format!("{} [{}]", text, slug);
     let href = format!("#{}", crate::slug::to_id(slug)); // #id
 

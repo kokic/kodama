@@ -16,6 +16,11 @@ impl EntryMetaData {
             .unwrap_or("");
 
         let slug = self.get("slug").unwrap();
+        // hidden suffix `/index` in slug text 
+        let slug_text = match slug.ends_with("/index") {
+            true => &slug[..slug.len() - "/index".len()],
+            false => slug,
+        };
         // enable pretty urls or `&format!("{}.html", &slug)`
         let slug_url = config::full_url(slug);
         let span_class: Vec<String> = vec!["taxon".to_string()];
@@ -25,7 +30,7 @@ impl EntryMetaData {
             (html!(span class = {span_class.join(" ")} => {taxon}))
             {title}
             {" "}
-            (html!(a class = "slug", href = {slug_url} => "["{&slug}"]"))))
+            (html!(a class = "slug", href = {slug_url} => "["{&slug_text}"]"))))
           (html!(html_entry_header(self.etc()))))
     }
 

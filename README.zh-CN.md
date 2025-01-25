@@ -3,7 +3,7 @@
 
 一个 [Typst](https://github.com/typst/typst) 友好的静态站点生成器. 
 
-[[英语说明](./README.md)] [[Tutorials]](https://kokic.github.io/echo/tutorials.html)
+[[英语说明](./README.md)] [[Tutorials]](https://kokic.github.io/tutorials)
 
 ## 特性列表
 

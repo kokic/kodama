@@ -3,7 +3,7 @@
 
 A [Typst](https://github.com/typst/typst)-friendly static site generator.
 
-[[Chinese README](./README.zh-CN.md)] [[Tutorials]](https://kokic.github.io/echo/tutorials.html)
+[[Chinese README](./README.zh-CN.md)] [[Tutorials]](https://kokic.github.io/tutorials)
 
 ## Feature List
 
