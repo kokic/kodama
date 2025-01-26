@@ -231,12 +231,16 @@ pub fn write_to_html(html_url: &str, entry: &mut HtmlEntry) {
 
     let filepath = crate::config::output_path(&html_url);
     if verify_and_update_content_hash(&filepath, &html) {
-        let _ = std::fs::write(&filepath, html);
-        println!(
-            "Output: {:?} {}",
-            entry.metadata.title().map_or("", |s| s),
-            crate::slug::pretty_path(Path::new(&filepath))
-        );
+        match std::fs::write(&filepath, html) {
+            Ok(()) => {
+                println!(
+                    "Output: {:?} {}",
+                    entry.metadata.title().map_or("", |s| s),
+                    crate::slug::pretty_path(Path::new(&filepath))
+                );
+            }
+            Err(err) => eprintln!("{:?}", err),
+        }
     }
 }
 
@@ -254,8 +258,8 @@ pub fn display_option_taxon(taxon: Option<&String>) -> String {
     }
 }
 
-/* 
- * URI scheme:  
+/*
+ * URI scheme:
  *   http, https, ftp, mailto, file, data and irc
  */
 fn is_external_link(url: &str) -> bool {

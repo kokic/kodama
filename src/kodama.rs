@@ -193,8 +193,8 @@ pub fn compile_to_html(filename: &str) -> Result<HtmlEntry, CompileError> {
 }
 
 pub fn compile_links() {
-    let linked = config::LINKED.lock().unwrap().to_vec(); // read-only
-    let history = config::HISTORY.lock().unwrap().to_vec(); // read-only
+    let linked = config::linked(); // read-only
+    let history = config::history(); // read-only
 
     // drop all history from linked
     let linked: std::collections::HashSet<_> = linked.iter().collect();

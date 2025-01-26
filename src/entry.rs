@@ -21,8 +21,7 @@ impl EntryMetaData {
             true => &slug[..slug.len() - "/index".len()],
             false => slug,
         };
-        // enable pretty urls or `&format!("{}.html", &slug)`
-        let slug_url = config::full_url(slug);
+        let slug_url = config::full_url(&format!("{}{}", &slug, config::page_suffix()));
         let span_class: Vec<String> = vec!["taxon".to_string()];
 
         html!(header =>

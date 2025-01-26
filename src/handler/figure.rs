@@ -1,6 +1,6 @@
 use pulldown_cmark::{Tag, TagEnd};
 
-use crate::recorder::{State, Recorder};
+use crate::recorder::{Recorder, State};
 
 use super::Handler;
 

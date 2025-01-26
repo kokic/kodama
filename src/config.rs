@@ -7,9 +7,15 @@ use std::{
 pub static ROOT_DIR: Mutex<String> = Mutex::new(String::new());
 pub static OUTPUT_DIR: Mutex<String> = Mutex::new(String::new());
 pub static BASE_URL: Mutex<String> = Mutex::new(String::new());
+pub static PAGE_SUFFIX: Mutex<String> = Mutex::new(String::new());
 
 /// compiled & written markdown URLs
 pub static HISTORY: Mutex<Vec<String>> = Mutex::new(vec![]);
+
+pub fn history() -> Vec<String> {
+    let history = HISTORY.lock().unwrap();
+    history.to_vec()
+}
 
 #[derive(Clone, Hash, PartialEq, Eq)]
 pub struct Blink {
@@ -26,6 +32,11 @@ impl Blink {
 /// linked markdown URLs
 pub static LINKED: Mutex<Vec<Blink>> = Mutex::new(vec![]);
 
+pub fn linked() -> Vec<Blink> {
+    let linked = LINKED.lock().unwrap();
+    linked.to_vec()
+}
+
 pub const CACHE_DIR: &str = "./.cache";
 pub const HASH_DIR_NAME: &str = "hash";
 // pub const ENTRY_DIR_NAME: &str = "entry";
@@ -41,6 +52,10 @@ pub fn root_dir() -> String {
 
 pub fn base_url() -> String {
     BASE_URL.lock().unwrap().to_string()
+}
+
+pub fn page_suffix() -> String {
+    PAGE_SUFFIX.lock().unwrap().to_string()
 }
 
 pub fn full_url(path: &str) -> String {

@@ -49,6 +49,10 @@ struct CompileCommand {
     /// Configures the project root (for absolute paths)
     #[arg(short, long, default_value_t = format!("./"))]
     root: String,
+
+    /// Disable pretty urls (`/page` to `/page.html`)
+    #[arg(short, long)]
+    disable_pretty_urls: bool,
 }
 
 #[derive(clap::Args)]
@@ -83,6 +87,9 @@ fn main() {
             let output = compile_command.output.as_str();
             dir_config(&config::OUTPUT_DIR, output.to_string());
             dir_config(&config::ROOT_DIR, compile_command.root.to_string());
+            if compile_command.disable_pretty_urls {
+                dir_config(&config::PAGE_SUFFIX, ".html".to_string());
+            }
 
             let base_url = compile_command.base.to_string();
             let base_url = match base_url.ends_with("/") {
