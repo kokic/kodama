@@ -44,6 +44,7 @@ pub fn parse_content(
     recorder: &mut Recorder,
     metadata: &mut HashMap<String, String>,
     handlers: &mut Vec<Box<dyn Handler>>,
+    history: &mut Vec<String>, 
     ignore_paragraph: bool,
 ) -> Result<String, CompileError> {
     let parser = pulldown_cmark::Parser::new_ext(&markdown_input, OPTIONS);
@@ -70,7 +71,7 @@ pub fn parse_content(
                 }
                 let mut html: Option<String> = None;
                 for handler in handlers.iter_mut() {
-                    html = html.or(handler.end(&tag, recorder));
+                    html = html.or(handler.end(&tag, recorder, history));
                 }
                 html.map(|s| event = Event::Html(CowStr::Boxed(s.into())));
             }
@@ -78,7 +79,7 @@ pub fn parse_content(
             Event::Text(s) => {
                 handlers
                     .iter_mut()
-                    .for_each(|handler| handler.text(s, recorder, metadata));
+                    .for_each(|handler| handler.text(s, recorder, metadata, history));
             }
 
             Event::InlineMath(s) => {
@@ -118,7 +119,7 @@ pub fn parse_content(
 }
 
 /// parse markdown and generate HTML
-pub fn parse_markdown(filename: &str) -> Result<HtmlEntry, CompileError> {
+pub fn parse_markdown(filename: &str, history: &mut Vec<String>) -> Result<HtmlEntry, CompileError> {
     let mut handlers: Vec<Box<dyn Handler>> = vec![
         Box::new(handler::figure::Figure),
         Box::new(handler::typst_image::TypstImage),
@@ -132,6 +133,7 @@ pub fn parse_markdown(filename: &str) -> Result<HtmlEntry, CompileError> {
         &mut recorder,
         &mut metadata,
         &mut handlers,
+        history, 
         false,
     )?;
     let metadata = EntryMetaData(metadata);
@@ -174,7 +176,25 @@ impl std::fmt::Debug for CompileError {
     }
 }
 
-pub fn compile_to_html(filename: &str) -> Result<HtmlEntry, CompileError> {
+/**
+ * `filename` - the workspace index / home file name. 
+ */
+pub fn compile_workspace(filename: &str) -> Result<HtmlEntry, CompileError> {
+    let mut entire = config::history(); // read-only
+    let result= compile_to_html(filename, &mut entire);
+    
+    /*
+     * Update an entire vector to avoid frequent calls to `Mutex::lock`. 
+     */
+    let mut history = config::HISTORY.lock().unwrap();
+    *history = entire;
+    result
+}
+
+pub fn compile_to_html(
+    filename: &str,
+    history: &mut Vec<String>,
+) -> Result<HtmlEntry, CompileError> {
     let html_url = adjust_name(&filename, ".md", ".html");
     /*
      * An improvement that can be implemented here is to store (in memory or on disk)
@@ -183,10 +203,9 @@ pub fn compile_to_html(filename: &str) -> Result<HtmlEntry, CompileError> {
      *
      * Of course, in general, the likelihood of this scenario occurring is quite low.
      */
-    let mut entry = parse_markdown(&filename)?;
+    let mut entry = parse_markdown(&filename, history)?;
     write_to_html(&html_url, &mut entry);
 
-    let mut history = config::HISTORY.lock().unwrap();
     history.push(filename.to_string());
 
     Ok(entry)
@@ -198,10 +217,15 @@ pub fn compile_links() {
 
     // drop all history from linked
     let linked: std::collections::HashSet<_> = linked.iter().collect();
+    let history: std::collections::HashSet<_> = history.iter().collect();
+
     for blink in linked {
         let (source, linked_url) = (&blink.source, &blink.target);
         if !history.contains(&linked_url) {
-            match compile_to_html(&linked_url) {
+            /*
+             * Note: Here we no longer need to update the `history`.
+             */
+            match compile_to_html(&linked_url, &mut vec![]) {
                 Err(err) => eprintln!("{:?} at {}", err, source),
                 _ => (),
             }
@@ -221,6 +245,7 @@ pub fn adjust_name(path: &str, expect: &str, target: &str) -> String {
 pub fn parse_spanned_markdown(
     markdown_input: &str,
     current: String,
+    history: &mut Vec<String>,
 ) -> Result<String, CompileError> {
     let mut recorder = Recorder::new(current);
     let mut metadata = HashMap::new();
@@ -236,6 +261,7 @@ pub fn parse_spanned_markdown(
         &mut recorder,
         &mut metadata,
         &mut handlers,
+        history, 
         true,
     )?;
     return Ok(html_output);
@@ -263,7 +289,7 @@ pub fn eliminate_typst(filename: &str, holder: &mut String) -> Result<(), Compil
             Event::End(tag) => {
                 let mut html: Option<String> = None;
                 for handler in handlers.iter_mut() {
-                    html = html.or(handler.end(&tag, &mut recorder));
+                    html = html.or(handler.end(&tag, &mut recorder, &mut vec![]));
                 }
                 html.map(|s| event = Event::Html(CowStr::Boxed(s.into())));
             }
@@ -271,7 +297,7 @@ pub fn eliminate_typst(filename: &str, holder: &mut String) -> Result<(), Compil
             Event::Text(s) => {
                 handlers
                     .iter_mut()
-                    .for_each(|handler| handler.text(s, &mut recorder, &mut metadata));
+                    .for_each(|handler| handler.text(s, &mut recorder, &mut metadata, &mut vec![]));
 
                 match recorder.state {
                     State::Metadata if s.trim().len() != 0 => {

@@ -58,7 +58,7 @@ impl Handler for Embed {
         }
     }
 
-    fn end(&mut self, tag: &TagEnd, recorder: &mut Recorder) -> Option<String> {
+    fn end(&mut self, tag: &TagEnd, recorder: &mut Recorder, history: &mut Vec<String>) -> Option<String> {
         if *tag == TagEnd::Link && recorder.state == State::Embed {
             let entry_url = recorder.data.get(0).unwrap().as_str();
             let entry_url = crate::config::relativize(entry_url);
@@ -119,7 +119,7 @@ impl Handler for Embed {
             };
 
             let file_path = entry_url;
-            match compile_to_html(&file_path) {
+            match compile_to_html(&file_path, history) {
                 Ok(mut html_entry) => {
                     let inline_article = inline_article(&mut html_entry);
                     recorder.exit();
@@ -135,10 +135,11 @@ impl Handler for Embed {
                 true => recorder.data[1..].join(""),
                 false => url.to_string(),
             };
+            let title = format!("{} [{}]", text, url);
             recorder.exit();
             return Some(html_link(
                 &config::full_url(&url),
-                &text,
+                &title,
                 &text,
                 State::LocalLink.strify(),
             ));
@@ -150,8 +151,9 @@ impl Handler for Embed {
                 true => recorder.data[1..].join(""),
                 false => url.to_string(),
             };
+            let title = format!("{} [{}]", text, url);
             recorder.exit();
-            return Some(html_link(&url, &text, &text, State::ExternalLink.strify()));
+            return Some(html_link(&url, &title, &text, State::ExternalLink.strify()));
         }
 
         match tag {
@@ -166,6 +168,7 @@ impl Handler for Embed {
         s: &pulldown_cmark::CowStr<'_>,
         recorder: &mut Recorder,
         metadata: &mut HashMap<String, String>,
+        history: &mut Vec<String>
     ) {
         if recorder.state == State::Embed
             || recorder.state == State::LocalLink
@@ -189,7 +192,7 @@ impl Handler for Embed {
                     let val = s[pos + 1..].trim();
 
                     let current = recorder.current.to_string();
-                    let html = match parse_spanned_markdown(val, current) {
+                    let html = match parse_spanned_markdown(val, current, history) {
                         Ok(html) => html,
                         Err(err) => {
                             eprintln!("{:?}", err);

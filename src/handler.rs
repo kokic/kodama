@@ -13,12 +13,12 @@ pub trait Handler {
     fn start(&mut self, tag: &Tag<'_>, recorder: &mut Recorder) {}
 
     #[allow(unused_variables)]
-    fn end(&mut self, tag: &TagEnd, recorder: &mut Recorder) -> Option<String> {
+    fn end(&mut self, tag: &TagEnd, recorder: &mut Recorder, history: &mut Vec<String>) -> Option<String> {
         None
     }
 
     #[allow(dead_code, unused_variables)]
-    fn text(&self, s: &CowStr<'_>, recorder: &mut Recorder, metadata: &mut HashMap<String, String>) {}
+    fn text(&self, s: &CowStr<'_>, recorder: &mut Recorder, metadata: &mut HashMap<String, String>, history: &mut Vec<String>) {}
 
     #[allow(dead_code, unused_variables)]
     fn inline_math(&self, s: &CowStr<'_>, recorder: &mut Recorder) -> Option<String> {

@@ -8,6 +8,11 @@ pub static ROOT_DIR: Mutex<String> = Mutex::new(String::new());
 pub static OUTPUT_DIR: Mutex<String> = Mutex::new(String::new());
 pub static BASE_URL: Mutex<String> = Mutex::new(String::new());
 pub static PAGE_SUFFIX: Mutex<String> = Mutex::new(String::new());
+pub static SHORT_SLUG: Mutex<bool> = Mutex::new(false);
+
+pub fn is_short_slug() -> bool {
+    SHORT_SLUG.lock().unwrap().to_owned()
+}
 
 /// compiled & written markdown URLs
 pub static HISTORY: Mutex<Vec<String>> = Mutex::new(vec![]);
@@ -41,9 +46,9 @@ pub const CACHE_DIR: &str = "./.cache";
 pub const HASH_DIR_NAME: &str = "hash";
 // pub const ENTRY_DIR_NAME: &str = "entry";
 
-pub fn dir_config(source: &Mutex<String>, target: String) {
-    let mut path = source.lock().unwrap();
-    *path = target;
+pub fn mutex_set<T>(source: &Mutex<T>, target: T) {
+    let mut guard = source.lock().unwrap();
+    *guard = target;
 }
 
 pub fn root_dir() -> String {

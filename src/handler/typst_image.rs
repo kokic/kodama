@@ -39,7 +39,7 @@ impl Handler for TypstImage {
         }
     }
 
-    fn end(&mut self, tag: &TagEnd, recorder: &mut Recorder) -> Option<String> {
+    fn end(&mut self, tag: &TagEnd, recorder: &mut Recorder, history: &mut Vec<String>) -> Option<String> {
         if tag == &TagEnd::Link {
             match recorder.state {
                 State::InlineTypst => {
@@ -94,7 +94,7 @@ impl Handler for TypstImage {
                     recorder.exit();
 
                     let current = recorder.current.to_string();
-                    let caption = match parse_spanned_markdown(&caption, current) {
+                    let caption = match parse_spanned_markdown(&caption, current, history) {
                         Ok(html) => html,
                         Err(err) => {
                             eprintln!("{:?}", err);
@@ -123,7 +123,7 @@ impl Handler for TypstImage {
                     recorder.exit();
 
                     let current = recorder.current.to_string();
-                    let caption = match parse_spanned_markdown(&caption, current) {
+                    let caption = match parse_spanned_markdown(&caption, current, history) {
                         Ok(html) => html,
                         Err(err) => {
                             eprintln!("{:?}", err);
@@ -160,6 +160,7 @@ impl Handler for TypstImage {
         s: &pulldown_cmark::CowStr<'_>,
         recorder: &mut Recorder,
         _metadata: &mut std::collections::HashMap<String, String>,
+        _history: &mut Vec<String>
     ) {
         if recorder.state == State::Shared
             || recorder.state == State::InlineTypst

@@ -9,18 +9,11 @@ const PRESET_METADATA: [&'static str; 3] = ["taxon", "title", "slug"];
 impl EntryMetaData {
     pub fn to_header(&self) -> String {
         let taxon = self.taxon().map_or("", |s| s);
-        let title = self
-            .0
-            .get("title")
-            .map(|s| s.as_str())
-            .unwrap_or("");
+        let title = self.0.get("title").map(|s| s.as_str()).unwrap_or("");
 
         let slug = self.get("slug").unwrap();
-        // hidden suffix `/index` in slug text 
-        let slug_text = match slug.ends_with("/index") {
-            true => &slug[..slug.len() - "/index".len()],
-            false => slug,
-        };
+        // hidden suffix `/index` in slug text
+        let slug_text = EntryMetaData::to_slug_text(&slug);
         let slug_url = config::full_url(&format!("{}{}", &slug, config::page_suffix()));
         let span_class: Vec<String> = vec!["taxon".to_string()];
 
@@ -31,6 +24,18 @@ impl EntryMetaData {
             {" "}
             (html!(a class = "slug", href = {slug_url} => "["{&slug_text}"]"))))
           (html!(html_entry_header(self.etc()))))
+    }
+
+    pub fn to_slug_text(slug: &String) -> String {
+        let mut slug_text = match slug.ends_with("/index") {
+            true => &slug[..slug.len() - "/index".len()],
+            false => slug,
+        };
+        if config::is_short_slug() {
+            let pos = slug_text.rfind("/").map_or(0, |n| n + 1);
+            slug_text = &slug_text[pos..];
+        }
+        slug_text.to_string()
     }
 
     pub fn is_custom_metadata(s: &str) -> bool {

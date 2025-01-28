@@ -204,6 +204,11 @@ hr {
   height: 2px;
 }
 
+.logo {
+  font-weight: 600;
+  font-size: 24px;
+}
+
 .metadata ul {
   padding-left: 0;
   display: inline;

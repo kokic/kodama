@@ -22,7 +22,7 @@ impl Handler for Figure {
         }
     }
 
-    fn end(&mut self, _tag: &TagEnd, recorder: &mut Recorder) -> Option<String> {
+    fn end(&mut self, _tag: &TagEnd, recorder: &mut Recorder, _history: &mut Vec<String>) -> Option<String> {
         if recorder.state == State::Figure {
             let url = recorder.data.get(0).unwrap();
             let alt = recorder.data.get(1).unwrap();
@@ -38,6 +38,7 @@ impl Handler for Figure {
         s: &pulldown_cmark::CowStr<'_>,
         recorder: &mut Recorder,
         _metadata: &mut std::collections::HashMap<String, String>,
+        _history: &mut Vec<String>
     ) {
         if recorder.state == State::Figure {
             recorder.push(s.to_string()); // [1]: alt text

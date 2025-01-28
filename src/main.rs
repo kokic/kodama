@@ -9,8 +9,8 @@ mod slug;
 mod typst_cli;
 
 use clap::Parser;
-use config::{dir_config, output_path};
-use kodama::{adjust_name, compile_to_html, eliminate_typst};
+use config::{mutex_set, output_path};
+use kodama::{adjust_name, compile_workspace, eliminate_typst};
 
 #[derive(Parser)]
 #[command(version, about, long_about = None)]
@@ -53,6 +53,10 @@ struct CompileCommand {
     /// Disable pretty urls (`/page` to `/page.html`)
     #[arg(short, long)]
     disable_pretty_urls: bool,
+
+    /// Hide parents part in slug (e.g. `tutorials/install` to `install`)
+    #[arg(short, long)]
+    short_slug: bool,
 }
 
 #[derive(clap::Args)]
@@ -72,10 +76,10 @@ fn main() {
         Command::Inline(compile_command) => {
             let input = compile_command.input.as_str();
             let output = compile_command.output.as_str();
-            dir_config(&config::OUTPUT_DIR, output.to_string());
+            mutex_set(&config::OUTPUT_DIR, output.to_string());
 
             let filename = input;
-            dir_config(&config::ROOT_DIR, compile_command.root.to_string());
+            mutex_set(&config::ROOT_DIR, compile_command.root.to_string());
 
             let mut markdown = String::new();
             let _ = eliminate_typst(&filename, &mut markdown);
@@ -85,20 +89,21 @@ fn main() {
         Command::Compile(compile_command) => {
             let input = compile_command.input.as_str();
             let output = compile_command.output.as_str();
-            dir_config(&config::OUTPUT_DIR, output.to_string());
-            dir_config(&config::ROOT_DIR, compile_command.root.to_string());
+            mutex_set(&config::OUTPUT_DIR, output.to_string());
+            mutex_set(&config::ROOT_DIR, compile_command.root.to_string());
             if compile_command.disable_pretty_urls {
-                dir_config(&config::PAGE_SUFFIX, ".html".to_string());
+                mutex_set(&config::PAGE_SUFFIX, ".html".to_string());
             }
+            mutex_set(&config::SHORT_SLUG, compile_command.short_slug);
 
             let base_url = compile_command.base.to_string();
             let base_url = match base_url.ends_with("/") {
                 true => base_url,
                 false => format!("{}/", base_url),
             };
-            dir_config(&config::BASE_URL, base_url);
+            mutex_set(&config::BASE_URL, base_url);
 
-            match compile_to_html(input) {
+            match compile_workspace(input) {
                 Err(err) => eprintln!("{:?}", err),
                 _ => (),
             }
@@ -106,8 +111,8 @@ fn main() {
         }
         Command::Clean(clean_command) => {
             let output = clean_command.output.as_str();
-            dir_config(&config::OUTPUT_DIR, output.to_string());
-            dir_config(&config::ROOT_DIR, clean_command.root.to_string());
+            mutex_set(&config::OUTPUT_DIR, output.to_string());
+            mutex_set(&config::ROOT_DIR, clean_command.root.to_string());
 
             let _ = config::delete_all_build_files();
         }
