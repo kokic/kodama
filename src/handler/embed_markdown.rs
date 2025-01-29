@@ -6,14 +6,14 @@ use crate::{
     entry::HtmlEntry,
     html_flake::{html_doc, html_link, html_toc_block},
     kodama::{compile_to_html, html_article_inner, parse_spanned_markdown},
-    recorder::{CatalogItem, Recorder, State},
+    recorder::{CatalogItem, ParseRecorder, State},
 };
 use pulldown_cmark::{Tag, TagEnd};
 
 pub struct Embed;
 
 impl Handler for Embed {
-    fn start(&mut self, tag: &Tag<'_>, recorder: &mut Recorder) {
+    fn start(&mut self, tag: &Tag<'_>, recorder: &mut ParseRecorder) {
         match tag {
             Tag::Link {
                 link_type: _,
@@ -58,7 +58,12 @@ impl Handler for Embed {
         }
     }
 
-    fn end(&mut self, tag: &TagEnd, recorder: &mut Recorder, history: &mut Vec<String>) -> Option<String> {
+    fn end(
+        &mut self,
+        tag: &TagEnd,
+        recorder: &mut ParseRecorder,
+        history: &mut Vec<String>,
+    ) -> Option<String> {
         if *tag == TagEnd::Link && recorder.state == State::Embed {
             let entry_url = recorder.data.get(0).unwrap().as_str();
             let entry_url = crate::config::relativize(entry_url);
@@ -166,9 +171,9 @@ impl Handler for Embed {
     fn text(
         &self,
         s: &pulldown_cmark::CowStr<'_>,
-        recorder: &mut Recorder,
+        recorder: &mut ParseRecorder,
         metadata: &mut HashMap<String, String>,
-        history: &mut Vec<String>
+        history: &mut Vec<String>,
     ) {
         if recorder.state == State::Embed
             || recorder.state == State::LocalLink
@@ -209,12 +214,9 @@ impl Handler for Embed {
     fn inline_math(
         &self,
         s: &pulldown_cmark::CowStr<'_>,
-        recorder: &mut crate::recorder::Recorder,
+        recorder: &mut crate::recorder::ParseRecorder,
     ) -> Option<std::string::String> {
-        if recorder.state == State::Embed
-            || recorder.state == State::LocalLink
-            || recorder.state == State::ExternalLink
-        {
+        if recorder.state.allow_formula() {
             recorder.push(format!("${}$", s)); // [1, 2, ...]: Text
         }
         None

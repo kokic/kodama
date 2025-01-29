@@ -11,19 +11,19 @@ use handler::Handler;
 use html_flake::html_section;
 use pulldown_cmark::{html, CowStr, Event, Options, Tag, TagEnd};
 use pulldown_cmark_to_cmark::cmark;
-use recorder::{Recorder, State};
+use recorder::{ParseRecorder, State};
 use std::collections::HashMap;
 
 pub fn prepare_container(
     filename: &str,
-) -> Result<(String, HashMap<String, String>, Recorder), CompileError> {
+) -> Result<(String, HashMap<String, String>, ParseRecorder), CompileError> {
     // global data store
     let mut metadata: HashMap<String, String> = HashMap::new();
     let fullname = filename;
     metadata.insert("slug".to_string(), slug::to_slug(&fullname));
 
     // local contents recorder
-    let recorder = Recorder::new(fullname.to_string());
+    let recorder = ParseRecorder::new(fullname.to_string());
     let markdown_path = input_path(&fullname);
     match std::fs::read_to_string(&markdown_path) {
         Err(err) => Err(CompileError::FileNotFound(err, markdown_path)),
@@ -41,7 +41,7 @@ const OPTIONS: Options = Options::ENABLE_MATH
 
 pub fn parse_content(
     markdown_input: &str,
-    recorder: &mut Recorder,
+    recorder: &mut ParseRecorder,
     metadata: &mut HashMap<String, String>,
     handlers: &mut Vec<Box<dyn Handler>>,
     history: &mut Vec<String>, 
@@ -247,7 +247,7 @@ pub fn parse_spanned_markdown(
     current: String,
     history: &mut Vec<String>,
 ) -> Result<String, CompileError> {
-    let mut recorder = Recorder::new(current);
+    let mut recorder = ParseRecorder::new(current);
     let mut metadata = HashMap::new();
     let mut handlers: Vec<Box<dyn Handler>> = vec![
         Box::new(handler::figure::Figure),

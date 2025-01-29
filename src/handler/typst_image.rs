@@ -4,7 +4,7 @@ use crate::{
     config::{self, join_path, output_path, parent_dir},
     html_flake::html_figure,
     kodama::parse_spanned_markdown,
-    recorder::{Recorder, State},
+    recorder::{ParseRecorder, State},
     typst_cli::{self, write_svg, InlineConfig},
 };
 use pulldown_cmark::{Tag, TagEnd};
@@ -12,7 +12,7 @@ use pulldown_cmark::{Tag, TagEnd};
 pub struct TypstImage;
 
 impl Handler for TypstImage {
-    fn start(&mut self, tag: &Tag<'_>, recorder: &mut Recorder) {
+    fn start(&mut self, tag: &Tag<'_>, recorder: &mut ParseRecorder) {
         match tag {
             Tag::Link {
                 link_type: _,
@@ -39,7 +39,7 @@ impl Handler for TypstImage {
         }
     }
 
-    fn end(&mut self, tag: &TagEnd, recorder: &mut Recorder, history: &mut Vec<String>) -> Option<String> {
+    fn end(&mut self, tag: &TagEnd, recorder: &mut ParseRecorder, history: &mut Vec<String>) -> Option<String> {
         if tag == &TagEnd::Link {
             match recorder.state {
                 State::InlineTypst => {
@@ -158,7 +158,7 @@ impl Handler for TypstImage {
     fn text(
         &self,
         s: &pulldown_cmark::CowStr<'_>,
-        recorder: &mut Recorder,
+        recorder: &mut ParseRecorder,
         _metadata: &mut std::collections::HashMap<String, String>,
         _history: &mut Vec<String>
     ) {

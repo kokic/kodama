@@ -30,6 +30,16 @@ impl State {
             State::Figure => "figure",
         }
     }
+
+    /**
+     * Allow inline math formula in text
+     */
+    pub fn allow_formula(&self) -> bool {
+        *self == State::Embed
+            || *self == State::LocalLink
+            || *self == State::ExternalLink
+            || *self == State::ImageBlock
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -46,19 +56,19 @@ pub struct CatalogItem {
 pub type Catalog = Vec<Box<CatalogItem>>;
 
 #[derive(Debug)]
-pub struct Recorder {
+pub struct ParseRecorder {
     pub state: State,
-    pub current: String, 
+    pub current: String,
     pub data: Vec<String>,
     pub catalog: Catalog,
     pub shareds: Vec<String>,
 }
 
-impl Recorder {
-    pub fn new(current: String) -> Recorder {
-        return Recorder {
+impl ParseRecorder {
+    pub fn new(current: String) -> ParseRecorder {
+        return ParseRecorder {
             state: State::None,
-            current, 
+            current,
             data: vec![],
             catalog: vec![],
             shareds: vec![],

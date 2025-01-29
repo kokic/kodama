@@ -63,10 +63,11 @@ pub fn html_link(href: &str, title: &str, text: &str, class_name: &str) -> Strin
 
 pub fn html_doc(article_inner: &str, catalog_html: &str) -> String {
     let doc_type = "<!DOCTYPE html>";
+    let toc_html = html!(nav id = "toc" => {catalog_html});
     let body_inner = html!(div id="grid-wrapper" => 
       (html!(article => {article_inner}))
       "\n\n"
-      (html!(nav id = "toc" => {catalog_html})));
+      (toc_html));
 
     let html = html!(html lang = "en-US" => 
       (html!(head => r#"
@@ -121,9 +122,12 @@ fn html_toc_li(data: &CatalogItem, counter: &Counter) -> String {
       (child_html))
 }
 
-pub fn html_toc_block(data: &Catalog) -> String {
+pub fn html_toc_block(toc_data: &Catalog) -> String {
+    if toc_data.is_empty() { 
+        return String::new(); 
+    }
     let mut counter = Counter::init();
-    let items = data
+    let items = toc_data
         .iter()
         .map(|item| {
             item.number.then(|| counter.step_mut());

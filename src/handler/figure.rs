@@ -1,13 +1,13 @@
 use pulldown_cmark::{Tag, TagEnd};
 
-use crate::recorder::{Recorder, State};
+use crate::recorder::{ParseRecorder, State};
 
 use super::Handler;
 
 pub struct Figure;
 
 impl Handler for Figure {
-    fn start(&mut self, tag: &Tag<'_>, recorder: &mut Recorder) {
+    fn start(&mut self, tag: &Tag<'_>, recorder: &mut ParseRecorder) {
         match tag {
             Tag::Image {
                 link_type: _,
@@ -22,7 +22,7 @@ impl Handler for Figure {
         }
     }
 
-    fn end(&mut self, _tag: &TagEnd, recorder: &mut Recorder, _history: &mut Vec<String>) -> Option<String> {
+    fn end(&mut self, _tag: &TagEnd, recorder: &mut ParseRecorder, _history: &mut Vec<String>) -> Option<String> {
         if recorder.state == State::Figure {
             let url = recorder.data.get(0).unwrap();
             let alt = recorder.data.get(1).unwrap();
@@ -36,7 +36,7 @@ impl Handler for Figure {
     fn text(
         &self,
         s: &pulldown_cmark::CowStr<'_>,
-        recorder: &mut Recorder,
+        recorder: &mut ParseRecorder,
         _metadata: &mut std::collections::HashMap<String, String>,
         _history: &mut Vec<String>
     ) {

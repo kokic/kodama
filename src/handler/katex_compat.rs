@@ -16,7 +16,7 @@ impl Handler for KatexCompact {
     fn inline_math(
         &self,
         s: &pulldown_cmark::CowStr<'_>,
-        recorder: &mut crate::recorder::Recorder,
+        recorder: &mut crate::recorder::ParseRecorder,
     ) -> Option<std::string::String> {
         match recorder.state {
             State::InlineTypst => {
@@ -28,7 +28,7 @@ impl Handler for KatexCompact {
         }
     }
 
-    fn display_math(&self, s: &CowStr<'_>, _recorder: &mut crate::recorder::Recorder) -> Option<String> {
+    fn display_math(&self, s: &CowStr<'_>, _recorder: &mut crate::recorder::ParseRecorder) -> Option<String> {
         Some(format!("$${}$$", formula_disambiguate(&s)))
     }
 
