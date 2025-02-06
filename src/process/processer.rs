@@ -36,9 +36,11 @@ pub trait Processer {
         &self,
         s: &CowStr<'_>,
         recorder: &mut ParseRecorder,
-        metadata: &mut HashMap<String, String>,
     ) {
     }
+
+    #[allow(dead_code, unused_variables)]
+    fn code(&self, s: &CowStr<'_>, recorder: &mut ParseRecorder) {}
 }
 
 pub fn url_action(dest_url: &CowStr<'_>) -> (String, String) {

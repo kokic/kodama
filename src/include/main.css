@@ -204,9 +204,31 @@ hr {
   height: 2px;
 }
 
+.logo a {
+  color: #666;
+  text-decoration: none;
+}
+
+.logo a:hover {
+  color: #aaa;
+}
+
 .logo {
   font-weight: 600;
   font-size: 24px;
+}
+
+section section[data-taxon="Reference"]>details>summary>header>h1>.taxon,
+section section[data-taxon="Person"]>details>summary>header>h1>.taxon {
+  display: none;
+}
+
+footer>section {
+  margin-bottom: 1em;
+}
+
+footer h2 {
+  font-size: 14pt;
 }
 
 .metadata ul {
@@ -259,6 +281,10 @@ a.slug {
 .orcid {
   color: gray;
   font-weight: 200;
+}
+
+body>header {
+  margin-bottom: 0.5em;
 }
 
 #grid-wrapper>article {

@@ -1,37 +1,35 @@
-use std::{ops::Not, path::Path};
+use std::{collections::HashSet, ops::Not, path::Path};
 
-use crate::{concepts::taxon::Taxon, config, entry::EntryMetaData, html, compiler::counter::Counter};
+use crate::{
+    compiler::counter::Counter,
+    config, html,
+    html_flake::{self, html_article_inner},
+};
 
-use super::section::{Section, SectionContent};
-
-pub fn html_article_inner(
-    metadata: &EntryMetaData,
-    contents: &String,
-    hide_metadata: bool,
-    open: bool,
-    adhoc_title: Option<&str>,
-    adhoc_taxon: Option<&str>,
-) -> String {
-    let summary = metadata.to_header(adhoc_title, adhoc_taxon);
-
-    let article_id = metadata.id();
-    crate::html_flake::html_section(
-        &summary,
-        contents,
-        hide_metadata,
-        open,
-        article_id,
-        metadata.taxon_text(),
-    )
-}
+use super::{
+    section::{Section, SectionContent},
+    state::CompileState,
+    taxon::Taxon,
+};
 
 pub struct Writer {}
 
 impl Writer {
-    pub fn write(section: &Section) {
+    pub fn write(section: &Section, state: &CompileState) {
+        let (html, page_title) = Writer::html_doc(section, state);
         let html_url = format!("{}.html", section.slug());
         let filepath = crate::config::output_path(&html_url);
 
+        match std::fs::write(&filepath, html) {
+            Ok(()) => {
+                let output_path = crate::slug::pretty_path(Path::new(&html_url));
+                println!("Output: {:?} {}", page_title, output_path);
+            }
+            Err(err) => eprintln!("{:?}", err),
+        }
+    }
+
+    pub fn html_doc(section: &Section, state: &CompileState) -> (String, String) {
         let mut counter = Counter::init();
 
         let (article_inner, items) = Writer::section_to_html(section, &mut counter, true);
@@ -41,20 +39,51 @@ impl Writer {
             .then(|| Writer::catalog_block(&items))
             .unwrap_or_default();
 
+        let html_header = Writer::header(state, &section.slug());
+        let footer_html = Writer::footer(state, &section.references);
+        let page_title = section
+            .metadata
+            .get("page-title")
+            .map(|s| s.as_str())
+            .unwrap_or_else(|| section.metadata.title().map_or("", |s| s));
+
         let html = crate::html_flake::html_doc(
-            section.metadata.title().map_or("", |s| s),
+            &page_title,
+            &html_header,
             &article_inner,
+            &footer_html,
             &catalog_html,
         );
 
-        match std::fs::write(&filepath, html) {
-            Ok(()) => {
-                let title = section.metadata.title().map_or("", |s| s);
-                let output_path = crate::slug::pretty_path(Path::new(&html_url));
-                println!("Output: {:?} {}", title, output_path);
-            }
-            Err(err) => eprintln!("{:?}", err),
-        }
+        (html, page_title.to_string())
+    }
+
+    fn header(state: &CompileState, slug: &str) -> String {
+        state
+            .callback
+            .get(slug)
+            .and_then(|callback| {
+                let parent = &callback.parent;
+                state.compiled.get(parent).map(|section| {
+                    let href = config::full_html_url(parent);
+                    let title = section.metadata.title().map_or("", |s| s);
+                    html_flake::html_header_nav(title, &href)
+                })
+            })
+            .unwrap_or_default()
+    }
+
+    fn footer(state: &CompileState, references: &HashSet<String>) -> String {
+        references
+            .iter()
+            .map(|slug| {
+                // slug.to_string()
+                let section = state.compiled.get(slug).unwrap();
+                Writer::footer_section_to_html(section)
+            })
+            .reduce(|s, t| s + &t)
+            .map(|s| html_flake::html_footer_section(&s))
+            .unwrap_or_default()
     }
 
     fn catalog_block(items: &str) -> String {
@@ -65,22 +94,28 @@ impl Writer {
     fn catalog_item(section: &Section, taxon: &str, child_html: &str) -> String {
         let slug = &section.slug();
         let text = section.metadata.title().unwrap();
-        let slug_url = config::full_html_url(&slug);
-        let title = format!("{} [{}]", text, slug);
-        let href = format!("#{}", crate::slug::to_hash_id(slug)); // #id
+        html_flake::catalog_item(slug, text, section.option.details_open, taxon, child_html)
+    }
 
-        let mut class_name: Vec<String> = vec![];
-        if !section.option.details_open {
-            class_name.push("item-summary".to_string());
+    fn footer_content_to_html(content: &SectionContent) -> String {
+        match content {
+            SectionContent::Plain(s) => s.to_string(),
+            SectionContent::Embed(section) => Writer::footer_section_to_html(section),
         }
+    }
 
-        html!(li class = {class_name.join(" ")} =>
-          (html!(a class = "bullet", href={slug_url}, title={title} => "■"))
-          (html!(span class = "link" =>
-            (html!(a href = {href} =>
-              (html!(span class = "taxon" => {taxon}))
-              (text)))))
-          (child_html))
+    fn footer_section_to_html(section: &Section) -> String {
+        let contents = match section.children.len() > 0 {
+            false => String::new(),
+            true => section
+                .children
+                .iter()
+                .map(Writer::footer_content_to_html)
+                .reduce(|s, t| s + &t)
+                .unwrap(),
+        };
+
+        html_article_inner(&section.metadata, &contents, false, false, None, None)
     }
 
     pub fn section_to_html(

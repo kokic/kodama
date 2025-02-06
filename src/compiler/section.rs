@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use serde::{Deserialize, Serialize};
 
 use crate::entry::EntryMetaData;
@@ -82,25 +84,6 @@ impl ShallowSection {
         matches!(&self.content, HTMLContent::Plain(_)) && self.metadata.etc_keys().len() == 0
     }
 
-    /// Convert a [`ShallowSection`] containing only [`HTMLContent::Plain`] to a [`Section`].
-    /// For other cases, this method will directly call [`unreachable!`] and lead to a [`panic`].
-    #[allow(dead_code)]
-    pub fn to_section(self) -> Section {
-        match &self.content {
-            HTMLContent::Lazy(_) => unreachable!(),
-            HTMLContent::Plain(html) => {
-                let content = SectionContent::Plain(html.to_string());
-                Section::new(self.metadata, vec![content])
-            }
-        }
-    }
-}
-
-#[derive(Debug, Clone)]
-pub struct Section {
-    pub metadata: EntryMetaData,
-    pub children: SectionContents,
-    pub option: SectionOption,
 }
 
 pub type SectionContents = Vec<SectionContent>;
@@ -111,12 +94,21 @@ pub enum SectionContent {
     Embed(Section),
 }
 
+#[derive(Debug, Clone)]
+pub struct Section {
+    pub metadata: EntryMetaData,
+    pub children: SectionContents,
+    pub option: SectionOption,
+    pub references: HashSet<String>, 
+}
+
 impl Section {
-    pub fn new(metadata: EntryMetaData, children: SectionContents) -> Section {
+    pub fn new(metadata: EntryMetaData, children: SectionContents, references: HashSet<String>) -> Section {
         Section {
             metadata,
             children,
-            option: SectionOption::new(false, true, true),
+            option: SectionOption::new(false, true, true), 
+            references, 
         }
     }
 
@@ -135,20 +127,3 @@ impl Section {
             .unwrap_or_default()
     }
 }
-
-// #[derive(Debug)]
-// pub struct CompiledEntry {
-// pub catalog: Catalog,
-// pub metadata: EntryMetaData,
-// pub section: Section,
-// }
-
-// impl CompiledEntry {
-//     pub fn get(&self, key: &str) -> Option<&String> {
-//         return self.metadata.get(key);
-//     }
-
-//     pub fn update(&mut self, key: String, value: String) {
-//         let _ = self.metadata.0.insert(key, value);
-//     }
-// }

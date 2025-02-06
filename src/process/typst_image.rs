@@ -95,16 +95,6 @@ impl Processer for TypstImage {
                     }
                     recorder.exit();
 
-                    // let current = recorder.current.to_string();
-                    // let mut history: Vec<String> = vec![];
-                    // let caption = match parse_spanned_markdown(&caption, current, &mut history) {
-                    //     Ok(html) => html,
-                    //     Err(err) => {
-                    //         eprintln!("{:?}", err);
-                    //         caption
-                    //     }
-                    // };
-
                     let html = html_figure(&config::full_url(&img_src), false, caption);
                     return Some(LazyContent::Plain(html));
                 }
@@ -126,16 +116,6 @@ impl Processer for TypstImage {
                         Ok(_) => (),
                     }
                     recorder.exit();
-
-                    // let current = recorder.current.to_string();
-                    // let mut history: Vec<String> = vec![];
-                    // let caption = match parse_spanned_markdown(&caption, current, &mut history) {
-                    //     Ok(html) => html,
-                    //     Err(err) => {
-                    //         eprintln!("{:?}", err);
-                    //         caption
-                    //     }
-                    // };
 
                     let html = html_figure(&config::full_url(&img_src), true, caption);
                     return Some(LazyContent::Plain(html));
@@ -169,15 +149,36 @@ impl Processer for TypstImage {
         recorder: &mut ParseRecorder,
         _metadata: &mut std::collections::HashMap<String, String>,
     ) {
-        if recorder.state == State::Shared
-            || recorder.state == State::InlineTypst
-            || recorder.state == State::ImageSpan
-            || recorder.state == State::ImageBlock
+        if allow_inline(&recorder.state)
         {
             // [1]: imported / inline typst / span / block
             return recorder.push(s.to_string());
         }
     }
+
+    fn inline_math(
+        &self,
+        s: &pulldown_cmark::CowStr<'_>,
+        recorder: &mut ParseRecorder,
+    ) -> Option<std::string::String> {
+        if allow_inline(&recorder.state) {
+            recorder.push(format!("${}$", s)); // [1, 2, ...]: Text
+        }
+        None
+    }
+
+    fn code(&self, s: &pulldown_cmark::CowStr<'_>, recorder: &mut ParseRecorder) {
+        if allow_inline(&recorder.state) {
+            recorder.push(format!("<code>{}</code>", s));
+        }
+    }
+}
+
+fn allow_inline(state: &State) -> bool {
+    *state == State::Shared
+        || *state == State::InlineTypst
+        || *state == State::ImageSpan
+        || *state == State::ImageBlock
 }
 
 pub fn is_inline_typst(dest_url: &str) -> bool {

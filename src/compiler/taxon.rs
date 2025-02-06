@@ -29,4 +29,15 @@ impl Taxon {
             None => self.text.to_string(),
         }
     }
+
+    pub fn is_reference(s: &str) -> bool {
+        s.to_lowercase().starts_with("reference.") || s.starts_with("参考")
+    }
+
+    pub fn to_data_taxon(taxon_display: &str) -> &str {
+        let dot = taxon_display
+            .find(".")
+            .map_or(taxon_display.len(), |n| n);
+        &taxon_display[0..dot]
+    }
 }

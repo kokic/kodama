@@ -31,16 +31,6 @@ impl State {
             State::Figure => "figure",
         }
     }
-
-    /**
-     * Allow inline math formula in text
-     */
-    pub fn allow_formula(&self) -> bool {
-        *self == State::Embed
-            || *self == State::LocalLink
-            || *self == State::ExternalLink
-            || *self == State::ImageBlock
-    }
 }
 
 

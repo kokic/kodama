@@ -1,6 +1,7 @@
 pub mod counter;
 pub mod parser;
 pub mod section;
+pub mod taxon;
 pub mod state;
 pub mod writer;
 
@@ -72,7 +73,7 @@ pub fn compile_all(workspace_dir: &str) -> Result<(), CompileError> {
              * of the [`Section`].
              */
             None => eprintln!("Slug `{}` not in compiled entries.", slug),
-            Some(section) => Writer::write(section),
+            Some(section) => Writer::write(section, &state),
         });
 
     Ok(())

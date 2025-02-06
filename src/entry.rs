@@ -5,7 +5,7 @@ use std::collections::HashMap;
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct EntryMetaData(pub HashMap<String, String>);
 
-const PRESET_METADATA: [&'static str; 3] = ["taxon", "title", "slug"];
+const PRESET_METADATA: [&'static str; 5] = ["parent", "taxon", "title", "page-title", "slug"];
 
 impl EntryMetaData {
     pub fn to_header(&self, adhoc_title: Option<&str>, adhoc_taxon: Option<&str>) -> String {

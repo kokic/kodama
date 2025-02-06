@@ -1,23 +1,30 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use crate::{config, slug};
 
 use super::{
     parser::parse_spanned_markdown,
-    section::{HTMLContent, LazyContent, Section, SectionContent, SectionContents, ShallowSection},
+    section::{HTMLContent, LazyContent, Section, SectionContent, SectionContents, ShallowSection}, taxon::Taxon,
 };
 
 #[derive(Debug)]
 pub struct CompileState {
-    pub residued: Box<HashMap<String, ShallowSection>>,
-    pub compiled: Box<HashMap<String, Section>>,
+    pub residued: HashMap<String, ShallowSection>,
+    pub compiled: HashMap<String, Section>,
+    pub callback: HashMap<String, Callback>, 
+}
+
+#[derive(Debug)]
+pub struct Callback {
+    pub parent: String, 
 }
 
 impl CompileState {
     pub fn new() -> CompileState {
         CompileState {
-            residued: Box::new(HashMap::new()),
-            compiled: Box::new(HashMap::new()),
+            residued: HashMap::new(),
+            compiled: HashMap::new(),
+            callback: HashMap::new(), 
         }
     }
 
@@ -53,32 +60,46 @@ impl CompileState {
         let slug = shallow.slug();
         let mut metadata = shallow.metadata;
         let mut children: SectionContents = vec![];
+        let mut references: HashSet<String> = HashSet::new();
 
         match &shallow.content {
             HTMLContent::Plain(html) => {
                 children.push(SectionContent::Plain(html.to_string()));
             }
             HTMLContent::Lazy(lazy_contents) => {
+                let mut callback: HashMap<String, Callback> = HashMap::new();
+
                 for lazy_content in lazy_contents {
                     match lazy_content {
                         LazyContent::Plain(html) => {
                             children.push(SectionContent::Plain(html.to_string()));
                         }
                         LazyContent::Embed(embed_content) => {
-                            let slug = slug::to_slug(&embed_content.url);
-                            let mut child_section = self.fetch_section(&slug).clone();
+                            let child_slug = slug::to_slug(&embed_content.url);
+                            let refered = self.fetch_section(&child_slug);
+                            
+                            if embed_content.option.details_open {
+                                references.extend(refered.references.clone());
+                            }
+                            callback.insert(child_slug, Callback { parent: slug.to_string() });
+
+                            let mut child_section = refered.clone();
                             child_section.option = embed_content.option.clone();
                             if let Some(title) = &embed_content.title {
                                 child_section
                                     .metadata
                                     .update("title".to_string(), title.to_string())
                             };
-
                             children.push(SectionContent::Embed(child_section));
                         }
                         LazyContent::Local(local_link) => {
                             let slug = &local_link.slug;
                             let article_title = self.get_metadata(slug, "title").unwrap_or(slug);
+                            let article_taxon = self.get_metadata(slug, "taxon").map_or("", |s| s);
+                            
+                            if Taxon::is_reference(&article_taxon) {
+                                references.insert(slug.to_string());
+                            }
 
                             let local_link = local_link.text.clone();
                             let text = local_link.unwrap_or(article_title.to_string());
@@ -93,6 +114,8 @@ impl CompileState {
                         }
                     }
                 }
+
+                self.callback.extend(callback);
             }
         };
 
@@ -104,8 +127,8 @@ impl CompileState {
             let html = compiled.spanned();
             metadata.update(key.to_string(), html);
         });
-
-        let section = Section::new(metadata, children);
+        
+        let section = Section::new(metadata, children, references);
         self.compiled.insert(slug.to_string(), section);
         self.compiled.get(&slug).unwrap()
     }

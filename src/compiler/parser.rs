@@ -166,7 +166,13 @@ pub fn parse_content(
             Event::InlineHtml(s) => {
                 processers
                     .iter_mut()
-                    .for_each(|handler| handler.inline_html(s, recorder, metadata));
+                    .for_each(|handler| handler.inline_html(s, recorder));
+            }
+
+            Event::Code(s) => {
+                processers
+                    .iter_mut()
+                    .for_each(|handler| handler.code(s, recorder));
             }
 
             _ => (),

@@ -97,37 +97,12 @@ impl Processer for Embed {
         recorder: &mut ParseRecorder,
         metadata: &mut HashMap<String, String>,
     ) {
-        if recorder.state == State::Embed
-            || recorder.state == State::LocalLink
-            || recorder.state == State::ExternalLink
-        {
+        if allow_inline(&recorder.state) {
             return recorder.push(s.to_string()); // [1, 2, ...]: Text
         }
 
         if recorder.state == State::Metadata && s.trim().len() != 0 {
-            /*
-             * It is known that the behavior differs between the two architectures
-             * (I) `x86_64-pc-windows-msvc` and (II) `aarch64-unknown-linux-musl`.
-             * (I) automatically splits the input by lines,
-             * while (II) receives the entire multi-line string as a whole.
-             */
-            let lines: Vec<&str> = s.split("\n").collect();
-            for s in lines {
-                if s.trim().len() != 0 {
-                    let pos = s.find(':').expect("metadata item expect `name: value`");
-                    let key = s[0..pos].trim().to_string();
-                    let val = s[pos + 1..].trim();
-
-                    if key == "taxon" {
-                        let taxon = display_taxon(val);
-                        metadata.insert(key, taxon);
-                    } else {
-                        metadata.insert(key, val.to_string());
-                    }
-
-                    return;
-                }
-            }
+            parse_metadata(s, metadata);
         }
     }
 
@@ -136,10 +111,43 @@ impl Processer for Embed {
         s: &pulldown_cmark::CowStr<'_>,
         recorder: &mut ParseRecorder,
     ) -> Option<std::string::String> {
-        if recorder.state.allow_formula() {
+        if allow_inline(&recorder.state) {
             recorder.push(format!("${}$", s)); // [1, 2, ...]: Text
         }
         None
+    }
+
+    fn code(&self, s: &pulldown_cmark::CowStr<'_>, recorder: &mut ParseRecorder) {
+        if allow_inline(&recorder.state) {
+            recorder.push(format!("<code>{}</code>", s));
+        }
+    }
+}
+
+fn allow_inline(state: &State) -> bool {
+    *state == State::Embed || *state == State::LocalLink || *state == State::ExternalLink
+}
+
+/// It is known that the behavior differs between the two architectures
+/// `(I)` `x86_64-pc-windows-msvc` and `(II)` `aarch64-unknown-linux-musl`.
+/// `(I)` automatically splits the input by lines,
+/// while `(II)` receives the entire multi-line string as a whole.
+pub fn parse_metadata(s: &str, metadata: &mut HashMap<String, String>) {
+    let lines: Vec<&str> = s.split("\n").collect();
+    for s in lines {
+        if s.trim().len() != 0 {
+            let pos = s.find(':').expect("metadata item expect `name: value`");
+            let key = s[0..pos].trim().to_string();
+            let val = s[pos + 1..].trim();
+
+            if key == "taxon" {
+                let taxon = display_taxon(val);
+                metadata.insert(key, taxon);
+            } else {
+                metadata.insert(key, val.to_string());
+            }
+            return;
+        }
     }
 }
 
@@ -173,32 +181,6 @@ pub fn parse_embed_text(embed_text: Option<&String>) -> (SectionOption, Option<S
         }
     }
 }
-
-// pub fn update_taxon(html_entry: &mut HtmlEntry) {
-//     let taxon = display_option_taxon(html_entry.metadata.taxon());
-//     html_entry.update("taxon".to_string(), taxon);
-// }
-
-// pub fn write_to_html(html_url: &str, entry: &mut HtmlEntry) {
-//     update_taxon(entry);
-//     let catalog_html = html_toc_block(&entry.catalog);
-//     let article_inner = html_article_inner(entry, false, true);
-//     let html = html_doc(&article_inner, &catalog_html);
-
-//     let filepath = crate::config::output_path(&html_url);
-//     if verify_and_update_content_hash(&filepath, &html) {
-//         match std::fs::write(&filepath, html) {
-//             Ok(()) => {
-//                 println!(
-//                     "Output: {:?} {}",
-//                     entry.metadata.title().map_or("", |s| s),
-//                     crate::slug::pretty_path(Path::new(&filepath))
-//                 );
-//             }
-//             Err(err) => eprintln!("{:?}", err),
-//         }
-//     }
-// }
 
 pub fn display_taxon(s: &str) -> String {
     match s.split_at_checked(1) {
