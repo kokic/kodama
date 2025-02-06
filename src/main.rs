@@ -1,5 +1,5 @@
 mod compiler;
-mod concept;
+mod concepts;
 mod config;
 mod entry;
 mod html_flake;

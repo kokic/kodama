@@ -44,6 +44,18 @@ impl EntryMetaData {
         !PRESET_METADATA.contains(&s)
     }
 
+    pub fn enable_markdown_key(s: &str) -> bool {
+        s == "title" || EntryMetaData::is_custom_metadata(s)
+    }
+
+    pub fn enable_markdown_keys(&self) -> Vec<String> {
+        self.0
+            .keys()
+            .filter(|s| EntryMetaData::enable_markdown_key(s))
+            .map(|s| s.to_string())
+            .collect()
+    }
+
     /// Return all custom metadata keys without [`PRESET_METADATA`].
     pub fn etc_keys(&self) -> Vec<String> {
         self.0

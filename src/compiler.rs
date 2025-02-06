@@ -58,12 +58,7 @@ pub fn compile_all(workspace_dir: &str) -> Result<(), CompileError> {
             shallow
         };
 
-        // adjust compiled
-        if shallow.is_compiled() {
-            state.compiled.insert(slug, shallow.to_section());
-        } else {
-            state.residued.insert(slug, shallow);
-        }
+        state.residued.insert(slug, shallow);
     }
 
     state.compile_all();

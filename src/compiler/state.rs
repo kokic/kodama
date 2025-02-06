@@ -78,8 +78,7 @@ impl CompileState {
                         }
                         LazyContent::Local(local_link) => {
                             let slug = &local_link.slug;
-                            let article_title =
-                                self.get_metadata(slug, "title").unwrap_or(slug);
+                            let article_title = self.get_metadata(slug, "title").unwrap_or(slug);
 
                             let local_link = local_link.text.clone();
                             let text = local_link.unwrap_or(article_title.to_string());
@@ -97,16 +96,14 @@ impl CompileState {
             }
         };
 
-        let etc = metadata.etc_keys();
-        if etc.len() > 0 {
-            etc.iter().for_each(|key| {
-                let value = metadata.get(key).unwrap();
-                let spanned = parse_spanned_markdown(value, &slug).unwrap();
-                let compiled = self.compile_shallow(spanned);
-                let html = compiled.spanned();
-                metadata.update(key.to_string(), html);
-            });
-        }
+        let metadata_keys: Vec<String> = metadata.enable_markdown_keys();
+        metadata_keys.iter().for_each(|key| {
+            let value = metadata.get(key).unwrap();
+            let spanned = parse_spanned_markdown(value, &slug).unwrap();
+            let compiled = self.compile_shallow(spanned);
+            let html = compiled.spanned();
+            metadata.update(key.to_string(), html);
+        });
 
         let section = Section::new(metadata, children);
         self.compiled.insert(slug.to_string(), section);

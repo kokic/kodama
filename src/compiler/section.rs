@@ -77,12 +77,14 @@ impl ShallowSection {
         self.metadata.slug().unwrap().to_string()
     }
 
+    #[allow(dead_code)]
     pub fn is_compiled(&self) -> bool {
         matches!(&self.content, HTMLContent::Plain(_)) && self.metadata.etc_keys().len() == 0
     }
 
     /// Convert a [`ShallowSection`] containing only [`HTMLContent::Plain`] to a [`Section`].
     /// For other cases, this method will directly call [`unreachable!`] and lead to a [`panic`].
+    #[allow(dead_code)]
     pub fn to_section(self) -> Section {
         match &self.content {
             HTMLContent::Lazy(_) => unreachable!(),

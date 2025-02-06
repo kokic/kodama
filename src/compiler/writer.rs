@@ -1,6 +1,6 @@
 use std::{ops::Not, path::Path};
 
-use crate::{concept::taxon::Taxon, config, entry::EntryMetaData, html, compiler::counter::Counter};
+use crate::{concepts::taxon::Taxon, config, entry::EntryMetaData, html, compiler::counter::Counter};
 
 use super::section::{Section, SectionContent};
 
