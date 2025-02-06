@@ -1,17 +1,18 @@
-use super::{url_action, Handler};
 use crate::{
-    adjust_name,
+    compiler::section::LazyContent,
     config::{self, join_path, output_path, parent_dir},
     html_flake::html_figure,
-    kodama::parse_spanned_markdown,
     recorder::{ParseRecorder, State},
+    slug::adjust_name,
     typst_cli::{self, write_svg, InlineConfig},
 };
 use pulldown_cmark::{Tag, TagEnd};
 
+use super::processer::{url_action, Processer};
+
 pub struct TypstImage;
 
-impl Handler for TypstImage {
+impl Processer for TypstImage {
     fn start(&mut self, tag: &Tag<'_>, recorder: &mut ParseRecorder) {
         match tag {
             Tag::Link {
@@ -39,7 +40,7 @@ impl Handler for TypstImage {
         }
     }
 
-    fn end(&mut self, tag: &TagEnd, recorder: &mut ParseRecorder, history: &mut Vec<String>) -> Option<String> {
+    fn end(&mut self, tag: &TagEnd, recorder: &mut ParseRecorder) -> Option<LazyContent> {
         if tag == &TagEnd::Link {
             match recorder.state {
                 State::InlineTypst => {
@@ -64,15 +65,16 @@ impl Handler for TypstImage {
                         margin_y: args.get(1).or(x).map(|s| s.to_string()),
                         root_dir: config::root_dir(),
                     };
-                    let s = match typst_cli::source_to_inline_svg(&inline_typst, config) {
+                    let html = match typst_cli::source_to_inline_svg(&inline_typst, config) {
                         Ok(svg) => svg,
                         Err(err) => {
                             eprintln!("{:?} at {}", err, recorder.current);
                             String::new()
                         }
                     };
+
                     recorder.exit();
-                    return Some(s);
+                    return Some(LazyContent::Plain(html));
                 }
                 State::ImageSpan => {
                     let typst_url = recorder.data.get(0).unwrap().as_str();
@@ -93,15 +95,18 @@ impl Handler for TypstImage {
                     }
                     recorder.exit();
 
-                    let current = recorder.current.to_string();
-                    let caption = match parse_spanned_markdown(&caption, current, history) {
-                        Ok(html) => html,
-                        Err(err) => {
-                            eprintln!("{:?}", err);
-                            caption
-                        }
-                    };
-                    return Some(html_figure(&config::full_url(&img_src), false, caption));
+                    // let current = recorder.current.to_string();
+                    // let mut history: Vec<String> = vec![];
+                    // let caption = match parse_spanned_markdown(&caption, current, &mut history) {
+                    //     Ok(html) => html,
+                    //     Err(err) => {
+                    //         eprintln!("{:?}", err);
+                    //         caption
+                    //     }
+                    // };
+
+                    let html = html_figure(&config::full_url(&img_src), false, caption);
+                    return Some(LazyContent::Plain(html));
                 }
                 State::ImageBlock => {
                     let typst_url = recorder.data.get(0).unwrap().as_str();
@@ -122,15 +127,18 @@ impl Handler for TypstImage {
                     }
                     recorder.exit();
 
-                    let current = recorder.current.to_string();
-                    let caption = match parse_spanned_markdown(&caption, current, history) {
-                        Ok(html) => html,
-                        Err(err) => {
-                            eprintln!("{:?}", err);
-                            caption
-                        }
-                    };
-                    return Some(html_figure(&config::full_url(&img_src), true, caption));
+                    // let current = recorder.current.to_string();
+                    // let mut history: Vec<String> = vec![];
+                    // let caption = match parse_spanned_markdown(&caption, current, &mut history) {
+                    //     Ok(html) => html,
+                    //     Err(err) => {
+                    //         eprintln!("{:?}", err);
+                    //         caption
+                    //     }
+                    // };
+
+                    let html = html_figure(&config::full_url(&img_src), true, caption);
+                    return Some(LazyContent::Plain(html));
                 }
                 State::Shared => {
                     let typst_url = recorder.data.get(0).unwrap().as_str();
@@ -160,7 +168,6 @@ impl Handler for TypstImage {
         s: &pulldown_cmark::CowStr<'_>,
         recorder: &mut ParseRecorder,
         _metadata: &mut std::collections::HashMap<String, String>,
-        _history: &mut Vec<String>
     ) {
         if recorder.state == State::Shared
             || recorder.state == State::InlineTypst

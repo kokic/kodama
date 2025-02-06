@@ -1,4 +1,4 @@
-use std::process::Command;
+use std::{path::Path, process::Command};
 
 use crate::{
     config::{self, verify_and_update_file_hash},
@@ -6,18 +6,17 @@ use crate::{
 };
 
 pub fn write_svg(typst_path: &str, svg_path: &str) -> Result<(), std::io::Error> {
-    if !verify_and_update_file_hash(typst_path) {
-        println!(
-            "Skip: {}",
-            crate::slug::pretty_path(std::path::Path::new(typst_path))
-        );
+    if !verify_and_update_file_hash(typst_path)? && Path::new(svg_path).exists() {
+        println!("Skip: {}", crate::slug::pretty_path(Path::new(typst_path)));
         return Ok(());
     }
 
+    let root_dir = config::root_dir();
+    let full_path = config::join_path(&root_dir, typst_path);
     let output = Command::new("typst")
         .arg("c")
-        .arg(format!("--root={}", config::root_dir()))
-        .arg(typst_path)
+        .arg(format!("--root={}", root_dir))
+        .arg(full_path)
         .arg(svg_path)
         .output()?;
 
@@ -25,7 +24,7 @@ pub fn write_svg(typst_path: &str, svg_path: &str) -> Result<(), std::io::Error>
         let _ = String::from_utf8_lossy(&output.stdout);
         println!(
             "Compiled to SVG: {}",
-            crate::slug::pretty_path(std::path::Path::new(svg_path))
+            crate::slug::pretty_path(Path::new(svg_path))
         );
     } else {
         let stderr = String::from_utf8_lossy(&output.stderr);

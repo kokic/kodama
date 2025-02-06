@@ -1,16 +1,15 @@
+mod compiler;
+mod concept;
 mod config;
 mod entry;
-mod handler;
 mod html_flake;
 mod html_macro;
-mod kodama;
+mod process;
 mod recorder;
 mod slug;
 mod typst_cli;
 
 use clap::Parser;
-use config::{mutex_set, output_path};
-use kodama::{adjust_name, compile_workspace, eliminate_typst};
 
 #[derive(Parser)]
 #[command(version, about, long_about = None)]
@@ -21,13 +20,9 @@ struct Cli {
 
 #[derive(clap::Subcommand)]
 enum Command {
-    /// Compiles an input markdown file into HTML format.
+    /// Compile current workspace dir to HTMLs.
     #[command(visible_alias = "c")]
     Compile(CompileCommand),
-
-    /// Compiles an input markdown file into markdown and SVGs.
-    #[command(visible_alias = "i")]
-    Inline(CompileCommand),
 
     /// Clean all build files (.cache & publish).
     Clean(CleanCommand),
@@ -35,9 +30,6 @@ enum Command {
 
 #[derive(clap::Args)]
 struct CompileCommand {
-    /// Path to input Typst file.
-    input: String,
-
     /// Base URL or publish URL (e.g. https://www.example.com/)
     #[arg(short, long, default_value_t = format!("/"))]
     base: String,
@@ -68,53 +60,54 @@ struct CleanCommand {
     /// Configures the project root (for absolute paths)
     #[arg(short, long, default_value_t = format!("./"))]
     root: String,
+
+    /// Clean markdown hash files.
+    #[arg(short, long)]
+    markdown: bool,
+
+    /// Clean typst hash files.
+    #[arg(short, long)]
+    typst: bool,
 }
 
 fn main() {
     let cli = Cli::parse();
     match &cli.command {
-        Command::Inline(compile_command) => {
-            let input = compile_command.input.as_str();
-            let output = compile_command.output.as_str();
-            mutex_set(&config::OUTPUT_DIR, output.to_string());
-
-            let filename = input;
-            mutex_set(&config::ROOT_DIR, compile_command.root.to_string());
-
-            let mut markdown = String::new();
-            let _ = eliminate_typst(&filename, &mut markdown);
-            let filepath = output_path(&filename);
-            let _ = std::fs::write(filepath, markdown);
-        }
         Command::Compile(compile_command) => {
-            let input = compile_command.input.as_str();
-            let output = compile_command.output.as_str();
-            mutex_set(&config::OUTPUT_DIR, output.to_string());
-            mutex_set(&config::ROOT_DIR, compile_command.root.to_string());
+            let root = &compile_command.root;
+            let output = &compile_command.output;
+            config::mutex_set(&config::OUTPUT_DIR, output.to_string());
+            config::mutex_set(&config::ROOT_DIR, root.to_string());
             if compile_command.disable_pretty_urls {
-                mutex_set(&config::PAGE_SUFFIX, ".html".to_string());
+                config::mutex_set(&config::PAGE_SUFFIX, ".html".to_string());
             }
-            mutex_set(&config::SHORT_SLUG, compile_command.short_slug);
+            config::mutex_set(&config::SHORT_SLUG, compile_command.short_slug);
 
-            let base_url = compile_command.base.to_string();
-            let base_url = match base_url.ends_with("/") {
-                true => base_url,
-                false => format!("{}/", base_url),
-            };
-            mutex_set(&config::BASE_URL, base_url);
+            config::set_base_url(compile_command.base.to_string());
 
-            match compile_workspace(input) {
+            match compiler::compile_all(root) {
                 Err(err) => eprintln!("{:?}", err),
-                _ => (),
+                Ok(_) => (),
             }
-            kodama::compile_links();
         }
         Command::Clean(clean_command) => {
             let output = clean_command.output.as_str();
-            mutex_set(&config::OUTPUT_DIR, output.to_string());
-            mutex_set(&config::ROOT_DIR, clean_command.root.to_string());
+            config::mutex_set(&config::OUTPUT_DIR, output.to_string());
+            config::mutex_set(&config::ROOT_DIR, clean_command.root.to_string());
 
-            let _ = config::delete_all_build_files();
+            let cache_dir = &config::get_cache_dir();
+
+            clean_command.markdown.then(|| {
+                let _ = config::delete_all_with(&cache_dir, &|s| {
+                    s.to_str().unwrap().ends_with(".md.hash")
+                });
+            });
+            
+            clean_command.typst.then(|| {
+                let _ = config::delete_all_with(&cache_dir, &|s| {
+                    s.to_str().unwrap().ends_with(".typ.hash")
+                });
+            });
         }
     }
 }

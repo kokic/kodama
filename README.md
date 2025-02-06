@@ -3,7 +3,7 @@
 
 A [Typst](https://github.com/typst/typst)-friendly static site generator.
 
-[[Chinese README](./README.zh-CN.md)] [[Tutorials]](https://kokic.github.io/tutorials)
+[[Chinese README](./README.zh-CN.md)] [[Demo](https://kokic.github.io)] [[Tutorials]](https://kokic.github.io/tutorials)
 
 ## Feature List
 
@@ -23,9 +23,8 @@ A [Typst](https://github.com/typst/typst)-friendly static site generator.
 Usage: kodama.exe <COMMAND>
 
 Commands:
-  compile  Compiles an input markdown file into HTML format [aliases: c]
-  inline   Compiles an input markdown file into markdown and SVGs [aliases: i]
-  clean    Clean all markdown entry caches
+  compile  Compile current workspace dir to HTMLs [aliases: c]
+  clean    Clean all build files (.cache & publish)
   help     Print this message or the help of the given subcommand(s)
 
 Options:

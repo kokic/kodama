@@ -3,7 +3,7 @@
 
 一个 [Typst](https://github.com/typst/typst) 友好的静态站点生成器. 
 
-[[英语说明](./README.md)] [[Tutorials]](https://kokic.github.io/tutorials)
+[[英语说明](./README.md)] [[Demo](https://kokic.github.io)] [[Tutorials]](https://kokic.github.io/tutorials)
 
 ## 特性列表
 
@@ -23,9 +23,8 @@
 Usage: kodama.exe <COMMAND>
 
 Commands:
-  compile  Compiles an input markdown file into HTML format [aliases: c]
-  inline   Compiles an input markdown file into markdown and SVGs [aliases: i]
-  clean    Clean all markdown entry caches
+  compile  Compile current workspace dir to HTMLs [aliases: c]
+  clean    Clean all build files (.cache & publish)
   help     Print this message or the help of the given subcommand(s)
 
 Options:
