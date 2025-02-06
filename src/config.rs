@@ -14,41 +14,27 @@ pub fn is_short_slug() -> bool {
     SHORT_SLUG.lock().unwrap().to_owned()
 }
 
-/// compiled & written markdown URLs
-pub static HISTORY: Mutex<Vec<String>> = Mutex::new(vec![]);
-
-pub fn history() -> Vec<String> {
-    let history = HISTORY.lock().unwrap();
-    history.to_vec()
-}
-
 #[derive(Clone, Hash, PartialEq, Eq)]
 pub struct Blink {
     pub source: String,
     pub target: String,
 }
 
-impl Blink {
-    pub fn new(source: String, target: String) -> Self {
-        return Blink { source, target };
-    }
-}
-
-/// linked markdown URLs
-pub static LINKED: Mutex<Vec<Blink>> = Mutex::new(vec![]);
-
-pub fn linked() -> Vec<Blink> {
-    let linked = LINKED.lock().unwrap();
-    linked.to_vec()
-}
-
-pub const CACHE_DIR: &str = "./.cache";
+pub const CACHE_DIR_NAME: &str = ".cache";
 pub const HASH_DIR_NAME: &str = "hash";
-// pub const ENTRY_DIR_NAME: &str = "entry";
+pub const ENTRY_DIR_NAME: &str = "entry";
 
 pub fn mutex_set<T>(source: &Mutex<T>, target: T) {
     let mut guard = source.lock().unwrap();
     *guard = target;
+}
+
+pub fn set_base_url(base_url: String) {
+    let base_url = match base_url.ends_with("/") {
+        true => base_url,
+        false => format!("{}/", base_url),
+    };
+    mutex_set(&BASE_URL, base_url);
 }
 
 pub fn root_dir() -> String {
@@ -63,6 +49,10 @@ pub fn page_suffix() -> String {
     PAGE_SUFFIX.lock().unwrap().to_string()
 }
 
+pub fn get_cache_dir() -> String {
+    join_path(&root_dir(), CACHE_DIR_NAME)
+}
+
 pub fn full_url(path: &str) -> String {
     if path.starts_with("/") {
         return format!("{}{}", base_url(), path[1..].to_string());
@@ -72,6 +62,13 @@ pub fn full_url(path: &str) -> String {
     format!("{}{}", base_url(), path)
 }
 
+pub fn full_html_url(slug: &str) -> String {
+    full_url(&format!("{}{}", slug, page_suffix()))
+}
+
+/**
+ * `path` to `./{path}` or `path`.
+ */
 pub fn relativize(path: &str) -> String {
     match path.starts_with("/") {
         true => format!(".{}", path),
@@ -117,11 +114,19 @@ pub fn output_path(path: &str) -> String {
 }
 
 pub fn hash_dir() -> String {
-    join_path(CACHE_DIR, HASH_DIR_NAME)
+    join_path(&get_cache_dir(), HASH_DIR_NAME)
 }
 
 pub fn hash_path(path: &str) -> PathBuf {
     auto_create_dir_path(vec![&hash_dir(), path]).into()
+}
+
+pub fn entry_dir() -> String {
+    join_path(&get_cache_dir(), ENTRY_DIR_NAME)
+}
+
+pub fn entry_path(path: &str) -> PathBuf {
+    auto_create_dir_path(vec![&entry_dir(), path]).into()
 }
 
 /// Return is file modified i.e. is hash updated.
@@ -139,33 +144,58 @@ pub fn is_hash_updated<P: AsRef<Path>>(content: &str, hash_path: P) -> (bool, u6
 
 /// Checks whether the file has been modified by comparing its current hash with the stored hash.
 /// If the file is modified, updates the stored hash to reflect the latest state.
-pub fn verify_and_update_file_hash(path: &str) -> bool {
-    let hash_path = hash_path(&format!("{}.hash", path));
-    let content = std::fs::read_to_string(path);
-    if let Ok(content) = content {
-        let (is_modified, current_hash) = is_hash_updated(&content, &hash_path);
-        if is_modified {
-            let _ = std::fs::write(&hash_path, current_hash.to_string());
-        }
-        return is_modified;
-    }
-    true
-}
+pub fn verify_and_update_file_hash(relative_path: &str) -> Result<bool, std::io::Error> {
+    let root_dir = root_dir();
+    let full_path = join_path(&root_dir, relative_path);
+    let hash_path = hash_path(&format!("{}.hash", relative_path));
 
-/// Checks whether the content has been modified by comparing its current hash with the stored hash.
-/// If the content is modified, updates the stored hash to reflect the latest state.
-pub fn verify_and_update_content_hash(path: &str, content: &str) -> bool {
-    let hash_path = hash_path(&format!("{}.hash", path));
+    let content = std::fs::read_to_string(full_path)?;
     let (is_modified, current_hash) = is_hash_updated(&content, &hash_path);
     if is_modified {
         let _ = std::fs::write(&hash_path, current_hash.to_string());
     }
-    is_modified
+    return Ok(is_modified);
 }
 
-pub fn delete_all_build_files() -> Result<(), std::io::Error> {
+pub fn files_match_with<F, G>(
+    dir: &Path,
+    predicate: &F,
+    collect: &mut Vec<String>,
+    map: &G,
+) -> Result<(), std::io::Error>
+where
+    F: Fn(&Path) -> bool,
+    G: Fn(String) -> String,
+{
+    for entry in std::fs::read_dir(dir)? {
+        let path = entry?.path();
+        if path.is_file() && predicate(&path) {
+            let path = crate::slug::posix_style(path.to_str().unwrap());
+            collect.push(map(path));
+        } else if path.is_dir() {
+            files_match_with(&path, predicate, collect, map)?;
+        }
+    }
+    Ok(())
+}
+
+#[allow(dead_code)]
+pub fn delete_all_with<F>(dir: &str, predicate: &F) -> Result<(), std::io::Error>
+where
+    F: Fn(&Path) -> bool,
+{
+    let mut collect = vec![];
+    files_match_with(Path::new(dir), predicate, &mut collect, &|s| s)?;
+    for path in collect {
+        std::fs::remove_file(Path::new(&path))?;
+    }
+    Ok(())
+}
+
+#[allow(dead_code)]
+pub fn delete_all_built_files() -> Result<(), std::io::Error> {
     let root_dir = root_dir();
-    std::fs::remove_dir_all(join_path(&root_dir, CACHE_DIR))?;
+    std::fs::remove_dir_all(join_path(&root_dir, &get_cache_dir()))?;
     std::fs::remove_dir_all(join_path(&root_dir, &OUTPUT_DIR.lock().unwrap()))?;
     Ok(())
 }

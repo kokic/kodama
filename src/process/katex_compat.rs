@@ -1,8 +1,8 @@
 use pulldown_cmark::CowStr;
 
-use crate::recorder::State;
+use crate::recorder::{ParseRecorder, State};
 
-use super::Handler;
+use super::processer::Processer;
 
 pub struct KatexCompact;
 
@@ -11,12 +11,11 @@ fn formula_disambiguate(s: &str) -> String {
     s.replace("<", "< ")
 }
 
-impl Handler for KatexCompact {
-    
+impl Processer for KatexCompact {
     fn inline_math(
         &self,
         s: &pulldown_cmark::CowStr<'_>,
-        recorder: &mut crate::recorder::ParseRecorder,
+        recorder: &mut ParseRecorder,
     ) -> Option<std::string::String> {
         match recorder.state {
             State::InlineTypst => {
@@ -28,8 +27,7 @@ impl Handler for KatexCompact {
         }
     }
 
-    fn display_math(&self, s: &CowStr<'_>, _recorder: &mut crate::recorder::ParseRecorder) -> Option<String> {
+    fn display_math(&self, s: &CowStr<'_>, _recorder: &mut ParseRecorder) -> Option<String> {
         Some(format!("$${}$$", formula_disambiguate(&s)))
     }
-
 }
