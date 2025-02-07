@@ -1,12 +1,12 @@
 use std::{path::Path, process::Command};
 
 use crate::{
-    config::{self, verify_and_update_file_hash},
+    config::{self, verify_and_file_hash},
     html,
 };
 
 pub fn write_svg(typst_path: &str, svg_path: &str) -> Result<(), std::io::Error> {
-    if !verify_and_update_file_hash(typst_path)? && Path::new(svg_path).exists() {
+    if !verify_and_file_hash(typst_path)? && Path::new(svg_path).exists() {
         println!("Skip: {}", crate::slug::pretty_path(Path::new(typst_path)));
         return Ok(());
     }

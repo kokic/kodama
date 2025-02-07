@@ -149,6 +149,18 @@ article>section>details>summary>header>h1>.taxon {
   padding-bottom: 5pt;
 }
 
+section.block>details {
+  margin-bottom: 0.4em;
+}
+
+section.block>details[open] {
+  margin-bottom: 1em;
+}
+
+.link-list>section.block>details {
+  margin-bottom: .25em;
+}
+
 /* class */
 .inline-typst {
   display: inline-block;

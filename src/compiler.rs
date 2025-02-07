@@ -13,7 +13,7 @@ use state::CompileState;
 use writer::Writer;
 
 use crate::{
-    config::{self, files_match_with, verify_and_update_file_hash},
+    config::{self, files_match_with, verify_and_file_hash},
     slug::{self, posix_style},
 };
 
@@ -26,12 +26,11 @@ pub enum CompileError {
 pub fn compile_all(workspace_dir: &str) -> Result<(), CompileError> {
     let workspace = all_markdown_file(Path::new(workspace_dir)).unwrap();
     let mut state = CompileState::new();
-    let mut write_slugs: Vec<String> = vec![];
 
-    for slug in workspace.slugs {
+    for slug in &workspace.slugs {
         let relative_path = format!("{}.md", slug);
 
-        let is_modified = verify_and_update_file_hash(&relative_path).map_err(|e| {
+        let is_modified = verify_and_file_hash(&relative_path).map_err(|e| {
             let position = Some("compiler::compile_all@is_modified".to_owned());
             CompileError::IO(position, e, relative_path.to_string())
         })?;
@@ -55,27 +54,16 @@ pub fn compile_all(workspace_dir: &str) -> Result<(), CompileError> {
                 CompileError::IO(position, e, entry_path_str)
             })?;
 
-            write_slugs.push(slug.to_string());
             shallow
         };
 
-        state.residued.insert(slug, shallow);
+        state.residued.insert(slug.to_string(), shallow);
     }
 
     state.compile_all();
 
-    write_slugs
-        .iter()
-        .for_each(|slug| match state.compiled.get(slug) {
-            /*
-             * No need for `state.compiled.remove(slug)` here,
-             * because writing to a file does not require a mutable reference
-             * of the [`Section`].
-             */
-            None => eprintln!("Slug `{}` not in compiled entries.", slug),
-            Some(section) => Writer::write(section, &state),
-        });
-
+    Writer::write_needed_slugs(&workspace.slugs, &state);
+    
     Ok(())
 }
 

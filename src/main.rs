@@ -67,6 +67,10 @@ struct CleanCommand {
     /// Clean typst hash files.
     #[arg(short, long)]
     typst: bool,
+
+    /// Clean html hash files.
+    #[arg(short, long)]
+    html: bool,
 }
 
 fn main() {
@@ -105,6 +109,12 @@ fn main() {
             clean_command.typst.then(|| {
                 let _ = config::delete_all_with(&cache_dir, &|s| {
                     s.to_str().unwrap().ends_with(".typ.hash")
+                });
+            });
+
+            clean_command.html.then(|| {
+                let _ = config::delete_all_with(&cache_dir, &|s| {
+                    s.to_str().unwrap().ends_with(".html.hash")
                 });
             });
         }

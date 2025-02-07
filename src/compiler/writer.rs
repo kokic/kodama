@@ -2,7 +2,8 @@ use std::{collections::HashSet, ops::Not, path::Path};
 
 use crate::{
     compiler::counter::Counter,
-    config, html,
+    config::{self, verify_update_hash},
+    html,
     html_flake::{self, html_article_inner},
 };
 
@@ -20,13 +21,30 @@ impl Writer {
         let html_url = format!("{}.html", section.slug());
         let filepath = crate::config::output_path(&html_url);
 
-        match std::fs::write(&filepath, html) {
-            Ok(()) => {
-                let output_path = crate::slug::pretty_path(Path::new(&html_url));
-                println!("Output: {:?} {}", page_title, output_path);
+        let relative_path = config::join_path(&config::output_dir(), &html_url);
+        if verify_update_hash(&relative_path, &html).expect("Writer::write@hash") {
+            match std::fs::write(&filepath, html) {
+                Ok(()) => {
+                    let output_path = crate::slug::pretty_path(Path::new(&html_url));
+                    println!("Output: {:?} {}", page_title, output_path);
+                }
+                Err(err) => eprintln!("{:?}", err),
             }
-            Err(err) => eprintln!("{:?}", err),
         }
+    }
+
+    pub fn write_needed_slugs(all_slugs: &Vec<String>, state: &CompileState) {
+        all_slugs
+            .iter()
+            .for_each(|slug| match state.compiled.get(slug) {
+                /*
+                 * No need for `state.compiled.remove(slug)` here,
+                 * because writing to a file does not require a mutable reference
+                 * of the [`Section`].
+                 */
+                None => eprintln!("Slug `{}` not in compiled entries.", slug),
+                Some(section) => Writer::write(section, &state),
+            });
     }
 
     pub fn html_doc(section: &Section, state: &CompileState) -> (String, String) {
@@ -74,11 +92,14 @@ impl Writer {
     }
 
     fn footer(state: &CompileState, references: &HashSet<String>) -> String {
+        let mut references: Vec<&String> = references.iter().collect();
+        references.sort();
+        
         references
             .iter()
             .map(|slug| {
-                // slug.to_string()
-                let section = state.compiled.get(slug).unwrap();
+                let slug = slug.to_string();
+                let section = state.compiled.get(&slug).unwrap();
                 Writer::footer_section_to_html(section)
             })
             .reduce(|s, t| s + &t)

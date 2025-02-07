@@ -41,6 +41,10 @@ pub fn root_dir() -> String {
     ROOT_DIR.lock().unwrap().to_string()
 }
 
+pub fn output_dir() -> String {
+    OUTPUT_DIR.lock().unwrap().to_string()
+}
+
 pub fn base_url() -> String {
     BASE_URL.lock().unwrap().to_string()
 }
@@ -144,7 +148,7 @@ pub fn is_hash_updated<P: AsRef<Path>>(content: &str, hash_path: P) -> (bool, u6
 
 /// Checks whether the file has been modified by comparing its current hash with the stored hash.
 /// If the file is modified, updates the stored hash to reflect the latest state.
-pub fn verify_and_update_file_hash(relative_path: &str) -> Result<bool, std::io::Error> {
+pub fn verify_and_file_hash(relative_path: &str) -> Result<bool, std::io::Error> {
     let root_dir = root_dir();
     let full_path = join_path(&root_dir, relative_path);
     let hash_path = hash_path(&format!("{}.hash", relative_path));
@@ -152,9 +156,21 @@ pub fn verify_and_update_file_hash(relative_path: &str) -> Result<bool, std::io:
     let content = std::fs::read_to_string(full_path)?;
     let (is_modified, current_hash) = is_hash_updated(&content, &hash_path);
     if is_modified {
-        let _ = std::fs::write(&hash_path, current_hash.to_string());
+        std::fs::write(&hash_path, current_hash.to_string())?;
     }
     return Ok(is_modified);
+}
+
+/// Checks whether the content has been modified by comparing its current hash with the stored hash.
+/// If the content is modified, updates the stored hash to reflect the latest state.
+pub fn verify_update_hash(path: &str, content: &str) -> Result<bool, std::io::Error> {
+    let hash_path = hash_path(&format!("{}.hash", path));
+    let (is_modified, current_hash) = is_hash_updated(&content, &hash_path);
+    if is_modified {
+        std::fs::write(&hash_path, current_hash.to_string())?;
+    }
+    
+    Ok(is_modified)
 }
 
 pub fn files_match_with<F, G>(
