@@ -27,9 +27,9 @@ impl Processer for Figure {
 
     fn end(&mut self, _tag: &TagEnd, recorder: &mut ParseRecorder) -> Option<LazyContent> {
         if recorder.state == State::Figure {
-            let url = recorder.data.get(0).unwrap();
-            let alt = recorder.data.get(1).unwrap();
-            let html = format!(r#"<img src={} title={} alt={}>"#, url, alt, alt);
+            let url = recorder.data.get(0).map_or("", |s| s);
+            let alt = recorder.data.get(1).map_or("", |s| s);
+            let html = format!(r#"<img src="{}" title="{}" alt="{}">"#, url, alt, alt);
             recorder.exit();
             return Some(LazyContent::Plain(html));
         }

@@ -2,7 +2,10 @@ use super::processer::{url_action, Processer};
 use std::collections::HashMap;
 
 use crate::{
-    compiler::section::{EmbedContent, LazyContent, LocalLink, SectionOption},
+    compiler::{
+        parser::cmark_to_html,
+        section::{EmbedContent, LazyContent, LocalLink, SectionOption},
+    },
     html_flake::html_link,
     recorder::{ParseRecorder, State},
     slug::to_slug,
@@ -137,16 +140,15 @@ pub fn parse_metadata(s: &str, metadata: &mut HashMap<String, String>) {
     for s in lines {
         if s.trim().len() != 0 {
             let pos = s.find(':').expect("metadata item expect `name: value`");
-            let key = s[0..pos].trim().to_string();
+            let key = s[0..pos].trim();
             let val = s[pos + 1..].trim();
 
-            if key == "taxon" {
-                let taxon = display_taxon(val);
-                metadata.insert(key, taxon);
-            } else {
-                metadata.insert(key, val.to_string());
-            }
-            return;
+            let val = match key {
+                "title" => cmark_to_html(val), 
+                "taxon" => display_taxon(val), 
+                _ => val.to_string()
+            };
+            metadata.insert(key.to_string(), val);
         }
     }
 }

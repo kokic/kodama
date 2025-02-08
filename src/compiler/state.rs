@@ -1,22 +1,24 @@
 use std::collections::{HashMap, HashSet};
 
-use crate::{config, slug};
+use crate::{config, entry::EntryMetaData, slug};
 
 use super::{
     parser::parse_spanned_markdown,
-    section::{HTMLContent, LazyContent, Section, SectionContent, SectionContents, ShallowSection}, taxon::Taxon,
+    section::{HTMLContent, LazyContent, Section, SectionContent, SectionContents, ShallowSection},
+    taxon::Taxon,
 };
 
 #[derive(Debug)]
 pub struct CompileState {
     pub residued: HashMap<String, ShallowSection>,
     pub compiled: HashMap<String, Section>,
-    pub callback: HashMap<String, Callback>, 
+    pub callback: HashMap<String, Callback>,
+    pub metadata: HashMap<String, EntryMetaData>,
 }
 
 #[derive(Debug)]
 pub struct Callback {
-    pub parent: String, 
+    pub parent: String,
 }
 
 impl CompileState {
@@ -24,7 +26,8 @@ impl CompileState {
         CompileState {
             residued: HashMap::new(),
             compiled: HashMap::new(),
-            callback: HashMap::new(), 
+            callback: HashMap::new(),
+            metadata: HashMap::new(),
         }
     }
 
@@ -33,6 +36,12 @@ impl CompileState {
     }
 
     pub fn compile_all(&mut self) {
+        self.metadata = self
+            .residued
+            .iter()
+            .map(|(key, value)| (key.to_string(), value.metadata.clone()))
+            .collect();
+
         self.compile("index");
         /*
          * Unlinked or unembedded pages.
@@ -53,7 +62,7 @@ impl CompileState {
             return self.compile_shallow(shallow);
         }
 
-        unreachable!()
+        unreachable!("CompileState::fetch_section")
     }
 
     fn compile_shallow(&mut self, shallow: ShallowSection) -> &Section {
@@ -77,11 +86,16 @@ impl CompileState {
                         LazyContent::Embed(embed_content) => {
                             let child_slug = slug::to_slug(&embed_content.url);
                             let refered = self.fetch_section(&child_slug);
-                            
+
                             if embed_content.option.details_open {
                                 references.extend(refered.references.clone());
                             }
-                            callback.insert(child_slug, Callback { parent: slug.to_string() });
+                            callback.insert(
+                                child_slug,
+                                Callback {
+                                    parent: slug.to_string(),
+                                },
+                            );
 
                             let mut child_section = refered.clone();
                             child_section.option = embed_content.option.clone();
@@ -94,9 +108,9 @@ impl CompileState {
                         }
                         LazyContent::Local(local_link) => {
                             let slug = &local_link.slug;
-                            let article_title = self.get_metadata(slug, "title").unwrap_or(slug);
-                            let article_taxon = self.get_metadata(slug, "taxon").map_or("", |s| s);
-                            
+                            let article_title = self.get_metadata(&slug, "title").map_or("", |s| s);
+                            let article_taxon = self.get_metadata(&slug, "taxon").map_or("", |s| s);
+
                             if Taxon::is_reference(&article_taxon) {
                                 references.insert(slug.to_string());
                             }
@@ -119,6 +133,7 @@ impl CompileState {
             }
         };
 
+        // compile metadata
         let metadata_keys: Vec<String> = metadata.enable_markdown_keys();
         metadata_keys.iter().for_each(|key| {
             let value = metadata.get(key).unwrap();
@@ -127,17 +142,16 @@ impl CompileState {
             let html = compiled.spanned();
             metadata.update(key.to_string(), html);
         });
-        
+
+        // remove from `self.residued` after compiled.
+        self.residued.remove(&slug);
+
         let section = Section::new(metadata, children, references);
         self.compiled.insert(slug.to_string(), section);
         self.compiled.get(&slug).unwrap()
     }
 
     pub fn get_metadata(&self, slug: &str, key: &str) -> Option<&String> {
-        self.residued
-            .get(slug)
-            .map(|s| s.metadata.get(key))
-            .or(self.compiled.get(slug).map(|s| s.metadata.get(key)))
-            .flatten()
+        self.metadata.get(slug).map(|e| e.get(key)).flatten()
     }
 }

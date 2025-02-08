@@ -9,7 +9,7 @@ const PRESET_METADATA: [&'static str; 5] = ["parent", "taxon", "title", "page-ti
 
 impl EntryMetaData {
     pub fn to_header(&self, adhoc_title: Option<&str>, adhoc_taxon: Option<&str>) -> String {
-        let entry_taxon = self.taxon_text().map_or("", |s| s);
+        let entry_taxon = self.taxon().map_or("", |s| s);
         let taxon = adhoc_taxon.unwrap_or(entry_taxon);
         let entry_title = self.0.get("title").map(|s| s.as_str()).unwrap_or("");
         let title = adhoc_title.unwrap_or(entry_title);
@@ -45,7 +45,7 @@ impl EntryMetaData {
     }
 
     pub fn enable_markdown_key(s: &str) -> bool {
-        s == "title" || EntryMetaData::is_custom_metadata(s)
+        EntryMetaData::is_custom_metadata(s)
     }
 
     pub fn enable_markdown_keys(&self) -> Vec<String> {
@@ -83,7 +83,8 @@ impl EntryMetaData {
         crate::slug::to_hash_id(self.get("slug").unwrap())
     }
 
-    pub fn taxon_text(&self) -> Option<&String> {
+    /// Return taxon text
+    pub fn taxon(&self) -> Option<&String> {
         return self.0.get("taxon");
     }
 

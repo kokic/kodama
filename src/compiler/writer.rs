@@ -198,10 +198,10 @@ impl Writer {
         if section.option.numbering {
             counter.step_mut();
             let numbering = Some(counter.display());
-            let text = section.metadata.taxon_text().map_or("", |s| s);
+            let text = section.metadata.taxon().map_or("", |s| s);
             let taxon = Taxon::new(numbering, text.to_string());
             return taxon.display();
         }
-        section.metadata.taxon_text().map_or("", |s| s).to_string()
+        section.metadata.taxon().map_or("", |s| s).to_string()
     }
 }

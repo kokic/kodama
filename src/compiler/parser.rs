@@ -64,6 +64,13 @@ pub fn parse_markdown(slug: &str) -> Result<ShallowSection, CompileError> {
     });
 }
 
+pub fn cmark_to_html(markdown_input: &str) -> String {
+    let parser = pulldown_cmark::Parser::new_ext(&markdown_input, OPTIONS);
+    let mut html_output = String::new();
+    html::push_html(&mut html_output, parser);
+    html_output
+}
+
 pub fn parse_spanned_markdown(
     markdown_input: &str,
     current_slug: &str,

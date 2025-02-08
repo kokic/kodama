@@ -19,7 +19,7 @@ pub fn html_article_inner(
         hide_metadata,
         open,
         article_id,
-        metadata.taxon_text(),
+        metadata.taxon(),
     )
 }
 

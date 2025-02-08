@@ -31,14 +31,14 @@ impl SectionOption {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct EmbedContent {
     pub url: String,
     pub title: Option<String>,
     pub option: SectionOption,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct LocalLink {
     pub slug: String,
     pub text: Option<String>,
@@ -46,7 +46,7 @@ pub struct LocalLink {
 
 /// Plain HTMLs & lazy embedding HTMLs, This means that
 /// the embedded structure within are not expanded.
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum LazyContent {
     Plain(String),
     Embed(EmbedContent),
@@ -61,14 +61,14 @@ pub type LazyContents = Vec<LazyContent>;
 /// Additionally, it is designed with the consideration that
 /// when all contents in `Vec<LazyContent>` are [`LazyContent::Plain`],
 /// this structure will naturally be lifted to [`HTMLContent::Plain`].
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum HTMLContent {
     Plain(String),
     Lazy(LazyContents),
 }
 
 ///
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ShallowSection {
     pub metadata: EntryMetaData,
     pub content: HTMLContent,
