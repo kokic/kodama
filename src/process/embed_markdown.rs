@@ -144,7 +144,7 @@ pub fn parse_metadata(s: &str, metadata: &mut HashMap<String, String>) {
             let val = s[pos + 1..].trim();
 
             let val = match key {
-                "title" => cmark_to_html(val), 
+                "title" => cmark_to_html(val, true), 
                 "taxon" => display_taxon(val), 
                 _ => val.to_string()
             };
