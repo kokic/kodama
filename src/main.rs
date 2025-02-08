@@ -23,7 +23,7 @@ enum Command {
     #[command(visible_alias = "c")]
     Compile(CompileCommand),
 
-    /// Clean all build files (.cache & publish).
+    /// Clean build files (.cache & publish).
     Clean(CleanCommand),
 }
 
@@ -65,11 +65,11 @@ struct CleanCommand {
     markdown: bool,
 
     /// Clean typst hash files.
-    #[arg(short, long)]
+    #[arg(long)]
     typst: bool,
 
     /// Clean html hash files.
-    #[arg(short, long)]
+    #[arg(long)]
     html: bool,
 }
 

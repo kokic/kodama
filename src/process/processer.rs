@@ -32,21 +32,25 @@ pub trait Processer {
     }
 
     #[allow(dead_code, unused_variables)]
-    fn inline_html(
-        &self,
-        s: &CowStr<'_>,
-        recorder: &mut ParseRecorder,
-    ) {
-    }
+    fn inline_html(&self, s: &CowStr<'_>, recorder: &mut ParseRecorder) {}
 
     #[allow(dead_code, unused_variables)]
     fn code(&self, s: &CowStr<'_>, recorder: &mut ParseRecorder) {}
+
+    #[allow(dead_code, unused_variables)]
+    fn footnote(&self, s: &CowStr<'_>, recorder: &mut ParseRecorder) -> Option<String> {
+        None
+    }
 }
 
+pub type FootnoteCounter = HashMap<String, usize>;
+
 pub fn url_action(dest_url: &CowStr<'_>) -> (String, String) {
-    let vec: Vec<&str> = dest_url.split("#:").collect();
-    (
-        vec.first().unwrap_or(&"").to_string(),
-        vec.last().unwrap_or(&"").to_string(),
-    )
+    if let Some(pos) = dest_url.find("#:") {
+        let base = &dest_url[0..pos];
+        let action = &dest_url[pos + 2..];
+        (base.to_string(), action.to_string())
+    } else {
+        (dest_url.to_string(), String::new())
+    }
 }

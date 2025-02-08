@@ -1,3 +1,7 @@
+use std::collections::HashMap;
+
+use crate::process::processer::FootnoteCounter;
+
 
 #[derive(Debug, PartialEq)]
 pub enum State {
@@ -40,6 +44,7 @@ pub struct ParseRecorder {
     pub current: String,
     pub data: Vec<String>,
     pub shareds: Vec<String>,
+    pub footnote_counter: FootnoteCounter
 }
 
 impl ParseRecorder {
@@ -49,6 +54,7 @@ impl ParseRecorder {
             current,
             data: vec![],
             shareds: vec![],
+            footnote_counter: HashMap::new(), 
         };
     }
 

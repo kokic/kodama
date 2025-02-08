@@ -58,6 +58,11 @@ pre>code {
   display: inline;
 }
 
+/* !forest */
+.footnote-definition-label {
+  margin-right: 4px;
+}
+
 .display-none {
   display: none;
 }

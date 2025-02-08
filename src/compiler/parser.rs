@@ -41,6 +41,7 @@ pub fn initialize(
 
 pub fn parse_markdown(slug: &str) -> Result<ShallowSection, CompileError> {
     let mut processers: Vec<Box<dyn Processer>> = vec![
+        Box::new(crate::process::footnote::Footnote),
         Box::new(crate::process::figure::Figure),
         Box::new(crate::process::typst_image::TypstImage),
         Box::new(crate::process::katex_compat::KatexCompact),
@@ -72,7 +73,6 @@ pub fn parse_spanned_markdown(
     metadata.insert("slug".to_string(), format!("{}:metadata", current_slug));
 
     let mut handlers: Vec<Box<dyn Processer>> = vec![
-        // Box::new(handler::figure::Figure),
         Box::new(crate::process::typst_image::TypstImage),
         Box::new(crate::process::katex_compat::KatexCompact),
         Box::new(crate::process::embed_markdown::Embed),
@@ -100,6 +100,7 @@ pub fn parse_content(
 ) -> Result<HTMLContent, CompileError> {
     let mut contents: LazyContents = vec![];
     let parser = pulldown_cmark::Parser::new_ext(&markdown_input, OPTIONS);
+
     for mut event in parser {
         match &event {
             Event::Start(tag) => {
@@ -109,6 +110,7 @@ pub fn parse_content(
                         _ => (),
                     }
                 }
+
                 processers
                     .iter_mut()
                     .for_each(|handler| handler.start(&tag, recorder));
@@ -175,13 +177,24 @@ pub fn parse_content(
                     .for_each(|handler| handler.code(s, recorder));
             }
 
+            Event::FootnoteReference(s) => {
+                let mut html = String::new();
+                processers.iter_mut().for_each(|handler| {
+                    handler.footnote(&s, recorder).map(|s| html = s);
+                });
+                event = Event::Html(CowStr::Boxed(html.into()));
+            }
             _ => (),
         };
 
         match recorder.is_html_writable() {
             true => {
                 let mut html_output = String::new();
-                html::push_html(&mut html_output, [event].into_iter());
+                if recorder.data.len() > 0 {
+                    html_output = recorder.data.remove(0);
+                } else {
+                    html::push_html(&mut html_output, [event].into_iter());
+                }
 
                 // condensed contents
                 match contents.last() {
