@@ -64,6 +64,8 @@ pub fn source_to_inline_svg(src: &str, config: InlineConfig) -> Result<String, s
         config.margin_y.unwrap_or(InlineConfig::default_margin())
     );
     let svg = source_to_svg(format!("{}{}", styles, src).as_str(), &config.root_dir)?;
+
+    println!("/// \n {}", svg);
     Ok(format!(
         "\n{}\n",
         html!(span class = "inline-typst" => {svg})
@@ -71,19 +73,28 @@ pub fn source_to_inline_svg(src: &str, config: InlineConfig) -> Result<String, s
 }
 
 pub fn source_to_svg(src: &str, root_dir: &str) -> Result<String, std::io::Error> {
-    let output = if cfg!(target_os = "windows") {
+    let child = if cfg!(target_os = "windows") {
         Command::new("powershell")
-            .args(["/C", &format!("echo {}", format!("'{}'", src))])
-            .arg(format!("| typst c -f=svg --root={} - -", root_dir))
-            .output()?
-        // .expect("Failed to execute `echo` on Windows")
+            .arg("/C")
+            .arg(format!(
+                "echo '{}' | typst c -f=svg --root={} - -",
+                src, root_dir
+            ))
+            .stdout(std::process::Stdio::piped())
+            .spawn()
+            .expect("Failed to spawn shell process")
     } else {
         Command::new("sh")
-            .args(["-c", &format!("echo {}", format!("'{}'", src))])
-            .arg(format!("| typst c -f=svg --root={} - -", root_dir))
-            .output()?
-        // .expect("Failed to execute `echo`")
+            .arg("-c")
+            .arg(format!(
+                "echo '{}' | typst c -f=svg --root={} - -",
+                src, root_dir
+            ))
+            .stdout(std::process::Stdio::piped())
+            .spawn()
+            .expect("Failed to spawn shell process")
     };
+    let output = child.wait_with_output().expect("Failed to read stdout");
 
     Ok(if output.status.success() {
         let stdout = String::from_utf8_lossy(&output.stdout);
