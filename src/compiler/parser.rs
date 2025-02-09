@@ -65,6 +65,12 @@ pub fn parse_markdown(slug: &str) -> Result<ShallowSection, CompileError> {
 }
 
 pub fn cmark_to_html(markdown_input: &str, ignore_paragraph: bool) -> String {
+    
+    let mut recorder = ParseRecorder::new("cmark_to_html".to_owned());
+    let mut processers: Vec<Box<dyn Processer>> = vec![
+        Box::new(crate::process::katex_compat::KatexCompact),
+    ];
+
     let parser = pulldown_cmark::Parser::new_ext(&markdown_input, OPTIONS);
     let parser = parser.filter_map(|event| match &event {
         Event::Start(tag) => match tag {
@@ -74,6 +80,20 @@ pub fn cmark_to_html(markdown_input: &str, ignore_paragraph: bool) -> String {
         Event::End(tag) => match tag {
             TagEnd::Paragraph if ignore_paragraph => None,
             _ => Some(event),
+        },
+        Event::InlineMath(s) => {
+            let mut html = String::new();
+            processers.iter_mut().for_each(|handler| {
+                handler.inline_math(&s, &mut recorder).map(|s| html = s);
+            });
+            Some(Event::Html(CowStr::Boxed(html.into())))
+        },
+        Event::DisplayMath(s) => {
+            let mut html = String::new();
+            processers.iter_mut().for_each(|handler| {
+                handler.display_math(&s, &mut recorder).map(|s| html = s);
+            });
+            Some(Event::Html(CowStr::Boxed(html.into())))
         },
         _ => Some(event),
     });
@@ -90,7 +110,7 @@ pub fn parse_spanned_markdown(
     let mut metadata = HashMap::new();
     metadata.insert("slug".to_string(), format!("{}:metadata", current_slug));
 
-    let mut handlers: Vec<Box<dyn Processer>> = vec![
+    let mut processers: Vec<Box<dyn Processer>> = vec![
         Box::new(crate::process::typst_image::TypstImage),
         Box::new(crate::process::katex_compat::KatexCompact),
         Box::new(crate::process::embed_markdown::Embed),
@@ -100,7 +120,7 @@ pub fn parse_spanned_markdown(
         &markdown_input,
         &mut recorder,
         &mut metadata,
-        &mut handlers,
+        &mut processers,
         true,
     )?;
     return Ok(ShallowSection {

@@ -108,7 +108,10 @@ impl CompileState {
                         }
                         LazyContent::Local(local_link) => {
                             let slug = &local_link.slug;
-                            let article_title = self.get_metadata(&slug, "title").map_or("", |s| s);
+                            let article_title = self
+                                .get_metadata(&slug, "page-title")
+                                .or_else(|| self.get_metadata(&slug, "title"))
+                                .map_or("", |s| s);
                             let article_taxon = self.get_metadata(&slug, "taxon").map_or("", |s| s);
 
                             if Taxon::is_reference(&article_taxon) {
