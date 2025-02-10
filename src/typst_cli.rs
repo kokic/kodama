@@ -65,7 +65,6 @@ pub fn source_to_inline_svg(src: &str, config: InlineConfig) -> Result<String, s
     );
     let svg = source_to_svg(format!("{}{}", styles, src).as_str(), &config.root_dir)?;
 
-    println!("/// \n {}", svg);
     Ok(format!(
         "\n{}\n",
         html!(span class = "inline-typst" => {svg})
