@@ -29,11 +29,12 @@ impl Processer for Footnote {
                 let len = recorder.footnote_counter.len() + 1;
                 let number = recorder.footnote_counter.entry(name.into()).or_insert(len);
 
+                let back_href = format!("#{}", get_back_id(s));
                 let html = format!(
                     r#"<div class="footnote-definition" id="{}">
-  <sup class="footnote-definition-label"><a href="\#{}">{}</a></sup>"#,
+  <sup class="footnote-definition-label"><a href="{}">{}</a></sup>"#,
                     s,
-                    get_back_id(s),
+                    back_href, 
                     number
                 );
                 recorder.push(html);

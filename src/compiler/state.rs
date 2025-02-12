@@ -3,6 +3,7 @@ use std::collections::{HashMap, HashSet};
 use crate::{config, entry::EntryMetaData, slug};
 
 use super::{
+    callback::Callback,
     parser::parse_spanned_markdown,
     section::{HTMLContent, LazyContent, Section, SectionContent, SectionContents, ShallowSection},
     taxon::Taxon,
@@ -12,13 +13,8 @@ use super::{
 pub struct CompileState {
     pub residued: HashMap<String, ShallowSection>,
     pub compiled: HashMap<String, Section>,
-    pub callback: HashMap<String, Callback>,
     pub metadata: HashMap<String, EntryMetaData>,
-}
-
-#[derive(Debug)]
-pub struct Callback {
-    pub parent: String,
+    pub callback: Callback,
 }
 
 impl CompileState {
@@ -26,8 +22,8 @@ impl CompileState {
         CompileState {
             residued: HashMap::new(),
             compiled: HashMap::new(),
-            callback: HashMap::new(),
             metadata: HashMap::new(),
+            callback: Callback::new(),
         }
     }
 
@@ -76,7 +72,7 @@ impl CompileState {
                 children.push(SectionContent::Plain(html.to_string()));
             }
             HTMLContent::Lazy(lazy_contents) => {
-                let mut callback: HashMap<String, Callback> = HashMap::new();
+                let mut callback: Callback = Callback::new();
 
                 for lazy_content in lazy_contents {
                     match lazy_content {
@@ -90,12 +86,7 @@ impl CompileState {
                             if embed_content.option.details_open {
                                 references.extend(refered.references.clone());
                             }
-                            callback.insert(
-                                child_slug,
-                                Callback {
-                                    parent: slug.to_string(),
-                                },
-                            );
+                            callback.insert_parent(child_slug, slug.to_string());
 
                             let mut child_section = refered.clone();
                             child_section.option = embed_content.option.clone();
@@ -107,23 +98,25 @@ impl CompileState {
                             children.push(SectionContent::Embed(child_section));
                         }
                         LazyContent::Local(local_link) => {
-                            let slug = &local_link.slug;
+                            let link_slug = &local_link.slug;
                             let article_title = self
-                                .get_metadata(&slug, "page-title")
-                                .or_else(|| self.get_metadata(&slug, "title"))
+                                .get_metadata(&link_slug, "page-title")
+                                .or_else(|| self.get_metadata(&link_slug, "title"))
                                 .map_or("", |s| s);
-                            let article_taxon = self.get_metadata(&slug, "taxon").map_or("", |s| s);
+                            let article_taxon =
+                                self.get_metadata(&link_slug, "taxon").map_or("", |s| s);
 
                             if Taxon::is_reference(&article_taxon) {
-                                references.insert(slug.to_string());
+                                references.insert(link_slug.to_string());
                             }
+                            callback.insert_backlinks(link_slug.to_string(), vec![slug.to_string()]);
 
                             let local_link = local_link.text.clone();
                             let text = local_link.unwrap_or(article_title.to_string());
 
                             let html = crate::html_flake::html_link(
-                                &config::full_html_url(slug),
-                                &format!("{} [{}]", article_title, slug),
+                                &config::full_html_url(link_slug),
+                                &format!("{} [{}]", article_title, link_slug),
                                 &text,
                                 crate::recorder::State::LocalLink.strify(),
                             );
@@ -132,7 +125,7 @@ impl CompileState {
                     }
                 }
 
-                self.callback.extend(callback);
+                self.callback.merge(callback);
             }
         };
 

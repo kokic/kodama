@@ -4,14 +4,85 @@ use std::{
     sync::Mutex,
 };
 
-pub static ROOT_DIR: Mutex<String> = Mutex::new(String::new());
-pub static OUTPUT_DIR: Mutex<String> = Mutex::new(String::new());
-pub static BASE_URL: Mutex<String> = Mutex::new(String::new());
-pub static PAGE_SUFFIX: Mutex<String> = Mutex::new(String::new());
-pub static SHORT_SLUG: Mutex<bool> = Mutex::new(false);
+#[derive(Clone, clap::ValueEnum)]
+pub enum FooterMode {
+    Link,
+    Embed,
+}
 
-pub fn is_short_slug() -> bool {
-    SHORT_SLUG.lock().unwrap().to_owned()
+impl ToString for FooterMode {
+    fn to_string(&self) -> String {
+        match self {
+            FooterMode::Link => "link".into(),
+            FooterMode::Embed => "embed".into(),
+        }
+    }
+}
+
+pub struct CompileConfig<S> {
+    pub root_dir: S,
+    pub output_dir: S,
+    pub base_url: S,
+    pub page_suffix: S,
+    pub short_slug: bool,
+    pub footer_mode: FooterMode,
+}
+
+impl CompileConfig<&'static str> {
+    pub const fn default() -> CompileConfig<&'static str> {
+        CompileConfig {
+            root_dir: "./",
+            output_dir: "./publish",
+            base_url: "/",
+            page_suffix: "",
+            short_slug: true,
+            footer_mode: FooterMode::Link,
+        }
+    }
+}
+
+impl CompileConfig<String> {
+    const fn empty() -> CompileConfig<String> {
+        CompileConfig {
+            root_dir: String::new(),
+            output_dir: String::new(),
+            base_url: String::new(),
+            page_suffix: String::new(),
+            short_slug: true,
+            footer_mode: FooterMode::Link,
+        }
+    }
+
+    pub fn new<'a>(
+        root_dir: String,
+        output_dir: String,
+        base_url: String,
+        disable_pretty_urls: bool,
+        short_slug: bool,
+        footer_mode: FooterMode,
+    ) -> CompileConfig<String> {
+        CompileConfig {
+            root_dir,
+            output_dir,
+            base_url: normalize_base_url(&base_url),
+            page_suffix: to_page_suffix(disable_pretty_urls),
+            short_slug,
+            footer_mode,
+        }
+    }
+}
+
+pub static DEFAULT_CONFIG: CompileConfig<&'static str> = CompileConfig::default();
+pub static CONFIG: Mutex<CompileConfig<String>> = Mutex::new(CompileConfig::empty());
+
+// pub static ROOT_DIR: Mutex<String> = Mutex::new(String::new());
+// pub static OUTPUT_DIR: Mutex<String> = Mutex::new(String::new());
+// pub static BASE_URL: Mutex<String> = Mutex::new(String::new());
+// pub static PAGE_SUFFIX: Mutex<String> = Mutex::new(String::new());
+// pub static SHORT_SLUG: Mutex<bool> = Mutex::new(false);
+
+pub fn lock_config() -> std::sync::MutexGuard<'static, CompileConfig<std::string::String>> {
+    CONFIG.lock().unwrap()
 }
 
 #[derive(Clone, Hash, PartialEq, Eq)]
@@ -29,28 +100,50 @@ pub fn mutex_set<T>(source: &Mutex<T>, target: T) {
     *guard = target;
 }
 
-pub fn set_base_url(base_url: String) {
-    let base_url = match base_url.ends_with("/") {
-        true => base_url,
-        false => format!("{}/", base_url),
+pub fn to_page_suffix(disable_pretty_urls: bool) -> String {
+    let page_suffix = match disable_pretty_urls {
+        true => ".html",
+        false => "",
     };
-    mutex_set(&BASE_URL, base_url);
+    page_suffix.into()
+}
+
+pub fn normalize_base_url(base_url: &str) -> String {
+    match base_url.ends_with("/") {
+        true => base_url.to_string(),
+        false => format!("{}/", base_url),
+    }
+}
+
+// pub fn set_base_url(base_url: String) {
+//     let base_url = match base_url.ends_with("/") {
+//         true => base_url,
+//         false => format!("{}/", base_url),
+//     };
+//     mutex_set(&BASE_URL, base_url);
+// }
+
+pub fn is_short_slug() -> bool {
+    lock_config().short_slug
 }
 
 pub fn root_dir() -> String {
-    ROOT_DIR.lock().unwrap().to_string()
+    lock_config().root_dir.to_string()
+    // ROOT_DIR.lock().unwrap().to_string()
 }
 
 pub fn output_dir() -> String {
-    OUTPUT_DIR.lock().unwrap().to_string()
+    lock_config().output_dir.to_string()
+    // OUTPUT_DIR.lock().unwrap().to_string()
 }
 
 pub fn base_url() -> String {
-    BASE_URL.lock().unwrap().to_string()
+    lock_config().base_url.to_string()
+    // BASE_URL.lock().unwrap().to_string()
 }
 
-pub fn page_suffix() -> String {
-    PAGE_SUFFIX.lock().unwrap().to_string()
+pub fn footer_mode() -> FooterMode {
+    lock_config().footer_mode.clone()
 }
 
 pub fn get_cache_dir() -> String {
@@ -67,7 +160,7 @@ pub fn full_url(path: &str) -> String {
 }
 
 pub fn full_html_url(slug: &str) -> String {
-    full_url(&format!("{}{}", slug, page_suffix()))
+    full_url(&format!("{}{}", slug, lock_config().page_suffix))
 }
 
 /**
@@ -114,7 +207,7 @@ pub fn auto_create_dir_path(paths: Vec<&str>) -> String {
 }
 
 pub fn output_path(path: &str) -> String {
-    auto_create_dir_path(vec![&OUTPUT_DIR.lock().unwrap(), path])
+    auto_create_dir_path(vec![&output_dir(), path])
 }
 
 pub fn hash_dir() -> String {
@@ -169,7 +262,7 @@ pub fn verify_update_hash(path: &str, content: &str) -> Result<bool, std::io::Er
     if is_modified {
         std::fs::write(&hash_path, current_hash.to_string())?;
     }
-    
+
     Ok(is_modified)
 }
 
@@ -212,6 +305,6 @@ where
 pub fn delete_all_built_files() -> Result<(), std::io::Error> {
     let root_dir = root_dir();
     std::fs::remove_dir_all(join_path(&root_dir, &get_cache_dir()))?;
-    std::fs::remove_dir_all(join_path(&root_dir, &OUTPUT_DIR.lock().unwrap()))?;
+    std::fs::remove_dir_all(join_path(&root_dir, &output_dir()))?;
     Ok(())
 }

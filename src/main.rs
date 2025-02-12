@@ -9,6 +9,7 @@ mod slug;
 mod typst_cli;
 
 use clap::Parser;
+use config::{CompileConfig, FooterMode};
 
 #[derive(Parser)]
 #[command(version, about, long_about = None)]
@@ -30,34 +31,38 @@ enum Command {
 #[derive(clap::Args)]
 struct CompileCommand {
     /// Base URL or publish URL (e.g. https://www.example.com/)
-    #[arg(short, long, default_value_t = format!("/"))]
+    #[arg(short, long, default_value_t = config::DEFAULT_CONFIG.base_url.into())]
     base: String,
 
     /// Path to output dir.
-    #[arg(short, long, default_value_t = format!("./publish"))]
+    #[arg(short, long, default_value_t = config::DEFAULT_CONFIG.output_dir.into())]
     output: String,
 
     /// Configures the project root (for absolute paths)
-    #[arg(short, long, default_value_t = format!("./"))]
+    #[arg(short, long, default_value_t = config::DEFAULT_CONFIG.root_dir.into())]
     root: String,
 
     /// Disable pretty urls (`/page` to `/page.html`)
-    #[arg(short, long)]
+    #[arg(short, long, default_value_t = false)]
     disable_pretty_urls: bool,
 
     /// Hide parents part in slug (e.g. `tutorials/install` to `install`)
-    #[arg(short, long)]
+    #[arg(short, long, default_value_t = config::DEFAULT_CONFIG.short_slug)]
     short_slug: bool,
+
+    /// Specify the inline mode for the footer sections
+    #[arg(short, long, default_value_t = FooterMode::Link)]
+    footer_mode: FooterMode, 
 }
 
 #[derive(clap::Args)]
 struct CleanCommand {
     /// Path to output dir.
-    #[arg(short, long, default_value_t = format!("./publish"))]
+    #[arg(short, long, default_value_t = config::DEFAULT_CONFIG.output_dir.into())]
     output: String,
 
     /// Configures the project root (for absolute paths)
-    #[arg(short, long, default_value_t = format!("./"))]
+    #[arg(short, long, default_value_t = config::DEFAULT_CONFIG.root_dir.into())]
     root: String,
 
     /// Clean markdown hash files.
@@ -79,14 +84,15 @@ fn main() {
         Command::Compile(compile_command) => {
             let root = &compile_command.root;
             let output = &compile_command.output;
-            config::mutex_set(&config::OUTPUT_DIR, output.to_string());
-            config::mutex_set(&config::ROOT_DIR, root.to_string());
-            if compile_command.disable_pretty_urls {
-                config::mutex_set(&config::PAGE_SUFFIX, ".html".to_string());
-            }
-            config::mutex_set(&config::SHORT_SLUG, compile_command.short_slug);
 
-            config::set_base_url(compile_command.base.to_string());
+            config::mutex_set(&config::CONFIG, CompileConfig::new(
+                root.to_string(), 
+                output.to_string(), 
+                compile_command.base.to_string(), 
+                compile_command.disable_pretty_urls,
+                compile_command.short_slug, 
+                compile_command.footer_mode.clone(), 
+            ));
 
             match compiler::compile_all(root) {
                 Err(err) => eprintln!("{:?}", err),
@@ -94,9 +100,14 @@ fn main() {
             }
         }
         Command::Clean(clean_command) => {
-            let output = clean_command.output.as_str();
-            config::mutex_set(&config::OUTPUT_DIR, output.to_string());
-            config::mutex_set(&config::ROOT_DIR, clean_command.root.to_string());
+            config::mutex_set(&config::CONFIG, CompileConfig::new(
+                clean_command.root.to_string(), 
+                clean_command.output.to_string(), 
+                config::DEFAULT_CONFIG.base_url.into(), 
+                false,
+                config::DEFAULT_CONFIG.short_slug, 
+                FooterMode::Link, 
+            ));
 
             let cache_dir = &config::get_cache_dir();
 

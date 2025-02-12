@@ -2,6 +2,7 @@ pub mod counter;
 pub mod parser;
 pub mod section;
 pub mod taxon;
+pub mod callback;
 pub mod state;
 pub mod writer;
 

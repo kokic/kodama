@@ -23,11 +23,11 @@ pub fn html_article_inner(
     )
 }
 
-pub fn html_footer_section(content: &String) -> String {
-    let summary = "<header><h1>References</h1></header>";
+pub fn html_footer_section(summary: &str, content: &String) -> String {
+    let summary = format!("<header><h1>{}</h1></header>", summary);
     let inner_html = format!("{}{}", (html!(summary => {summary})), content);
     let html_details = format!("<details open>{}</details>", inner_html);
-    html!(footer => (html!(section class="block" => {html_details})))
+    html!(section class="block" => {html_details})
 }
 
 pub fn html_section(

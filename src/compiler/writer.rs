@@ -8,6 +8,7 @@ use crate::{
 };
 
 use super::{
+    callback::CallbackValue,
     section::{Section, SectionContent},
     state::CompileState,
     taxon::Taxon,
@@ -57,8 +58,11 @@ impl Writer {
             .then(|| Writer::catalog_block(&items))
             .unwrap_or_default();
 
-        let html_header = Writer::header(state, &section.slug());
-        let footer_html = Writer::footer(state, &section.references);
+        let slug = section.slug();
+        let html_header = Writer::header(state, &slug);
+
+        let callback = state.callback.0.get(&slug);
+        let footer_html = Writer::footer(state, &section.references, callback);
         let page_title = section
             .metadata
             .get("page-title")
@@ -79,6 +83,7 @@ impl Writer {
     fn header(state: &CompileState, slug: &str) -> String {
         state
             .callback
+            .0
             .get(slug)
             .and_then(|callback| {
                 let parent = &callback.parent;
@@ -91,11 +96,15 @@ impl Writer {
             .unwrap_or_default()
     }
 
-    fn footer(state: &CompileState, references: &HashSet<String>) -> String {
+    fn footer(
+        state: &CompileState,
+        references: &HashSet<String>,
+        callback: Option<&CallbackValue>,
+    ) -> String {
         let mut references: Vec<&String> = references.iter().collect();
         references.sort();
-        
-        references
+
+        let references_html = references
             .iter()
             .map(|slug| {
                 let slug = slug.to_string();
@@ -103,8 +112,34 @@ impl Writer {
                 Writer::footer_section_to_html(section)
             })
             .reduce(|s, t| s + &t)
-            .map(|s| html_flake::html_footer_section(&s))
-            .unwrap_or_default()
+            .map(|s| html_flake::html_footer_section("References", &s))
+            .unwrap_or_default();
+
+        let related_html = callback
+            .map(|s| {
+                let mut backlinks: Vec<&String> = s.backlinks.iter().collect();
+                backlinks.sort();
+                backlinks
+                    .iter()
+                    .map(|slug| {
+                        let slug = Writer::clip_metadata_badge(slug);
+                        let section = state.compiled.get(&slug).unwrap();
+                        Writer::footer_section_to_html(section)
+                    })
+                    .reduce(|s, t| s + &t)
+                    .map(|s| html_flake::html_footer_section("Related", &s))
+                    .unwrap_or_default()
+            })
+            .unwrap_or_default();
+
+        html!(footer => (references_html) (related_html))
+    }
+
+    fn clip_metadata_badge(slug: &str) -> String {
+        match slug.ends_with(":metadata") {
+            true => slug[0..slug.len() - ":metadata".len()].to_string(),
+            false => slug.to_string(),
+        }
     }
 
     fn catalog_block(items: &str) -> String {
@@ -126,17 +161,24 @@ impl Writer {
     }
 
     fn footer_section_to_html(section: &Section) -> String {
-        let contents = match section.children.len() > 0 {
-            false => String::new(),
-            true => section
-                .children
-                .iter()
-                .map(Writer::footer_content_to_html)
-                .reduce(|s, t| s + &t)
-                .unwrap(),
-        };
-
-        html_article_inner(&section.metadata, &contents, false, false, None, None)
+        match config::footer_mode() {
+            config::FooterMode::Link => {
+                let summary = section.metadata.to_header(None, None);
+                format!(r#"<section class="block">{summary}</section>"#)
+            }
+            config::FooterMode::Embed => {
+                let contents = match section.children.len() > 0 {
+                    false => String::new(),
+                    true => section
+                        .children
+                        .iter()
+                        .map(Writer::footer_content_to_html)
+                        .reduce(|s, t| s + &t)
+                        .unwrap(),
+                };
+                html_article_inner(&section.metadata, &contents, false, false, None, None)
+            }
+        }
     }
 
     pub fn section_to_html(
