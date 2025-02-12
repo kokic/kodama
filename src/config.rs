@@ -75,12 +75,6 @@ impl CompileConfig<String> {
 pub static DEFAULT_CONFIG: CompileConfig<&'static str> = CompileConfig::default();
 pub static CONFIG: Mutex<CompileConfig<String>> = Mutex::new(CompileConfig::empty());
 
-// pub static ROOT_DIR: Mutex<String> = Mutex::new(String::new());
-// pub static OUTPUT_DIR: Mutex<String> = Mutex::new(String::new());
-// pub static BASE_URL: Mutex<String> = Mutex::new(String::new());
-// pub static PAGE_SUFFIX: Mutex<String> = Mutex::new(String::new());
-// pub static SHORT_SLUG: Mutex<bool> = Mutex::new(false);
-
 pub fn lock_config() -> std::sync::MutexGuard<'static, CompileConfig<std::string::String>> {
     CONFIG.lock().unwrap()
 }
@@ -115,31 +109,20 @@ pub fn normalize_base_url(base_url: &str) -> String {
     }
 }
 
-// pub fn set_base_url(base_url: String) {
-//     let base_url = match base_url.ends_with("/") {
-//         true => base_url,
-//         false => format!("{}/", base_url),
-//     };
-//     mutex_set(&BASE_URL, base_url);
-// }
-
 pub fn is_short_slug() -> bool {
     lock_config().short_slug
 }
 
 pub fn root_dir() -> String {
     lock_config().root_dir.to_string()
-    // ROOT_DIR.lock().unwrap().to_string()
 }
 
 pub fn output_dir() -> String {
     lock_config().output_dir.to_string()
-    // OUTPUT_DIR.lock().unwrap().to_string()
 }
 
 pub fn base_url() -> String {
     lock_config().base_url.to_string()
-    // BASE_URL.lock().unwrap().to_string()
 }
 
 pub fn footer_mode() -> FooterMode {
