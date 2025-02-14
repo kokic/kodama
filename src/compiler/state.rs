@@ -109,7 +109,10 @@ impl CompileState {
                             if Taxon::is_reference(&article_taxon) {
                                 references.insert(link_slug.to_string());
                             }
-                            callback.insert_backlinks(link_slug.to_string(), vec![slug.to_string()]);
+                            callback.insert_backlinks(
+                                link_slug.to_string(),
+                                vec![slug.to_string()]
+                            );
 
                             let local_link = local_link.text.clone();
                             let text = local_link.unwrap_or(article_title.to_string());
@@ -128,6 +131,7 @@ impl CompileState {
                 self.callback.merge(callback);
             }
         };
+
 
         // compile metadata
         let metadata_keys: Vec<String> = metadata.enable_markdown_keys();

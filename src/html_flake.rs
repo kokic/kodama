@@ -125,7 +125,7 @@ pub fn html_doc(
     page_title: &str,
     header_html: &str,
     article_inner: &str,
-    footer_html: &str, 
+    footer_html: &str,
     catalog_html: &str,
 ) -> String {
     let doc_type = "<!DOCTYPE html>";
@@ -154,8 +154,17 @@ pub fn html_doc(
 }
 
 pub fn html_css() -> String {
-    html!(style => 
-      (html_main_style()))
+    match config::disable_export_css() {
+        true => html!(style => (html_main_style()) (html_typst_style())),
+        false => {
+            let base_url = config::base_url();
+            format!(
+                r#"<link rel="stylesheet" href="{}main.css">
+<link rel="stylesheet" href="{}typst.css">"#,
+                base_url, base_url
+            )
+        }
+    }
 }
 
 pub fn html_import_fonts() -> &'static str {
@@ -172,4 +181,8 @@ pub fn html_auto_render() -> &'static str {
 
 pub fn html_main_style() -> &'static str {
     return include_str!("include/main.css");
+}
+
+pub fn html_typst_style() -> &'static str {
+    return include_str!("include/typst.css");
 }

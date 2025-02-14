@@ -8,8 +8,10 @@ mod recorder;
 mod slug;
 mod typst_cli;
 
+use std::fs;
+
 use clap::Parser;
-use config::{CompileConfig, FooterMode};
+use config::{output_path, CompileConfig, FooterMode};
 
 #[derive(Parser)]
 #[command(version, about, long_about = None)]
@@ -34,7 +36,7 @@ struct CompileCommand {
     #[arg(short, long, default_value_t = config::DEFAULT_CONFIG.base_url.into())]
     base: String,
 
-    /// Path to output dir.
+    /// Path to output directory.
     #[arg(short, long, default_value_t = config::DEFAULT_CONFIG.output_dir.into())]
     output: String,
 
@@ -52,7 +54,11 @@ struct CompileCommand {
 
     /// Specify the inline mode for the footer sections
     #[arg(short, long, default_value_t = FooterMode::Link)]
-    footer_mode: FooterMode, 
+    footer_mode: FooterMode,
+
+    /// Disable exporting the `main.css` file to the output directory.
+    #[arg(long)]
+    disable_export_css: bool,
 }
 
 #[derive(clap::Args)]
@@ -85,14 +91,22 @@ fn main() {
             let root = &compile_command.root;
             let output = &compile_command.output;
 
-            config::mutex_set(&config::CONFIG, CompileConfig::new(
-                root.to_string(), 
-                output.to_string(), 
-                compile_command.base.to_string(), 
-                compile_command.disable_pretty_urls,
-                compile_command.short_slug, 
-                compile_command.footer_mode.clone(), 
-            ));
+            config::mutex_set(
+                &config::CONFIG,
+                CompileConfig::new(
+                    root.to_string(),
+                    output.to_string(),
+                    compile_command.base.to_string(),
+                    compile_command.disable_pretty_urls,
+                    compile_command.short_slug,
+                    compile_command.footer_mode.clone(),
+                    compile_command.disable_export_css,
+                ),
+            );
+
+            if !compile_command.disable_export_css {
+                export_css_files()
+            }
 
             match compiler::compile_all(root) {
                 Err(err) => eprintln!("{:?}", err),
@@ -100,14 +114,18 @@ fn main() {
             }
         }
         Command::Clean(clean_command) => {
-            config::mutex_set(&config::CONFIG, CompileConfig::new(
-                clean_command.root.to_string(), 
-                clean_command.output.to_string(), 
-                config::DEFAULT_CONFIG.base_url.into(), 
-                false,
-                config::DEFAULT_CONFIG.short_slug, 
-                FooterMode::Link, 
-            ));
+            config::mutex_set(
+                &config::CONFIG,
+                CompileConfig::new(
+                    clean_command.root.to_string(),
+                    clean_command.output.to_string(),
+                    config::DEFAULT_CONFIG.base_url.into(),
+                    false,
+                    config::DEFAULT_CONFIG.short_slug,
+                    FooterMode::Link,
+                    true,
+                ),
+            );
 
             let cache_dir = &config::get_cache_dir();
 
@@ -116,7 +134,7 @@ fn main() {
                     s.to_str().unwrap().ends_with(".md.hash")
                 });
             });
-            
+
             clean_command.typst.then(|| {
                 let _ = config::delete_all_with(&cache_dir, &|s| {
                     s.to_str().unwrap().ends_with(".typ.hash")
@@ -128,6 +146,22 @@ fn main() {
                     s.to_str().unwrap().ends_with(".html.hash")
                 });
             });
+        }
+    }
+}
+
+fn export_css_files() {
+    export_css_file(&html_flake::html_main_style(), "main.css");
+    export_css_file(&&html_flake::html_typst_style(), "typst.css");
+}
+
+fn export_css_file(css_content: &str, name: &str) {
+    let path = output_path(name);
+    let path = std::path::Path::new(&path);
+    if !path.exists() {
+        match fs::write(path, css_content) {
+            Err(err) => eprintln!("{:?}", err),
+            Ok(_) => (),
         }
     }
 }

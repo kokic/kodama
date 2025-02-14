@@ -26,6 +26,9 @@ pub struct CompileConfig<S> {
     pub page_suffix: S,
     pub short_slug: bool,
     pub footer_mode: FooterMode,
+
+    /// This is very useful for users who want to modify existing styles or configure other themes.
+    pub disable_export_css: bool,
 }
 
 impl CompileConfig<&'static str> {
@@ -37,6 +40,7 @@ impl CompileConfig<&'static str> {
             page_suffix: "",
             short_slug: true,
             footer_mode: FooterMode::Link,
+            disable_export_css: true,
         }
     }
 }
@@ -50,6 +54,7 @@ impl CompileConfig<String> {
             page_suffix: String::new(),
             short_slug: true,
             footer_mode: FooterMode::Link,
+            disable_export_css: true, 
         }
     }
 
@@ -60,6 +65,7 @@ impl CompileConfig<String> {
         disable_pretty_urls: bool,
         short_slug: bool,
         footer_mode: FooterMode,
+        disable_export_css: bool, 
     ) -> CompileConfig<String> {
         CompileConfig {
             root_dir,
@@ -68,6 +74,7 @@ impl CompileConfig<String> {
             page_suffix: to_page_suffix(disable_pretty_urls),
             short_slug,
             footer_mode,
+            disable_export_css
         }
     }
 }
@@ -127,6 +134,10 @@ pub fn base_url() -> String {
 
 pub fn footer_mode() -> FooterMode {
     lock_config().footer_mode.clone()
+}
+
+pub fn disable_export_css() -> bool {
+    lock_config().disable_export_css
 }
 
 pub fn get_cache_dir() -> String {

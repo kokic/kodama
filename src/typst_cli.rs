@@ -1,8 +1,8 @@
-use std::{path::Path, process::Command};
+use std::{fs, path::Path, process::Command};
 
 use crate::{
     config::{self, verify_and_file_hash},
-    html,
+    html, html_flake,
 };
 
 pub fn write_svg(typst_path: &str, svg_path: &str) -> Result<(), std::io::Error> {
@@ -15,13 +15,18 @@ pub fn write_svg(typst_path: &str, svg_path: &str) -> Result<(), std::io::Error>
     let full_path = config::join_path(&root_dir, typst_path);
     let output = Command::new("typst")
         .arg("c")
+        .arg("-f=svg")
         .arg(format!("--root={}", root_dir))
         .arg(full_path)
-        .arg(svg_path)
+        .arg("-")
+        .stdout(std::process::Stdio::piped())
         .output()?;
 
     if output.status.success() {
-        let _ = String::from_utf8_lossy(&output.stdout);
+        let stdout = String::from_utf8_lossy(&output.stdout);
+        let thematized = thematize(stdout);
+        fs::write(svg_path, thematized)?;
+        
         println!(
             "Compiled to SVG: {}",
             crate::slug::pretty_path(Path::new(svg_path))
@@ -31,6 +36,11 @@ pub fn write_svg(typst_path: &str, svg_path: &str) -> Result<(), std::io::Error>
         eprintln!("Command failed in `write_svg`: \n  {}", stderr);
     }
     Ok(())
+}
+
+fn thematize(s: std::borrow::Cow<'_, str>) -> String {
+    let index = s.rfind("</svg>").unwrap();
+    format!("{}<style>\n{}\n</style>\n</svg>", &s[0..index], html_flake::html_typst_style())
 }
 
 pub struct InlineConfig {
