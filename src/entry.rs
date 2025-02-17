@@ -5,7 +5,30 @@ use std::collections::HashMap;
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct EntryMetaData(pub HashMap<String, String>);
 
-const PRESET_METADATA: [&'static str; 5] = ["parent", "taxon", "title", "page-title", "slug"];
+pub const KEY_TITLE: &'static str = "title";
+pub const KEY_SLUG: &'static str = "slug";
+pub const KEY_TAXON: &'static str = "taxon";
+
+/// Control the "Previous Level" information in the current page navigation.
+pub const KEY_PARENT: &'static str = "parent";
+pub const KEY_PAGE_TITLE: &'static str = "page-title";
+
+/// Controls whether the current page displays backlinks.
+pub const KEY_BACKLINKS: &'static str = "backlinks";
+
+/// Controls whether the current page is a collection page. 
+/// A collection page displays metadata of child entries. 
+pub const KEY_COLLECT: &'static str = "collect";
+
+const PRESET_METADATA: [&'static str; 7] = [
+    KEY_TITLE,
+    KEY_SLUG,
+    KEY_TAXON,
+    KEY_PARENT,
+    KEY_PAGE_TITLE,
+    KEY_BACKLINKS,
+    KEY_COLLECT, 
+];
 
 impl EntryMetaData {
     pub fn to_header(&self, adhoc_title: Option<&str>, adhoc_taxon: Option<&str>) -> String {
@@ -44,14 +67,14 @@ impl EntryMetaData {
         !PRESET_METADATA.contains(&s)
     }
 
-    pub fn enable_markdown_key(s: &str) -> bool {
+    pub fn enabled_markdown_key(s: &str) -> bool {
         EntryMetaData::is_custom_metadata(s)
     }
 
-    pub fn enable_markdown_keys(&self) -> Vec<String> {
+    pub fn enabled_markdown_keys(&self) -> Vec<String> {
         self.0
             .keys()
-            .filter(|s| EntryMetaData::enable_markdown_key(s))
+            .filter(|s| EntryMetaData::enabled_markdown_key(s))
             .map(|s| s.to_string())
             .collect()
     }
@@ -79,21 +102,38 @@ impl EntryMetaData {
         return self.0.get(key);
     }
 
+    pub fn get_bool(&self, key: &str) -> Option<bool> {
+        self.0.get(key).map(|s| s == "true")
+    }
+
     pub fn id(&self) -> String {
-        crate::slug::to_hash_id(self.get("slug").unwrap())
+        crate::slug::to_hash_id(self.get(KEY_SLUG).unwrap())
     }
 
     /// Return taxon text
     pub fn taxon(&self) -> Option<&String> {
-        return self.0.get("taxon");
+        return self.0.get(KEY_TAXON);
     }
 
     pub fn title(&self) -> Option<&String> {
-        return self.0.get("title");
+        return self.0.get(KEY_TITLE);
+    }
+
+    #[allow(dead_code)]
+    pub fn page_title(&self) -> Option<&String> {
+        return self.0.get(KEY_PAGE_TITLE);
     }
 
     pub fn slug(&self) -> Option<&String> {
-        return self.0.get("slug");
+        return self.0.get(KEY_SLUG);
+    }
+
+    pub fn is_enable_backliks(&self) -> bool {
+        return self.get_bool(&KEY_BACKLINKS).unwrap_or(true);
+    }
+
+    pub fn is_collect(&self) -> bool {
+        return self.get_bool(&KEY_COLLECT).unwrap_or(false);
     }
 
     pub fn update(&mut self, key: String, value: String) {

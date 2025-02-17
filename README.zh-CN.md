@@ -11,6 +11,8 @@
 
 - Typst 内联支持, 将通过用户设备上安装的 Typst 编译并以 SVG 格式嵌入到 HTML 中, 因此所有的 Typst 功能都可用. 对 Typst 书写的行间公式还带有样式优化. 
 
+- 完全自动的明暗主题支持, 对于 Typst 输出的公式或彩色图像也一样. 用户也能手动调网站样式的任何一个细节, 而无需重新构建 Kodama 工具本身.     
+
 - 所有 Markdown 编辑器的原生兼容性, 因为 Kodama 处理的语法是标准的 Markdown [^markdown-syntax], 并且在具体设计上 [别出心裁](#嵌入语法). 因此无需任何编辑器插件, 也能轻松书写. 
 
 - 能以 [Jon Sterling 的森林](https://www.jonmsterling.com/foreign-forester-tfmt-000V.xml) 般的方式组织 Markdown 文件. 
@@ -24,7 +26,7 @@ Usage: kodama.exe <COMMAND>
 
 Commands:
   compile  Compile current workspace dir to HTMLs [aliases: c]
-  clean    Clean all build files (.cache & publish)
+  clean    Clean build files (.cache & publish)
   help     Print this message or the help of the given subcommand(s)
 
 Options:

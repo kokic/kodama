@@ -1,12 +1,10 @@
 use std::collections::{HashMap, HashSet};
 
-/// We do not consider the `Context` and `Related` in the concept of forest here,
-/// because to some extent, the function of `Context` has been merged into the `nav`
-/// at the beginning of the page. And the concept of `Related` often serves
-/// the same function as the table of contents.
 #[derive(Debug)]
 pub struct CallbackValue {
     pub parent: String,
+    
+    /// Used to record which sections reference the current section.
     pub backlinks: HashSet<String>,
 }
 

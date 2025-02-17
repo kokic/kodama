@@ -1,6 +1,10 @@
 use std::collections::{HashMap, HashSet};
 
-use crate::{config, entry::EntryMetaData, slug};
+use crate::{
+    config,
+    entry::{self, EntryMetaData},
+    slug,
+};
 
 use super::{
     callback::Callback,
@@ -28,7 +32,7 @@ impl CompileState {
     }
 
     pub fn compile(&mut self, slug: &str) -> &Section {
-        self.fetch_section(slug)
+        self.fetch_section(slug).unwrap()
     }
 
     pub fn compile_all(&mut self) {
@@ -48,17 +52,17 @@ impl CompileState {
         }
     }
 
-    fn fetch_section(&mut self, slug: &str) -> &Section {
+    fn fetch_section(&mut self, slug: &str) -> Option<&Section> {
         if self.compiled.contains_key(slug) {
-            return self.compiled.get(slug).unwrap();
+            return Some(self.compiled.get(slug).unwrap());
         }
 
         if self.residued.contains_key(slug) {
             let shallow = self.residued.remove(slug).unwrap();
-            return self.compile_shallow(shallow);
+            return Some(self.compile_shallow(shallow));
         }
 
-        unreachable!("CompileState::fetch_section")
+        None // unreachable!("CompileState::fetch_section")
     }
 
     fn compile_shallow(&mut self, shallow: ShallowSection) -> &Section {
@@ -81,7 +85,16 @@ impl CompileState {
                         }
                         LazyContent::Embed(embed_content) => {
                             let child_slug = slug::to_slug(&embed_content.url);
-                            let refered = self.fetch_section(&child_slug);
+                            let refered = match self.fetch_section(&child_slug) {
+                                Some(refered_section) => refered_section,
+                                None => {
+                                    eprintln!(
+                                        "Error: [{}] attempting to fetch a non-existent [{}].",
+                                        slug, child_slug,
+                                    );
+                                    continue;
+                                }
+                            };
 
                             if embed_content.option.details_open {
                                 references.extend(refered.references.clone());
@@ -100,19 +113,26 @@ impl CompileState {
                         LazyContent::Local(local_link) => {
                             let link_slug = &local_link.slug;
                             let article_title = self
-                                .get_metadata(&link_slug, "page-title")
-                                .or_else(|| self.get_metadata(&link_slug, "title"))
+                                .get_metadata(&link_slug, entry::KEY_PAGE_TITLE)
+                                .or_else(|| self.get_metadata(&link_slug, entry::KEY_TITLE))
                                 .map_or("", |s| s);
-                            let article_taxon =
-                                self.get_metadata(&link_slug, "taxon").map_or("", |s| s);
+                            let article_taxon = self
+                                .get_metadata(&link_slug, entry::KEY_TAXON)
+                                .map_or("", |s| s);
 
                             if Taxon::is_reference(&article_taxon) {
                                 references.insert(link_slug.to_string());
                             }
-                            callback.insert_backlinks(
-                                link_slug.to_string(),
-                                vec![slug.to_string()]
-                            );
+
+                            /*
+                             * Making oneself the content of a backlink should not be expected behavior.
+                             */
+                            if *link_slug != slug && self.is_enable_backliks(&link_slug) {
+                                callback.insert_backlinks(
+                                    link_slug.to_string(),
+                                    vec![slug.to_string()],
+                                );
+                            }
 
                             let local_link = local_link.text.clone();
                             let text = local_link.unwrap_or(article_title.to_string());
@@ -132,9 +152,8 @@ impl CompileState {
             }
         };
 
-
         // compile metadata
-        let metadata_keys: Vec<String> = metadata.enable_markdown_keys();
+        let metadata_keys: Vec<String> = metadata.enabled_markdown_keys();
         metadata_keys.iter().for_each(|key| {
             let value = metadata.get(key).unwrap();
             let spanned = parse_spanned_markdown(value, &slug).unwrap();
@@ -153,5 +172,12 @@ impl CompileState {
 
     pub fn get_metadata(&self, slug: &str, key: &str) -> Option<&String> {
         self.metadata.get(slug).map(|e| e.get(key)).flatten()
+    }
+
+    pub fn is_enable_backliks(&self, slug: &str) -> bool {
+        self.metadata
+            .get(slug)
+            .map(|e| e.is_enable_backliks())
+            .unwrap_or(true)
     }
 }

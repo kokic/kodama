@@ -11,6 +11,8 @@ A [Typst](https://github.com/typst/typst)-friendly static site generator.
 
 - Typst inline support, which compiles via Typst installed on the user's device and embeds as SVG in HTML, thus all Typst features are available. Additionally, there are style optimizations for inline formulas written in Typst.
 
+- Fully automatic support for light and dark themes, including for formulas or color images output by Typst. Users can also manually adjust any detail of the website style without needing to rebuild the Kodama tool itself.
+
 - Native compatibility with all Markdown editors, as Kodama processes standard Markdown syntax [^markdown-syntax], and is thoughtfully designed in terms of [embedding syntax](#embedding-syntax). Therefore, no editor plugins are needed for easy writing.
 
 - Organize Markdown files in the manner of [Jon Sterling's Forest](https://www.jonmsterling.com/foreign-forester-tfmt-000V.xml).
@@ -24,7 +26,7 @@ Usage: kodama.exe <COMMAND>
 
 Commands:
   compile  Compile current workspace dir to HTMLs [aliases: c]
-  clean    Clean all build files (.cache & publish)
+  clean    Clean build files (.cache & publish)
   help     Print this message or the help of the given subcommand(s)
 
 Options:

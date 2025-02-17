@@ -48,7 +48,7 @@ impl Processer for Embed {
 
     fn end(&mut self, tag: &TagEnd, recorder: &mut ParseRecorder) -> Option<LazyContent> {
         if *tag == TagEnd::Link && recorder.state == State::Embed {
-            let entry_url = recorder.data.get(0).unwrap().as_str();
+            let entry_url = recorder.data.get(0).map_or("", |s| s);
             let entry_url = crate::config::relativize(entry_url);
 
             let embed_text = recorder.data.get(1);
@@ -63,7 +63,10 @@ impl Processer for Embed {
         }
 
         if *tag == TagEnd::Link && recorder.state == State::LocalLink {
-            let url = recorder.data.get(0).unwrap().to_string();
+            let url = recorder
+                .data
+                .get(0)
+                .map_or(String::new(), |s| s.to_string());
             let text = match recorder.data.len() > 1 {
                 true => Some(recorder.data[1..].join("")),
                 false => None,
@@ -77,7 +80,10 @@ impl Processer for Embed {
         }
 
         if *tag == TagEnd::Link && recorder.state == State::ExternalLink {
-            let url = recorder.data.get(0).unwrap().to_string();
+            let url = recorder
+                .data
+                .get(0)
+                .map_or(String::new(), |s| s.to_string());
             let text = (recorder.data.len() > 1)
                 .then(|| recorder.data[1..].join(""))
                 .unwrap_or_default();
@@ -144,9 +150,9 @@ pub fn parse_metadata(s: &str, metadata: &mut HashMap<String, String>) {
             let val = s[pos + 1..].trim();
 
             let val = match key {
-                "title" => cmark_to_html(val, true), 
-                "taxon" => display_taxon(val), 
-                _ => val.to_string()
+                "title" => cmark_to_html(val, true),
+                "taxon" => display_taxon(val),
+                _ => val.to_string(),
             };
             metadata.insert(key.to_string(), val);
         }

@@ -51,7 +51,7 @@ impl Writer {
     pub fn html_doc(section: &Section, state: &CompileState) -> (String, String) {
         let mut counter = Counter::init();
 
-        let (article_inner, items) = Writer::section_to_html(section, &mut counter, true);
+        let (article_inner, items) = Writer::section_to_html(section, &mut counter, true, false);
         let catalog_html = items
             .is_empty()
             .not()
@@ -115,7 +115,7 @@ impl Writer {
             .map(|s| html_flake::html_footer_section("References", &s))
             .unwrap_or_default();
 
-        let related_html = callback
+        let backlinks_html = callback
             .map(|s| {
                 let mut backlinks: Vec<&String> = s.backlinks.iter().collect();
                 backlinks.sort();
@@ -127,12 +127,12 @@ impl Writer {
                         Writer::footer_section_to_html(section)
                     })
                     .reduce(|s, t| s + &t)
-                    .map(|s| html_flake::html_footer_section("Related", &s))
+                    .map(|s| html_flake::html_footer_section("Backlinks", &s))
                     .unwrap_or_default()
             })
             .unwrap_or_default();
 
-        html!(footer => (references_html) (related_html))
+        html!(footer => (references_html) (backlinks_html))
     }
 
     fn clip_metadata_badge(slug: &str) -> String {
@@ -149,7 +149,7 @@ impl Writer {
 
     fn catalog_item(section: &Section, taxon: &str, child_html: &str) -> String {
         let slug = &section.slug();
-        let text = section.metadata.title().unwrap();
+        let text = section.metadata.title().map_or("", |s| s);
         html_flake::catalog_item(slug, text, section.option.details_open, taxon, child_html)
     }
 
@@ -185,6 +185,7 @@ impl Writer {
         section: &Section,
         counter: &mut Counter,
         toplevel: bool,
+        hide_metadata: bool,
     ) -> (String, String) {
         let adhoc_taxon = Writer::taxon(section, counter);
         let (contents, items) = match section.children.len() > 0 {
@@ -194,10 +195,14 @@ impl Writer {
                     true => counter.left_shift(),
                     false => counter.clone(),
                 };
+                let content_to_html = |c: &SectionContent| {
+                    let is_collection = section.metadata.is_collect();
+                    Writer::content_to_html(c, &mut subcounter, !is_collection)
+                };
                 section
                     .children
                     .iter()
-                    .map(|c| Writer::content_to_html(c, &mut subcounter))
+                    .map(content_to_html)
                     .reduce(|s, t| (s.0 + &t.0, s.1 + &t.1))
                     .unwrap()
             }
@@ -221,18 +226,25 @@ impl Writer {
         let article_inner = html_article_inner(
             &section.metadata,
             &contents,
-            !toplevel,
+            hide_metadata,
             section.option.details_open,
             None,
             Some(adhoc_taxon.as_str()),
         );
+
         (article_inner, catalog_item)
     }
 
-    fn content_to_html(content: &SectionContent, counter: &mut Counter) -> (String, String) {
+    fn content_to_html(
+        content: &SectionContent,
+        counter: &mut Counter,
+        hide_metadata: bool,
+    ) -> (String, String) {
         match content {
             SectionContent::Plain(s) => (s.to_string(), String::new()),
-            SectionContent::Embed(section) => Writer::section_to_html(section, counter, false),
+            SectionContent::Embed(section) => {
+                Writer::section_to_html(section, counter, false, hide_metadata)
+            }
         }
     }
 
