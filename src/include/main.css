@@ -44,7 +44,6 @@
 }
 
 body {
-  font-family: "Source Serif 4", serif;
   font-optical-sizing: auto;
   hyphens: auto;
   background-color: var(--background-color);
@@ -52,7 +51,6 @@ body {
 
 pre,
 code {
-  font-family: "Source Code Pro", monospace;
   font-optical-sizing: auto;
 }
 
@@ -144,7 +142,6 @@ h4,
 h5,
 h6 {
   font-weight: normal;
-  font-family: "Source Sans 3", sans-serif;
   font-weight: 500;
   margin-bottom: 0;
 }
@@ -409,7 +406,6 @@ nav#toc a {
 }
 
 nav {
-  font-family: "Source Sans 3", sans-serif;
   font-optical-sizing: auto;
 }
 

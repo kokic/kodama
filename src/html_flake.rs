@@ -178,8 +178,8 @@ pub fn html_css() -> String {
     }
 }
 
-pub fn html_import_fonts() -> &'static str {
-    return include_str!("include/import-fonts.html");
+pub fn html_import_fonts() -> String {
+    return config::CUSTOM_FONTS_HTML.clone();
 }
 
 pub fn html_import_katex() -> &'static str {
