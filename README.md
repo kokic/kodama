@@ -1,7 +1,7 @@
 
 # Kodama
 
-A [Typst](https://github.com/typst/typst)-friendly static site generator.
+A [Typst](https://github.com/typst/typst)-friendly static Zettelkasten site generator.
 
 [[Chinese README](./README.zh-CN.md)] [[Demo](https://kokic.github.io)] [[Tutorials]](https://kokic.github.io/tutorials)
 
