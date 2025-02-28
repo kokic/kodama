@@ -125,11 +125,9 @@ pub fn html_link(href: &str, title: &str, text: &str, class_name: &str) -> Strin
 }
 
 pub fn html_header_nav(title: &str, href: &str) -> String {
-    let nav_inner = html!(div class = "logo" => 
-      (html!(a href={href}, title={title} => ("« ") (title))));
-
-    html!(header class = "header" => 
-      (html!(nav class = "nav" => {nav_inner})))
+    let link = html!(a href={href}, title={title} => ("« ") (title));
+    let nav_inner = html!(div class = "logo" => (link));
+    html!(header class = "header" => (html!(nav class = "nav" => {nav_inner})))
 }
 
 pub fn html_doc(
@@ -155,11 +153,11 @@ pub fn html_doc(
       (html!(head => r#"
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
 <meta name="viewport" content="width=device-width">"#
-        (format!("<title>{page_title}</title>"))
-        (html_import_fonts())
-        (html_import_katex())
-        (html_auto_render())))
+        (format!("<title>{page_title}</title>")) 
+        (html_import_meta())
         (html_css())
+        (html_import_fonts())
+        (html_import_math()) ))
       (html!(body => (header_html) (body_inner))));
     format!("{}\n{}", doc_type, &html)
 }
@@ -178,16 +176,16 @@ pub fn html_css() -> String {
     }
 }
 
-pub fn html_import_fonts() -> &'static str {
-    return include_str!("include/import-fonts.html");
+pub fn html_import_meta() -> String {
+    return config::CUSTOM_META_HTML.clone();
 }
 
-pub fn html_import_katex() -> &'static str {
-    return include_str!("include/import-katex.html");
+pub fn html_import_fonts() -> String {
+    return config::CUSTOM_FONTS_HTML.clone();
 }
 
-pub fn html_auto_render() -> &'static str {
-    return include_str!("include/auto-render.html");
+pub fn html_import_math() -> String {
+    return config::CUSTOM_MATH_HTML.clone();
 }
 
 pub fn html_main_style() -> &'static str {

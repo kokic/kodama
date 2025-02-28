@@ -1,7 +1,7 @@
 use std::{
-    fs::create_dir_all,
+    fs::{self, create_dir_all},
     path::{Path, PathBuf},
-    sync::Mutex,
+    sync::{LazyLock, Mutex},
 };
 
 #[derive(Clone, clap::ValueEnum)]
@@ -54,7 +54,7 @@ impl CompileConfig<String> {
             page_suffix: String::new(),
             short_slug: true,
             footer_mode: FooterMode::Link,
-            disable_export_css: true, 
+            disable_export_css: true,
         }
     }
 
@@ -65,7 +65,7 @@ impl CompileConfig<String> {
         disable_pretty_urls: bool,
         short_slug: bool,
         footer_mode: FooterMode,
-        disable_export_css: bool, 
+        disable_export_css: bool,
     ) -> CompileConfig<String> {
         CompileConfig {
             root_dir,
@@ -74,13 +74,27 @@ impl CompileConfig<String> {
             page_suffix: to_page_suffix(disable_pretty_urls),
             short_slug,
             footer_mode,
-            disable_export_css
+            disable_export_css,
         }
     }
 }
 
 pub static DEFAULT_CONFIG: CompileConfig<&'static str> = CompileConfig::default();
 pub static CONFIG: Mutex<CompileConfig<String>> = Mutex::new(CompileConfig::empty());
+
+pub static CUSTOM_META_HTML: LazyLock<String> = LazyLock::new(|| {
+    std::fs::read_to_string(join_path(&root_dir(), "import-meta.html")).unwrap_or_default()
+});
+
+pub static CUSTOM_FONTS_HTML: LazyLock<String> = LazyLock::new(|| {
+    fs::read_to_string(join_path(&root_dir(), "import-fonts.html"))
+        .unwrap_or(include_str!("include/import-fonts.html").to_string())
+});
+
+pub static CUSTOM_MATH_HTML: LazyLock<String> = LazyLock::new(|| {
+    fs::read_to_string(join_path(&root_dir(), "import-math.html"))
+        .unwrap_or(include_str!("include/import-math.html").to_string())
+});
 
 pub fn lock_config() -> std::sync::MutexGuard<'static, CompileConfig<std::string::String>> {
     CONFIG.lock().unwrap()
