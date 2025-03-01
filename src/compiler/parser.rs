@@ -31,7 +31,7 @@ pub fn initialize(
     let recorder = ParseRecorder::new(fullname);
     match std::fs::read_to_string(&markdown_path) {
         Err(err) => Err(CompileError::IO(
-            Some("parser::initialize".to_owned()),
+            Some(concat!(file!(), '#', line!())),
             err,
             markdown_path,
         )),

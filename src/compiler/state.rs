@@ -116,11 +116,8 @@ impl CompileState {
                                 .get_metadata(&link_slug, entry::KEY_PAGE_TITLE)
                                 .or_else(|| self.get_metadata(&link_slug, entry::KEY_TITLE))
                                 .map_or("", |s| s);
-                            let article_taxon = self
-                                .get_metadata(&link_slug, entry::KEY_TAXON)
-                                .map_or("", |s| s);
 
-                            if Taxon::is_reference(&article_taxon) {
+                            if self.is_reference(&link_slug) {
                                 references.insert(link_slug.to_string());
                             }
 
@@ -179,5 +176,12 @@ impl CompileState {
             .get(slug)
             .map(|e| e.is_enable_backliks())
             .unwrap_or(true)
+    }
+
+    pub fn is_reference(&self, slug: &str) -> bool {
+        self.metadata
+            .get(slug)
+            .map(|e| e.is_asref() || Taxon::is_reference(e.taxon().map_or("", |s| s)))
+            .unwrap_or(false)
     }
 }
