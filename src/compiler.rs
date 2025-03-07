@@ -21,7 +21,7 @@ use crate::{
 #[allow(dead_code)]
 #[derive(Debug)]
 pub enum CompileError {
-    IO(Option<String>, std::io::Error, String),
+    IO(Option<&'static str>, std::io::Error, String),
 }
 
 pub fn compile_all(workspace_dir: &str) -> Result<(), CompileError> {
@@ -32,8 +32,7 @@ pub fn compile_all(workspace_dir: &str) -> Result<(), CompileError> {
         let relative_path = format!("{}.md", slug);
 
         let is_modified = verify_and_file_hash(&relative_path).map_err(|e| {
-            let position = Some("compiler::compile_all@is_modified".to_owned());
-            CompileError::IO(position, e, relative_path.to_string())
+            CompileError::IO(Some(concat!(file!(), '#', line!())), e, relative_path.to_string())
         })?;
 
         let entry_path_str = format!("{}.entry", relative_path);
@@ -41,7 +40,7 @@ pub fn compile_all(workspace_dir: &str) -> Result<(), CompileError> {
 
         let shallow = if !is_modified && entry_path_buf.exists() {
             let serialized = std::fs::read_to_string(entry_path_buf).map_err(|e| {
-                let position = Some("compiler::compile_all@serialized:read".to_owned());
+                let position = Some(concat!(file!(), '#', line!()));
                 CompileError::IO(position, e, entry_path_str)
             })?;
 
@@ -51,8 +50,7 @@ pub fn compile_all(workspace_dir: &str) -> Result<(), CompileError> {
             let shallow = parse_markdown(&slug)?;
             let serialized = serde_json::to_string(&shallow).unwrap();
             std::fs::write(entry_path_buf, serialized).map_err(|e| {
-                let position = Some("compiler::compile_all@serialized:write".to_owned());
-                CompileError::IO(position, e, entry_path_str)
+                CompileError::IO(Some(concat!(file!(), '#', line!())), e, entry_path_str)
             })?;
 
             shallow

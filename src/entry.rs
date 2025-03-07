@@ -13,14 +13,20 @@ pub const KEY_TAXON: &'static str = "taxon";
 pub const KEY_PARENT: &'static str = "parent";
 pub const KEY_PAGE_TITLE: &'static str = "page-title";
 
+/// `backlinks: bool`: 
 /// Controls whether the current page displays backlinks.
 pub const KEY_BACKLINKS: &'static str = "backlinks";
 
+/// `collect: bool`: 
 /// Controls whether the current page is a collection page. 
 /// A collection page displays metadata of child entries. 
 pub const KEY_COLLECT: &'static str = "collect";
 
-const PRESET_METADATA: [&'static str; 7] = [
+/// `asref: bool`: 
+/// Controls whether the current page process as reference. 
+pub const KEY_ASREF: &'static str = "asref";
+
+const PRESET_METADATA: [&'static str; 8] = [
     KEY_TITLE,
     KEY_SLUG,
     KEY_TAXON,
@@ -28,6 +34,7 @@ const PRESET_METADATA: [&'static str; 7] = [
     KEY_PAGE_TITLE,
     KEY_BACKLINKS,
     KEY_COLLECT, 
+    KEY_ASREF, 
 ];
 
 impl EntryMetaData {
@@ -134,6 +141,10 @@ impl EntryMetaData {
 
     pub fn is_collect(&self) -> bool {
         return self.get_bool(&KEY_COLLECT).unwrap_or(false);
+    }
+
+    pub fn is_asref(&self) -> bool {
+        return self.get_bool(&KEY_ASREF).unwrap_or(false);
     }
 
     pub fn update(&mut self, key: String, value: String) {

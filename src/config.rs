@@ -107,6 +107,7 @@ pub struct Blink {
 }
 
 pub const CACHE_DIR_NAME: &str = ".cache";
+pub const BUFFER_FILE_NAME: &str = "buffer"; 
 pub const HASH_DIR_NAME: &str = "hash";
 pub const ENTRY_DIR_NAME: &str = "entry";
 
@@ -212,6 +213,10 @@ pub fn auto_create_dir_path(paths: Vec<&str>) -> String {
     }
 
     filepath.to_str().unwrap().to_string()
+}
+
+pub fn buffer_path() -> String {
+    join_path(&get_cache_dir(), BUFFER_FILE_NAME)
 }
 
 pub fn output_path(path: &str) -> String {
