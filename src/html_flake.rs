@@ -1,6 +1,10 @@
 use std::ops::Not;
 
-use crate::{compiler::taxon::Taxon, config, entry::EntryMetaData, html};
+use crate::{
+    config,
+    entry::{EntryMetaData, MetaData},
+    html,
+};
 
 pub fn html_article_inner(
     metadata: &EntryMetaData,
@@ -19,7 +23,7 @@ pub fn html_article_inner(
         hide_metadata,
         open,
         article_id,
-        metadata.taxon(),
+        metadata.data_taxon(),
     )
 }
 
@@ -36,14 +40,13 @@ pub fn html_section(
     hide_metadata: bool,
     open: bool,
     id: String,
-    taxon: Option<&String>,
+    data_taxon: Option<&String>,
 ) -> String {
     let mut class_name: Vec<&str> = vec!["block"];
     if hide_metadata {
         class_name.push("hide-metadata");
     }
-    let taxon = taxon.map_or("", |s| s);
-    let data_taxon = Taxon::to_data_taxon(&taxon);
+    let data_taxon = data_taxon.map_or("", |s| s);
     let open = open.then(|| "open").unwrap_or("");
     let inner_html = format!("{}{}", (html!(summary => {summary})), content);
     let html_details = format!(
@@ -70,14 +73,15 @@ pub fn html_entry_header(mut etc: Vec<String>) -> String {
 
 pub fn catalog_item(
     slug: &str,
-    text: &str,
+    title: &str,
+    page_title: &str,
     details_open: bool,
     taxon: &str,
     child_html: &str,
 ) -> String {
     let slug_url = config::full_html_url(slug);
-    let title = format!("{} [{}]", text, slug);
-    let href = format!("#{}", crate::slug::to_hash_id(slug)); // #id
+    let title_text = format!("{} [{}]", page_title, slug);
+    let onclick = format!("window.location.href='#{}'", crate::slug::to_hash_id(slug)); // #id
 
     let mut class_name: Vec<String> = vec![];
     if !details_open {
@@ -85,11 +89,10 @@ pub fn catalog_item(
     }
 
     html!(li class = {class_name.join(" ")} =>
-      (html!(a class = "bullet", href={slug_url}, title={title} => "■"))
-      (html!(span class = "link" =>
-        (html!(a href = {href} =>
+      (html!(a class = "bullet", href={slug_url}, title={title_text} => "■"))
+      (html!(span class = "link local", onclick = {onclick} =>
           (html!(span class = "taxon" => {taxon}))
-          (text)))))
+          (title)))
       (child_html))
 }
 
@@ -124,8 +127,9 @@ pub fn html_link(href: &str, title: &str, text: &str, class_name: &str) -> Strin
       (html!(a href = {href}, title = {title} => {text})))
 }
 
-pub fn html_header_nav(title: &str, href: &str) -> String {
-    let link = html!(a href={href}, title={title} => ("« ") (title));
+pub fn html_header_nav(title: &str, page_title: &str, href: &str) -> String {
+    let onclick = format!("window.location.href='{}'", href);
+    let link = html!(span onclick={onclick}, title={page_title} => ("« ") (title));
     let nav_inner = html!(div class = "logo" => (link));
     html!(header class = "header" => (html!(nav class = "nav" => {nav_inner})))
 }

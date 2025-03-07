@@ -1,18 +1,55 @@
+use std::{fmt::Display, path::Path, str::FromStr};
+
+#[derive(Debug)]
+pub enum Ext {
+    Markdown,
+    Typst,
+}
+
+pub struct ParseExtensionError;
+
+impl FromStr for Ext {
+    type Err = ParseExtensionError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "md" => Ok(Self::Markdown),
+            "typst" => Ok(Self::Typst),
+            _ => Err(ParseExtensionError),
+        }
+    }
+}
+
+impl Display for Ext {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let s = match self {
+            Ext::Markdown => "md",
+            Ext::Typst => "typst",
+        };
+        write!(f, "{s}")
+    }
+}
+
 pub fn to_hash_id(slug: &str) -> String {
     slug.replace("/", "-")
 }
 
 /// path to slug
 pub fn to_slug(fullname: &str) -> String {
-    let mut slug = fullname;
-    if fullname.starts_with("/") {
-        slug = &slug[1..]
-    } else if fullname.starts_with("./") {
-        slug = &slug[2..]
-    }
+    path_to_slug(Path::new(fullname)).0
+}
 
-    let slug = &slug[0..slug.rfind('.').unwrap_or(slug.len())];
-    pretty_path(std::path::Path::new(&slug))
+pub fn path_to_slug(path: &Path) -> (String, Option<Ext>) {
+    let slug = path
+        // this works for both windows and unix
+        .strip_prefix("./")
+        .or_else(|_| path.strip_prefix("/"))
+        .unwrap_or(path);
+    let ext = slug
+        .extension()
+        .and_then(|e| e.to_str())
+        .and_then(|e| e.parse().ok());
+    (pretty_path(&slug.with_extension("")), ext)
 }
 
 pub fn pretty_path(path: &std::path::Path) -> String {

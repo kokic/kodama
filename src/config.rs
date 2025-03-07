@@ -1,8 +1,11 @@
 use std::{
     fs::{self, create_dir_all},
+    hash::Hash,
     path::{Path, PathBuf},
     sync::{LazyLock, Mutex},
 };
+
+use walkdir::WalkDir;
 
 #[derive(Clone, clap::ValueEnum)]
 pub enum FooterMode {
@@ -107,6 +110,7 @@ pub struct Blink {
 }
 
 pub const CACHE_DIR_NAME: &str = ".cache";
+pub const BUFFER_FILE_NAME: &str = "buffer";
 pub const HASH_DIR_NAME: &str = "hash";
 pub const ENTRY_DIR_NAME: &str = "entry";
 
@@ -214,6 +218,10 @@ pub fn auto_create_dir_path(paths: Vec<&str>) -> String {
     filepath.to_str().unwrap().to_string()
 }
 
+pub fn buffer_path() -> String {
+    join_path(&get_cache_dir(), BUFFER_FILE_NAME)
+}
+
 pub fn output_path(path: &str) -> String {
     auto_create_dir_path(vec![&output_dir(), path])
 }
@@ -274,37 +282,16 @@ pub fn verify_update_hash(path: &str, content: &str) -> Result<bool, std::io::Er
     Ok(is_modified)
 }
 
-pub fn files_match_with<F, G>(
-    dir: &Path,
-    predicate: &F,
-    collect: &mut Vec<String>,
-    map: &G,
-) -> Result<(), std::io::Error>
-where
-    F: Fn(&Path) -> bool,
-    G: Fn(String) -> String,
-{
-    for entry in std::fs::read_dir(dir)? {
-        let path = entry?.path();
-        if path.is_file() && predicate(&path) {
-            let path = crate::slug::posix_style(path.to_str().unwrap());
-            collect.push(map(path));
-        } else if path.is_dir() {
-            files_match_with(&path, predicate, collect, map)?;
-        }
-    }
-    Ok(())
-}
-
 #[allow(dead_code)]
 pub fn delete_all_with<F>(dir: &str, predicate: &F) -> Result<(), std::io::Error>
 where
     F: Fn(&Path) -> bool,
 {
-    let mut collect = vec![];
-    files_match_with(Path::new(dir), predicate, &mut collect, &|s| s)?;
-    for path in collect {
-        std::fs::remove_file(Path::new(&path))?;
+    for entry in WalkDir::new(dir) {
+        let path = entry?.into_path();
+        if path.is_file() && predicate(&path) {
+            std::fs::remove_file(path)?;
+        }
     }
     Ok(())
 }

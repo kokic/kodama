@@ -75,6 +75,10 @@ struct CleanCommand {
     #[arg(short, long)]
     markdown: bool,
 
+    /// Clean typ hash files.
+    #[arg(long)]
+    typ: bool,
+
     /// Clean typst hash files.
     #[arg(long)]
     typst: bool,
@@ -135,9 +139,15 @@ fn main() {
                 });
             });
 
-            clean_command.typst.then(|| {
+            clean_command.typ.then(|| {
                 let _ = config::delete_all_with(&cache_dir, &|s| {
                     s.to_str().unwrap().ends_with(".typ.hash")
+                });
+            });
+
+            clean_command.typst.then(|| {
+                let _ = config::delete_all_with(&cache_dir, &|s| {
+                    s.to_str().unwrap().ends_with(".typst.hash")
                 });
             });
 

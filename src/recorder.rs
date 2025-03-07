@@ -12,6 +12,9 @@ pub enum State {
     /// Shared for inline typst
     Shared,
 
+    /// Export typst to HTML fragment
+    Html, 
+
     /// Inline typst
     InlineTypst, 
 
@@ -31,23 +34,23 @@ pub enum State {
 }
 
 impl State {
-    pub const fn strify(&self) -> &str {
+    pub const fn strify(&self) -> &'static str {
         match self {
             State::None => "none",
             State::Embed => "embed",
+            State::Shared => "shared",
+            State::Html => "html", 
             State::InlineTypst => "inline",
             State::ImageSpan => "span",
             State::ImageBlock => "block",
             State::ImageCode => "code",
             State::Metadata => "metadata",
+            State::Figure => "figure",
             State::LocalLink => "local",       // style class name
             State::ExternalLink => "external", // style class name
-            State::Shared => "shared",
-            State::Figure => "figure",
         }
     }
 }
-
 
 #[derive(Debug)]
 pub struct ParseRecorder {

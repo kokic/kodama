@@ -20,7 +20,6 @@
   --span-taxon-color: #444;
   --article-taxon-color: #888;
   --mark-color: rgb(255, 255, 151);
-
 }
 
 @media (prefers-color-scheme: dark) {
@@ -273,18 +272,18 @@ mark {
 hr {
   margin-top: 10px;
   margin-bottom: 20px;
-  background-color: gainsboro;
+  background-color: gray;
   border: 0 none;
   width: 100%;
-  height: 2px;
+  height: 1pt;
 }
 
-.logo a {
+.logo>span {
   color: var(--logo-color);
   text-decoration: none;
 }
 
-.logo a:hover {
+.logo>span:hover {
   color: var(--logo-hover-color);
 }
 

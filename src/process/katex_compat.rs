@@ -8,7 +8,7 @@ pub struct KatexCompact;
 
 /// Replace the formula `<` with `< ` to avoid HTML syntax issues when parsing `<`.
 fn formula_disambiguate(s: &str) -> String {
-    s.replace("<", "< ")
+    s.replace("<", " < ")
 }
 
 impl Processer for KatexCompact {
