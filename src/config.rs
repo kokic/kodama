@@ -279,15 +279,15 @@ pub fn verify_update_hash(path: &str, content: &str) -> Result<bool, std::io::Er
     Ok(is_modified)
 }
 
-pub fn files_match_with<F, G>(
+pub fn files_match_with<F, G, A>(
     dir: &Path,
     predicate: &F,
-    collect: &mut Vec<String>,
+    collect: &mut Vec<A>,
     map: &G,
 ) -> Result<(), std::io::Error>
 where
     F: Fn(&Path) -> bool,
-    G: Fn(String) -> String,
+    G: Fn(String) -> A,
 {
     for entry in std::fs::read_dir(dir)? {
         let path = entry?.path();
