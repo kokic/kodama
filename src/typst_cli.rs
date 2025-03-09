@@ -135,6 +135,40 @@ pub fn compile_source(
     })
 }
 
+pub fn source_to_html_inplace(typst_path: &str, root_dir: &str) -> Result<String, std::io::Error> {
+    compile_source_inplace(typst_path, root_dir, "html", Some("--features=html"))
+}
+
+pub fn compile_source_inplace(
+    typst_path: &str,
+    root_dir: &str,
+    output_format: &str,
+    extra: Option<&str>,
+) -> Result<String, std::io::Error> {
+    let output = Command::new("typst")
+        .arg("c")
+        .arg(format!("-f={}", output_format))
+        .arg(format!("--root={}", root_dir))
+        .args(extra)
+        .arg(typst_path.to_string())
+        .arg("-")
+        .stdout(std::process::Stdio::piped())
+        .output()?;
+
+    Ok(if output.status.success() {
+        let stdout = String::from_utf8_lossy(&output.stdout);
+        stdout.to_string()
+    } else {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        eprintln!(
+            "Command failed in {}: \n  {}",
+            concat!(file!(), '#', line!()),
+            stderr
+        );
+        String::new()
+    })
+}
+
 /// typst file to svg (`stdout -> disk`)
 pub fn write_svg(typst_path: &str, svg_path: &str) -> Result<(), std::io::Error> {
     if !verify_and_file_hash(typst_path)? && Path::new(svg_path).exists() {

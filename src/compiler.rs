@@ -1,16 +1,18 @@
+pub mod callback;
 pub mod counter;
 pub mod parser;
 pub mod section;
-pub mod taxon;
-pub mod callback;
 pub mod state;
+pub mod taxon;
+pub mod typst;
 pub mod writer;
 
-use std::{ffi::OsStr, path::Path};
+use std::{ffi::OsStr, fmt::Debug, path::Path};
 
 use parser::parse_markdown;
 use section::{HTMLContent, ShallowSection};
 use state::CompileState;
+use typst::parse_typst;
 use writer::Writer;
 
 use crate::{
@@ -22,17 +24,25 @@ use crate::{
 #[derive(Debug)]
 pub enum CompileError {
     IO(Option<&'static str>, std::io::Error, String),
+    Syntax(Option<&'static str>, Box<dyn Debug>, String),
 }
 
 pub fn compile_all(workspace_dir: &str) -> Result<(), CompileError> {
-    let workspace = all_markdown_file(Path::new(workspace_dir)).unwrap();
     let mut state = CompileState::new();
 
-    for slug in &workspace.slugs {
-        let relative_path = format!("{}.md", slug);
+    fn compile_filetype<F: Fn() -> Result<ShallowSection, CompileError>>(
+        slug: &str,
+        ext: &str,
+        parse: F,
+    ) -> Result<ShallowSection, CompileError> {
+        let relative_path = format!("{}.{}", slug, ext);
 
         let is_modified = verify_and_file_hash(&relative_path).map_err(|e| {
-            CompileError::IO(Some(concat!(file!(), '#', line!())), e, relative_path.to_string())
+            CompileError::IO(
+                Some(concat!(file!(), '#', line!())),
+                e,
+                relative_path.to_string(),
+            )
         })?;
 
         let entry_path_str = format!("{}.entry", relative_path);
@@ -47,7 +57,7 @@ pub fn compile_all(workspace_dir: &str) -> Result<(), CompileError> {
             let shallow: ShallowSection = serde_json::from_str(&serialized).unwrap();
             shallow
         } else {
-            let shallow = parse_markdown(&slug)?;
+            let shallow = parse()?;
             let serialized = serde_json::to_string(&shallow).unwrap();
             std::fs::write(entry_path_buf, serialized).map_err(|e| {
                 CompileError::IO(Some(concat!(file!(), '#', line!())), e, entry_path_str)
@@ -56,13 +66,25 @@ pub fn compile_all(workspace_dir: &str) -> Result<(), CompileError> {
             shallow
         };
 
+        Ok(shallow)
+    }
+
+    let workspace = all_files(Path::new(workspace_dir), is_markdown).unwrap();
+    for slug in &workspace.slugs {
+        let shallow = compile_filetype(slug, "md", || parse_markdown(slug))?;
+        state.residued.insert(slug.to_string(), shallow);
+    }
+
+    let workspace = all_files(Path::new(workspace_dir), is_typst).unwrap();
+    for slug in &workspace.slugs {
+        let shallow = compile_filetype(slug, "typst", || parse_typst(slug, workspace_dir))?;
         state.residued.insert(slug.to_string(), shallow);
     }
 
     state.compile_all();
 
     Writer::write_needed_slugs(&workspace.slugs, &state);
-    
+
     Ok(())
 }
 
@@ -80,10 +102,17 @@ pub fn is_markdown(path: &Path) -> bool {
     path.extension() == Some(OsStr::new("md"))
 }
 
+pub fn is_typst(path: &Path) -> bool {
+    path.extension() == Some(OsStr::new("typst"))
+}
+
 /**
- * collect all markdown source file paths in workspace dir
+ * collect all source file paths in workspace dir
  */
-pub fn all_markdown_file(root_dir: &Path) -> Result<Workspace, Box<std::io::Error>> {
+pub fn all_files<F: Fn(&Path) -> bool>(
+    root_dir: &Path,
+    predicate: F,
+) -> Result<Workspace, Box<std::io::Error>> {
     let root_dir = root_dir.to_str().unwrap();
     let offset = root_dir.len();
     let mut slugs: Vec<String> = vec![];
@@ -91,11 +120,11 @@ pub fn all_markdown_file(root_dir: &Path) -> Result<Workspace, Box<std::io::Erro
 
     for entry in std::fs::read_dir(root_dir)? {
         let path = entry?.path();
-        if path.is_file() && is_markdown(&path) && !should_ignored_file(&path) {
+        if path.is_file() && predicate(&path) && !should_ignored_file(&path) {
             let path = posix_style(path.to_str().unwrap());
             slugs.push(to_slug(path));
         } else if path.is_dir() && !should_ignored_dir(&path) {
-            files_match_with(&path, &is_markdown, &mut slugs, &to_slug)?;
+            files_match_with(&path, &predicate, &mut slugs, &to_slug)?;
         }
     }
 
