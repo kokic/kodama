@@ -4,15 +4,22 @@ pub fn to_hash_id(slug: &str) -> String {
 
 /// path to slug
 pub fn to_slug(fullname: &str) -> String {
+    to_slug_ext(fullname).0
+}
+
+pub fn to_slug_ext(fullname: &str) -> (String, String) {
     let mut slug = fullname;
     if fullname.starts_with("/") {
         slug = &slug[1..]
     } else if fullname.starts_with("./") {
         slug = &slug[2..]
     }
-
-    let slug = &slug[0..slug.rfind('.').unwrap_or(slug.len())];
-    pretty_path(std::path::Path::new(&slug))
+    let (slug, ext) = if let Some(ix) = slug.rfind('.') {
+        (&slug[0..ix], &slug[(ix+1)..])
+    } else {
+        (slug, "")
+    };
+    (pretty_path(std::path::Path::new(&slug)), ext.to_string())
 }
 
 pub fn pretty_path(path: &std::path::Path) -> String {

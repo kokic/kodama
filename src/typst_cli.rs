@@ -17,7 +17,7 @@ pub fn source_to_inline_html(typst_path: &str, html_path: &str) -> Result<String
     let full_path = config::join_path(&root_dir, typst_path);
     let html = source_to_html(&full_path, &root_dir)?;
     let html_body = html_to_body_content(&html);
-    
+
     fs::write(html_path, html)?;
     println!(
         "Compiled to HTML: {}",
@@ -90,7 +90,7 @@ pub fn source_to_html(full_path: &str, root_dir: &str) -> Result<String, std::io
         let stderr = String::from_utf8_lossy(&output.stderr);
         eprintln!(
             "Command failed in {} {}: \n  {}",
-            full_path, 
+            full_path,
             concat!(file!(), '#', line!()),
             stderr
         );
@@ -135,11 +135,12 @@ pub fn compile_source(
     })
 }
 
-pub fn source_to_html_inplace(typst_path: &str, root_dir: &str) -> Result<String, std::io::Error> {
-    compile_source_inplace(typst_path, root_dir, "html", Some("--features=html"))
+pub fn file_to_html(typst_path: &str, root_dir: &str) -> Result<String, std::io::Error> {
+    compile_file(typst_path, root_dir, "html", Some("--features=html"))
+        .map(|s| html_to_body_content(&s))
 }
 
-pub fn compile_source_inplace(
+pub fn compile_file(
     typst_path: &str,
     root_dir: &str,
     output_format: &str,
@@ -200,7 +201,7 @@ pub fn write_svg(typst_path: &str, svg_path: &str) -> Result<(), std::io::Error>
         let stderr = String::from_utf8_lossy(&output.stderr);
         eprintln!(
             "Command failed in {} {}: \n  {}",
-            full_path, 
+            full_path,
             concat!(file!(), '#', line!()),
             stderr
         );
