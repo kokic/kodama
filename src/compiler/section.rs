@@ -1,4 +1,4 @@
-use std::collections::HashSet;
+use std::{collections::HashSet, mem};
 
 use serde::{Deserialize, Serialize};
 
@@ -67,6 +67,49 @@ pub enum HTMLContent {
     Lazy(LazyContents),
 }
 
+pub struct HTMLContentBuilder {
+    contents: LazyContents,
+    content: String,
+}
+
+impl HTMLContentBuilder {
+    pub fn new() -> HTMLContentBuilder {
+        HTMLContentBuilder {
+            contents: vec![],
+            content: String::new(),
+        }
+    }
+    pub fn push_str(&mut self, s: &str) {
+        if !s.is_empty() {
+            self.content.push_str(&s);
+        }
+    }
+    fn push_content(&mut self) {
+        if !self.content.is_empty() {
+            self.contents
+                .push(LazyContent::Plain(mem::take(&mut self.content)));
+        }
+    }
+    pub fn push(&mut self, c: LazyContent) {
+        match c {
+            LazyContent::Plain(s) => {
+                self.push_str(&s);
+            }
+            _ => {
+                self.push_content();
+                self.contents.push(c);
+            }
+        }
+    }
+    pub fn build(mut self) -> HTMLContent {
+        if self.contents.is_empty() {
+            return HTMLContent::Plain(mem::take(&mut self.content));
+        }
+        self.push_content();
+        HTMLContent::Lazy(self.contents)
+    }
+}
+
 ///
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ShallowSection {
@@ -83,7 +126,6 @@ impl ShallowSection {
     pub fn is_compiled(&self) -> bool {
         matches!(&self.content, HTMLContent::Plain(_)) && self.metadata.etc_keys().len() == 0
     }
-
 }
 
 pub type SectionContents = Vec<SectionContent>;
@@ -99,16 +141,20 @@ pub struct Section {
     pub metadata: EntryMetaData,
     pub children: SectionContents,
     pub option: SectionOption,
-    pub references: HashSet<String>, 
+    pub references: HashSet<String>,
 }
 
 impl Section {
-    pub fn new(metadata: EntryMetaData, children: SectionContents, references: HashSet<String>) -> Section {
+    pub fn new(
+        metadata: EntryMetaData,
+        children: SectionContents,
+        references: HashSet<String>,
+    ) -> Section {
         Section {
             metadata,
             children,
-            option: SectionOption::new(false, true, true), 
-            references, 
+            option: SectionOption::new(false, true, true),
+            references,
         }
     }
 

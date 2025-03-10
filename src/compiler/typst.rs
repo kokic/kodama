@@ -1,9 +1,10 @@
-use super::{section::LazyContent, CompileError, HTMLContent, ShallowSection};
+use super::section::HTMLContentBuilder;
+use super::{section::LazyContent, CompileError, ShallowSection};
 use crate::compiler::section::{EmbedContent, LocalLink, SectionOption};
 use crate::{entry::EntryMetaData, typst_cli};
 use regex::Regex;
+use std::collections::HashMap;
 use std::str;
-use std::{collections::HashMap, vec};
 
 fn process_bool(m: Option<&String>, def: bool) -> bool {
     match m.map(String::as_str) {
@@ -26,8 +27,7 @@ pub fn parse_typst(slug: &str, root_dir: &str) -> Result<ShallowSection, Compile
 
     let mut metadata = HashMap::new();
     metadata.insert("slug".to_string(), slug.to_string());
-    let mut contents = vec![];
-    let mut content = String::new();
+    let mut builder = HTMLContentBuilder::new();
 
     let re_kodama = Regex::new(
         r#"<kodama(?<attrs>(\s+([a-zA-Z]+)="([^"\\]|\\[\s\S])*")*)>(?<inner>[\s\S]*?)</kodama>"#,
@@ -38,7 +38,7 @@ pub fn parse_typst(slug: &str, root_dir: &str) -> Result<ShallowSection, Compile
     for capture in re_kodama.captures_iter(&html_str) {
         let all = capture.get(0).unwrap();
 
-        content.push_str(&html_str[cursor..all.start()]);
+        builder.push_str(&html_str[cursor..all.start()]);
         cursor = all.end();
 
         let attrs_str = capture.name("attrs").unwrap().as_str();
@@ -81,11 +81,6 @@ pub fn parse_typst(slug: &str, root_dir: &str) -> Result<ShallowSection, Compile
                 metadata.insert(attr("key")?.to_string(), value);
             }
             "embed" => {
-                if !content.is_empty() {
-                    contents.push(LazyContent::Plain(content));
-                    content = String::new();
-                }
-
                 let def = SectionOption::default();
 
                 let url = attr("url")?.to_string();
@@ -93,21 +88,16 @@ pub fn parse_typst(slug: &str, root_dir: &str) -> Result<ShallowSection, Compile
                 let numbering = process_bool(attrs.get("numbering"), def.numbering);
                 let details_open = process_bool(attrs.get("open"), def.details_open);
                 let catalog = process_bool(attrs.get("catalog"), def.catalog);
-                contents.push(LazyContent::Embed(EmbedContent {
+                builder.push(LazyContent::Embed(EmbedContent {
                     url,
                     title,
                     option: SectionOption::new(numbering, details_open, catalog),
                 }))
             }
             "local" => {
-                if !content.is_empty() {
-                    contents.push(LazyContent::Plain(content));
-                    content = String::new();
-                }
-
                 let slug = attr("slug")?.to_string();
                 let text = str_opt(value);
-                contents.push(LazyContent::Local(LocalLink { slug, text }))
+                builder.push(LazyContent::Local(LocalLink { slug, text }))
             }
             tag => {
                 return Err(CompileError::Syntax(
@@ -119,25 +109,10 @@ pub fn parse_typst(slug: &str, root_dir: &str) -> Result<ShallowSection, Compile
         }
     }
 
-    content.push_str(&html_str[cursor..]);
-
-    if !content.is_empty() {
-        contents.push(LazyContent::Plain(content));
-    }
-
-    let metadata = EntryMetaData(metadata);
-
-    if contents.len() == 1 {
-        if let LazyContent::Plain(html) = &contents[0] {
-            return Ok(ShallowSection {
-                metadata,
-                content: HTMLContent::Plain(html.to_string()),
-            });
-        }
-    }
+    builder.push_str(&html_str[cursor..]);
 
     Ok(ShallowSection {
-        metadata,
-        content: HTMLContent::Lazy(contents),
+        metadata: EntryMetaData(metadata),
+        content: builder.build(),
     })
 }
