@@ -3,6 +3,7 @@ use std::{collections::HashSet, ops::Not, path::Path};
 use crate::{
     compiler::counter::Counter,
     config::{self, verify_update_hash},
+    entry::MetaData,
     html,
     html_flake::{self, html_article_inner},
 };
@@ -63,11 +64,7 @@ impl Writer {
 
         let callback = state.callback.0.get(&slug);
         let footer_html = Writer::footer(state, &section.references, callback);
-        let page_title = section
-            .metadata
-            .get("page-title")
-            .map(|s| s.as_str())
-            .unwrap_or_else(|| section.metadata.title().map_or("", |s| s));
+        let page_title = section.metadata.page_title().map_or("", |s| s.as_str());
 
         let html = crate::html_flake::html_doc(
             &page_title,
@@ -90,7 +87,8 @@ impl Writer {
                 state.compiled.get(parent).map(|section| {
                     let href = config::full_html_url(parent);
                     let title = section.metadata.title().map_or("", |s| s);
-                    html_flake::html_header_nav(title, &href)
+                    let page_title = section.metadata.page_title().map_or("", |s| s);
+                    html_flake::html_header_nav(title, page_title, &href)
                 })
             })
             .unwrap_or_default()
@@ -150,7 +148,15 @@ impl Writer {
     fn catalog_item(section: &Section, taxon: &str, child_html: &str) -> String {
         let slug = &section.slug();
         let text = section.metadata.title().map_or("", |s| s);
-        html_flake::catalog_item(slug, text, section.option.details_open, taxon, child_html)
+        let page_title = section.metadata.page_title().map_or("", |s| s);
+        html_flake::catalog_item(
+            slug,
+            text,
+            page_title,
+            section.option.details_open,
+            taxon,
+            child_html,
+        )
     }
 
     fn footer_content_to_html(content: &SectionContent) -> String {

@@ -1,8 +1,9 @@
 use std::{collections::HashSet, mem};
 
+use fancy_regex::Regex;
 use serde::{Deserialize, Serialize};
 
-use crate::entry::EntryMetaData;
+use crate::entry::{EntryMetaData, HTMLMetaData, MetaData};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SectionOption {
@@ -31,14 +32,14 @@ impl SectionOption {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct EmbedContent {
     pub url: String,
     pub title: Option<String>,
     pub option: SectionOption,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct LocalLink {
     pub slug: String,
     pub text: Option<String>,
@@ -46,7 +47,7 @@ pub struct LocalLink {
 
 /// Plain HTMLs & lazy embedding HTMLs, This means that
 /// the embedded structure within are not expanded.
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum LazyContent {
     Plain(String),
     Embed(EmbedContent),
@@ -61,10 +62,65 @@ pub type LazyContents = Vec<LazyContent>;
 /// Additionally, it is designed with the consideration that
 /// when all contents in `Vec<LazyContent>` are [`LazyContent::Plain`],
 /// this structure will naturally be lifted to [`HTMLContent::Plain`].
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum HTMLContent {
     Plain(String),
     Lazy(LazyContents),
+}
+
+impl HTMLContent {
+    pub fn as_str(&self) -> Option<&str> {
+        if let HTMLContent::Plain(s) = self {
+            Some(s)
+        } else {
+            None
+        }
+    }
+
+    pub fn as_string(&self) -> Option<&String> {
+        if let HTMLContent::Plain(s) = self {
+            Some(s)
+        } else {
+            None
+        }
+    }
+
+    fn remove_tags(s: &str) -> String {
+        let attrs = r#"(\s+[a-zA-Z]+="([^"\\]|\\[\s\S])*")*"#;
+        let re = Regex::new(&format!(
+            r#"<[A-Za-z]+{}>|</[A-Za-z]+>|<[A-Za-z]+{}/>"#,
+            attrs, attrs
+        ))
+        .unwrap();
+        let mut cursor = 0;
+        let mut string = String::new();
+        for capture in re.captures_iter(s).map(Result::unwrap) {
+            let all = capture.get(0).unwrap();
+            string.push_str(&s[cursor..all.start()]);
+            cursor = all.end();
+        }
+        string.push_str(&s[cursor..]);
+        string
+    }
+
+    pub fn to_text(&self) -> String {
+        match self {
+            HTMLContent::Plain(s) => HTMLContent::remove_tags(s),
+            HTMLContent::Lazy(contents) => {
+                let mut str = String::new();
+                for content in contents {
+                    match content {
+                        LazyContent::Plain(s) => str.push_str(&HTMLContent::remove_tags(s)),
+                        LazyContent::Embed(embed) => str
+                            .push_str(embed.title.as_ref().map(String::as_str).unwrap_or_default()),
+                        LazyContent::Local(local) => str
+                            .push_str(local.text.as_ref().map(String::as_str).unwrap_or_default()),
+                    }
+                }
+                str
+            }
+        }
+    }
 }
 
 pub struct HTMLContentBuilder {
@@ -111,9 +167,9 @@ impl HTMLContentBuilder {
 }
 
 ///
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ShallowSection {
-    pub metadata: EntryMetaData,
+    pub metadata: HTMLMetaData,
     pub content: HTMLContent,
 }
 

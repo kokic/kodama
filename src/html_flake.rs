@@ -1,6 +1,11 @@
 use std::ops::Not;
 
-use crate::{compiler::taxon::Taxon, config, entry::EntryMetaData, html};
+use crate::{
+    compiler::taxon::Taxon,
+    config,
+    entry::{EntryMetaData, MetaData},
+    html,
+};
 
 pub fn html_article_inner(
     metadata: &EntryMetaData,
@@ -71,12 +76,13 @@ pub fn html_entry_header(mut etc: Vec<String>) -> String {
 pub fn catalog_item(
     slug: &str,
     text: &str,
+    page_title: &str,
     details_open: bool,
     taxon: &str,
     child_html: &str,
 ) -> String {
     let slug_url = config::full_html_url(slug);
-    let title = format!("{} [{}]", text, slug);
+    let title = format!("{} [{}]", page_title, slug);
     let href = format!("#{}", crate::slug::to_hash_id(slug)); // #id
 
     let mut class_name: Vec<String> = vec![];
@@ -124,8 +130,8 @@ pub fn html_link(href: &str, title: &str, text: &str, class_name: &str) -> Strin
       (html!(a href = {href}, title = {title} => {text})))
 }
 
-pub fn html_header_nav(title: &str, href: &str) -> String {
-    let link = html!(a href={href}, title={title} => ("« ") (title));
+pub fn html_header_nav(title: &str, page_title: &str, href: &str) -> String {
+    let link = html!(a href={href}, title={page_title} => ("« ") (title));
     let nav_inner = html!(div class = "logo" => (link));
     html!(header class = "header" => (html!(nav class = "nav" => {nav_inner})))
 }

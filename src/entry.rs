@@ -1,6 +1,9 @@
-use crate::{config, html, html_flake::html_entry_header};
+use crate::{compiler::section::HTMLContent, config, html, html_flake::html_entry_header};
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
+use std::collections::{hash_map::Keys, HashMap};
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct HTMLMetaData(pub HashMap<String, HTMLContent>);
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct EntryMetaData(pub HashMap<String, String>);
@@ -13,17 +16,17 @@ pub const KEY_TAXON: &'static str = "taxon";
 pub const KEY_PARENT: &'static str = "parent";
 pub const KEY_PAGE_TITLE: &'static str = "page-title";
 
-/// `backlinks: bool`: 
+/// `backlinks: bool`:
 /// Controls whether the current page displays backlinks.
 pub const KEY_BACKLINKS: &'static str = "backlinks";
 
-/// `collect: bool`: 
-/// Controls whether the current page is a collection page. 
-/// A collection page displays metadata of child entries. 
+/// `collect: bool`:
+/// Controls whether the current page is a collection page.
+/// A collection page displays metadata of child entries.
 pub const KEY_COLLECT: &'static str = "collect";
 
-/// `asref: bool`: 
-/// Controls whether the current page process as reference. 
+/// `asref: bool`:
+/// Controls whether the current page process as reference.
 pub const KEY_ASREF: &'static str = "asref";
 
 const PRESET_METADATA: [&'static str; 8] = [
@@ -33,9 +36,119 @@ const PRESET_METADATA: [&'static str; 8] = [
     KEY_PARENT,
     KEY_PAGE_TITLE,
     KEY_BACKLINKS,
-    KEY_COLLECT, 
-    KEY_ASREF, 
+    KEY_COLLECT,
+    KEY_ASREF,
 ];
+
+pub trait MetaData<V>
+where
+    V: Clone,
+{
+    fn get(&self, key: &str) -> Option<&V>;
+    fn get_str(&self, key: &str) -> Option<&String>;
+    fn keys<'a>(&'a self) -> Keys<'a, String, V>;
+
+    fn is_custom_metadata(s: &str) -> bool {
+        !PRESET_METADATA.contains(&s)
+    }
+
+    /// Return all custom metadata keys without [`PRESET_METADATA`].
+    fn etc_keys(&self) -> Vec<String> {
+        self.keys()
+            .filter(|s| EntryMetaData::is_custom_metadata(s))
+            .map(|s| s.to_string())
+            .collect()
+    }
+
+    /// Return all custom metadata values without [`PRESET_METADATA`].
+    fn etc(&self) -> Vec<V> {
+        let mut etc_keys = self.etc_keys();
+        etc_keys.sort();
+        etc_keys
+            .into_iter()
+            .map(|s| self.get(&s).unwrap().clone())
+            .collect()
+    }
+
+    fn get_bool(&self, key: &str) -> Option<bool> {
+        self.get_str(key).map(|s| s == "true")
+    }
+
+    fn id(&self) -> String {
+        crate::slug::to_hash_id(self.get_str(KEY_SLUG).unwrap())
+    }
+
+    /// Return taxon text
+    fn taxon(&self) -> Option<&V> {
+        return self.get(KEY_TAXON);
+    }
+
+    fn title(&self) -> Option<&V> {
+        return self.get(KEY_TITLE);
+    }
+
+    #[allow(dead_code)]
+    fn page_title(&self) -> Option<&String> {
+        return self.get_str(KEY_PAGE_TITLE);
+    }
+
+    fn slug(&self) -> Option<&String> {
+        return self.get_str(KEY_SLUG);
+    }
+
+    fn is_enable_backlinks(&self) -> bool {
+        return self.get_bool(&KEY_BACKLINKS).unwrap_or(true);
+    }
+
+    fn is_collect(&self) -> bool {
+        return self.get_bool(&KEY_COLLECT).unwrap_or(false);
+    }
+
+    fn is_asref(&self) -> bool {
+        return self.get_bool(&KEY_ASREF).unwrap_or(false);
+    }
+}
+
+impl MetaData<HTMLContent> for HTMLMetaData {
+    fn get(&self, key: &str) -> Option<&HTMLContent> {
+        return self.0.get(key);
+    }
+
+    fn get_str(&self, key: &str) -> Option<&String> {
+        return self.0.get(key).and_then(HTMLContent::as_string);
+    }
+
+    fn keys<'a>(&'a self) -> Keys<'a, String, HTMLContent> {
+        return self.0.keys();
+    }
+}
+
+impl MetaData<String> for EntryMetaData {
+    fn get(&self, key: &str) -> Option<&String> {
+        return self.0.get(key);
+    }
+
+    fn get_str(&self, key: &str) -> Option<&String> {
+        return self.0.get(key);
+    }
+
+    fn keys<'a>(&'a self) -> Keys<'a, String, String> {
+        return self.0.keys();
+    }
+}
+
+impl HTMLMetaData {
+    pub fn compute_page_title(&mut self) {
+        if self.page_title().is_none() {
+            if let Some(title) = self.title() {
+                self.0.insert(
+                    KEY_PAGE_TITLE.to_string(),
+                    HTMLContent::Plain(title.to_text()),
+                );
+            }
+        }
+    }
+}
 
 impl EntryMetaData {
     pub fn to_header(&self, adhoc_title: Option<&str>, adhoc_taxon: Option<&str>) -> String {
@@ -68,83 +181,6 @@ impl EntryMetaData {
             slug_text = &slug_text[pos..];
         }
         slug_text.to_string()
-    }
-
-    pub fn is_custom_metadata(s: &str) -> bool {
-        !PRESET_METADATA.contains(&s)
-    }
-
-    pub fn enabled_markdown_key(s: &str) -> bool {
-        EntryMetaData::is_custom_metadata(s)
-    }
-
-    pub fn enabled_markdown_keys(&self) -> Vec<String> {
-        self.0
-            .keys()
-            .filter(|s| EntryMetaData::enabled_markdown_key(s))
-            .map(|s| s.to_string())
-            .collect()
-    }
-
-    /// Return all custom metadata keys without [`PRESET_METADATA`].
-    pub fn etc_keys(&self) -> Vec<String> {
-        self.0
-            .keys()
-            .filter(|s| EntryMetaData::is_custom_metadata(s))
-            .map(|s| s.to_string())
-            .collect()
-    }
-
-    /// Return all custom metadata values without [`PRESET_METADATA`].
-    pub fn etc(&self) -> Vec<String> {
-        let mut etc_keys = self.etc_keys();
-        etc_keys.sort();
-        etc_keys
-            .into_iter()
-            .map(|s| self.get(&s).unwrap().to_string())
-            .collect()
-    }
-
-    pub fn get(&self, key: &str) -> Option<&String> {
-        return self.0.get(key);
-    }
-
-    pub fn get_bool(&self, key: &str) -> Option<bool> {
-        self.0.get(key).map(|s| s == "true")
-    }
-
-    pub fn id(&self) -> String {
-        crate::slug::to_hash_id(self.get(KEY_SLUG).unwrap())
-    }
-
-    /// Return taxon text
-    pub fn taxon(&self) -> Option<&String> {
-        return self.0.get(KEY_TAXON);
-    }
-
-    pub fn title(&self) -> Option<&String> {
-        return self.0.get(KEY_TITLE);
-    }
-
-    #[allow(dead_code)]
-    pub fn page_title(&self) -> Option<&String> {
-        return self.0.get(KEY_PAGE_TITLE);
-    }
-
-    pub fn slug(&self) -> Option<&String> {
-        return self.0.get(KEY_SLUG);
-    }
-
-    pub fn is_enable_backliks(&self) -> bool {
-        return self.get_bool(&KEY_BACKLINKS).unwrap_or(true);
-    }
-
-    pub fn is_collect(&self) -> bool {
-        return self.get_bool(&KEY_COLLECT).unwrap_or(false);
-    }
-
-    pub fn is_asref(&self) -> bool {
-        return self.get_bool(&KEY_ASREF).unwrap_or(false);
     }
 
     pub fn update(&mut self, key: String, value: String) {

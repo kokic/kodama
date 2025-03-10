@@ -3,8 +3,9 @@ use std::collections::HashMap;
 
 use crate::{
     compiler::{
-        parser::cmark_to_html,
-        section::{EmbedContent, LazyContent, LocalLink, SectionOption},
+        parser::parse_spanned_markdown,
+        section::{EmbedContent, HTMLContent, LazyContent, LocalLink, SectionOption},
+        CompileError,
     },
     html_flake::html_link,
     recorder::{ParseRecorder, State},
@@ -104,15 +105,17 @@ impl Processer for Embed {
         &self,
         s: &pulldown_cmark::CowStr<'_>,
         recorder: &mut ParseRecorder,
-        metadata: &mut HashMap<String, String>,
-    ) {
+        metadata: &mut HashMap<String, HTMLContent>,
+    ) -> Result<(), CompileError> {
         if allow_inline(&recorder.state) {
-            return recorder.push(s.to_string()); // [1, 2, ...]: Text
+            recorder.push(s.to_string()); // [1, 2, ...]: Text
+            return Ok(());
         }
 
         if recorder.state == State::Metadata && s.trim().len() != 0 {
-            parse_metadata(s, metadata);
+            parse_metadata(s, metadata, recorder)?;
         }
+        Ok(())
     }
 
     fn inline_math(
@@ -141,22 +144,30 @@ fn allow_inline(state: &State) -> bool {
 /// `(I)` `x86_64-pc-windows-msvc` and `(II)` `aarch64-unknown-linux-musl`.
 /// `(I)` automatically splits the input by lines,
 /// while `(II)` receives the entire multi-line string as a whole.
-pub fn parse_metadata(s: &str, metadata: &mut HashMap<String, String>) {
+pub fn parse_metadata(
+    s: &str,
+    metadata: &mut HashMap<String, HTMLContent>,
+    recorder: &mut ParseRecorder,
+) -> Result<(), CompileError> {
     let lines: Vec<&str> = s.split("\n").collect();
     for s in lines {
         if s.trim().len() != 0 {
-            let pos = s.find(':').expect("metadata item expect `name: value`");
+            let pos = s
+                .find(':')
+                .expect(&format!("metadata item expect `name: value` in {}", s));
             let key = s[0..pos].trim();
             let val = s[pos + 1..].trim();
 
-            let val = match key {
-                "title" => cmark_to_html(val, true),
-                "taxon" => display_taxon(val),
-                _ => val.to_string(),
-            };
+            let mut val = parse_spanned_markdown(val, &format!("{}:metadata", recorder.current))?;
+            if key == "taxon" {
+                if let HTMLContent::Plain(v) = val {
+                    val = HTMLContent::Plain(display_taxon(&v));
+                }
+            }
             metadata.insert(key.to_string(), val);
         }
     }
+    Ok(())
 }
 
 pub fn parse_embed_text(embed_text: Option<&String>) -> (SectionOption, Option<String>) {

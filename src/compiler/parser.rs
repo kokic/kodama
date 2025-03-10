@@ -3,8 +3,7 @@ use std::{collections::HashMap, vec};
 use pulldown_cmark::{html, CowStr, Event, Options, Tag, TagEnd};
 
 use crate::{
-    config::input_path, entry::EntryMetaData, process::processer::Processer,
-    recorder::ParseRecorder,
+    config::input_path, entry::HTMLMetaData, process::processer::Processer, recorder::ParseRecorder,
 };
 
 use super::{
@@ -20,11 +19,11 @@ pub const OPTIONS: Options = Options::ENABLE_MATH
 
 pub fn initialize(
     slug: &str,
-) -> Result<(String, HashMap<String, String>, ParseRecorder), CompileError> {
+) -> Result<(String, HashMap<String, HTMLContent>, ParseRecorder), CompileError> {
     // global data store
-    let mut metadata: HashMap<String, String> = HashMap::new();
+    let mut metadata: HashMap<String, HTMLContent> = HashMap::new();
     let fullname = format!("{}.md", slug);
-    metadata.insert("slug".to_string(), slug.to_string());
+    metadata.insert("slug".to_string(), HTMLContent::Plain(slug.to_string()));
 
     // local contents recorder
     let markdown_path = input_path(&fullname);
@@ -56,7 +55,7 @@ pub fn parse_markdown(slug: &str) -> Result<ShallowSection, CompileError> {
         &mut processers,
         false,
     )?;
-    let metadata = EntryMetaData(metadata);
+    let metadata = HTMLMetaData(metadata);
 
     return Ok(ShallowSection {
         metadata,
@@ -64,51 +63,11 @@ pub fn parse_markdown(slug: &str) -> Result<ShallowSection, CompileError> {
     });
 }
 
-pub fn cmark_to_html(markdown_input: &str, ignore_paragraph: bool) -> String {
-    
-    let mut recorder = ParseRecorder::new("cmark_to_html".to_owned());
-    let mut processers: Vec<Box<dyn Processer>> = vec![
-        Box::new(crate::process::katex_compat::KatexCompact),
-    ];
-
-    let parser = pulldown_cmark::Parser::new_ext(&markdown_input, OPTIONS);
-    let parser = parser.filter_map(|event| match &event {
-        Event::Start(tag) => match tag {
-            Tag::Paragraph if ignore_paragraph => None,
-            _ => Some(event),
-        },
-        Event::End(tag) => match tag {
-            TagEnd::Paragraph if ignore_paragraph => None,
-            _ => Some(event),
-        },
-        Event::InlineMath(s) => {
-            let mut html = String::new();
-            processers.iter_mut().for_each(|handler| {
-                handler.inline_math(&s, &mut recorder).map(|s| html = s);
-            });
-            Some(Event::Html(CowStr::Boxed(html.into())))
-        },
-        Event::DisplayMath(s) => {
-            let mut html = String::new();
-            processers.iter_mut().for_each(|handler| {
-                handler.display_math(&s, &mut recorder).map(|s| html = s);
-            });
-            Some(Event::Html(CowStr::Boxed(html.into())))
-        },
-        _ => Some(event),
-    });
-    let mut html_output = String::new();
-    html::push_html(&mut html_output, parser);
-    html_output
-}
-
 pub fn parse_spanned_markdown(
     markdown_input: &str,
     current_slug: &str,
-) -> Result<ShallowSection, CompileError> {
+) -> Result<HTMLContent, CompileError> {
     let mut recorder = ParseRecorder::new(current_slug.to_owned());
-    let mut metadata = HashMap::new();
-    metadata.insert("slug".to_string(), format!("{}:metadata", current_slug));
 
     let mut processers: Vec<Box<dyn Processer>> = vec![
         Box::new(crate::process::typst_image::TypstImage),
@@ -119,20 +78,17 @@ pub fn parse_spanned_markdown(
     let content = parse_content(
         &markdown_input,
         &mut recorder,
-        &mut metadata,
+        &mut HashMap::new(),
         &mut processers,
         true,
     )?;
-    return Ok(ShallowSection {
-        metadata: EntryMetaData(metadata),
-        content,
-    });
+    return Ok(content);
 }
 
 pub fn parse_content(
     markdown_input: &str,
     recorder: &mut ParseRecorder,
-    metadata: &mut HashMap<String, String>,
+    metadata: &mut HashMap<String, HTMLContent>,
     processers: &mut Vec<Box<dyn Processer>>,
     ignore_paragraph: bool,
 ) -> Result<HTMLContent, CompileError> {
@@ -182,9 +138,13 @@ pub fn parse_content(
             }
 
             Event::Text(s) => {
-                processers
-                    .iter_mut()
-                    .for_each(|handler| handler.text(s, recorder, metadata));
+                for handler in processers.iter_mut() {
+                    handler.text(s, recorder, metadata)?;
+                }
+                // processers
+                //     .iter_mut()
+                //     .map(|handler| handler.text(s, recorder, metadata))
+                //     .collect::<Result<(), _>>()?;
             }
 
             Event::InlineMath(s) => {

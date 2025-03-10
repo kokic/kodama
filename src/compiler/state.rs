@@ -2,13 +2,12 @@ use std::collections::{HashMap, HashSet};
 
 use crate::{
     config,
-    entry::{self, EntryMetaData},
+    entry::{EntryMetaData, HTMLMetaData, MetaData, KEY_SLUG},
     slug,
 };
 
 use super::{
     callback::Callback,
-    parser::parse_spanned_markdown,
     section::{HTMLContent, LazyContent, Section, SectionContent, SectionContents, ShallowSection},
     taxon::Taxon,
 };
@@ -17,7 +16,7 @@ use super::{
 pub struct CompileState {
     pub residued: HashMap<String, ShallowSection>,
     pub compiled: HashMap<String, Section>,
-    pub metadata: HashMap<String, EntryMetaData>,
+    pub metadata: HashMap<String, HTMLMetaData>,
     pub callback: Callback,
 }
 
@@ -38,8 +37,11 @@ impl CompileState {
     pub fn compile_all(&mut self) {
         self.metadata = self
             .residued
-            .iter()
-            .map(|(key, value)| (key.to_string(), value.metadata.clone()))
+            .iter_mut()
+            .map(|(key, value)| {
+                value.metadata.compute_page_title();
+                (key.to_string(), value.metadata.clone())
+            })
             .collect();
 
         self.compile("index");
@@ -67,7 +69,6 @@ impl CompileState {
 
     fn compile_shallow(&mut self, shallow: ShallowSection) -> &Section {
         let slug = shallow.slug();
-        let mut metadata = shallow.metadata;
         let mut children: SectionContents = vec![];
         let mut references: HashSet<String> = HashSet::new();
 
@@ -113,8 +114,9 @@ impl CompileState {
                         LazyContent::Local(local_link) => {
                             let link_slug = &local_link.slug;
                             let article_title = self
-                                .get_metadata(&link_slug, entry::KEY_PAGE_TITLE)
-                                .or_else(|| self.get_metadata(&link_slug, entry::KEY_TITLE))
+                                .get_metadata(&link_slug)
+                                .unwrap()
+                                .page_title()
                                 .map_or("", |s| s);
 
                             if self.is_reference(&link_slug) {
@@ -124,7 +126,7 @@ impl CompileState {
                             /*
                              * Making oneself the content of a backlink should not be expected behavior.
                              */
-                            if *link_slug != slug && self.is_enable_backliks(&link_slug) {
+                            if *link_slug != slug && self.is_enable_backlinks(&link_slug) {
                                 callback.insert_backlinks(
                                     link_slug.to_string(),
                                     vec![slug.to_string()],
@@ -150,10 +152,14 @@ impl CompileState {
         };
 
         // compile metadata
-        let metadata_keys: Vec<String> = metadata.enabled_markdown_keys();
-        metadata_keys.iter().for_each(|key| {
-            let value = metadata.get(key).unwrap();
-            let spanned = parse_spanned_markdown(value, &slug).unwrap();
+        let mut metadata = EntryMetaData(HashMap::new());
+        metadata.update(KEY_SLUG.to_string(), slug.to_string());
+        shallow.metadata.keys().for_each(|key| {
+            if key == KEY_SLUG {
+                return;
+            }
+            let value = shallow.metadata.get(key).unwrap();
+            let spanned: ShallowSection = Self::metadata_to_section(value, &slug);
             let compiled = self.compile_shallow(spanned);
             let html = compiled.spanned();
             metadata.update(key.to_string(), html);
@@ -167,21 +173,37 @@ impl CompileState {
         self.compiled.get(&slug).unwrap()
     }
 
-    pub fn get_metadata(&self, slug: &str, key: &str) -> Option<&String> {
-        self.metadata.get(slug).map(|e| e.get(key)).flatten()
+    pub fn metadata_to_section(content: &HTMLContent, current_slug: &str) -> ShallowSection {
+        let mut metadata = HashMap::new();
+        metadata.insert(
+            KEY_SLUG.to_string(),
+            HTMLContent::Plain(format!("{}:metadata", current_slug)),
+        );
+
+        return ShallowSection {
+            metadata: HTMLMetaData(metadata),
+            content: content.clone(),
+        };
     }
 
-    pub fn is_enable_backliks(&self, slug: &str) -> bool {
+    pub fn get_metadata(&self, slug: &str) -> Option<&HTMLMetaData> {
+        self.metadata.get(slug)
+    }
+
+    pub fn is_enable_backlinks(&self, slug: &str) -> bool {
         self.metadata
             .get(slug)
-            .map(|e| e.is_enable_backliks())
+            .map(|e| e.is_enable_backlinks())
             .unwrap_or(true)
     }
 
     pub fn is_reference(&self, slug: &str) -> bool {
         self.metadata
             .get(slug)
-            .map(|e| e.is_asref() || Taxon::is_reference(e.taxon().map_or("", |s| s)))
+            .map(|e| {
+                e.is_asref()
+                    || Taxon::is_reference(e.taxon().and_then(HTMLContent::as_str).unwrap_or(""))
+            })
             .unwrap_or(false)
     }
 }
