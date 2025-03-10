@@ -29,10 +29,11 @@ pub fn parse_typst(slug: &str, root_dir: &str) -> Result<ShallowSection, Compile
     let mut contents = vec![];
     let mut content = String::new();
 
-    let re_kodama =
-        Regex::new(r#"<kodama((\s+([a-zA-Z]+)="([^"\\]|\\[\s\S])*")*)>([\s\S]*?)</kodama>"#)
-            .unwrap();
-    let re_attrs = Regex::new(r#"([a-zA-Z]+)="(([^"\\]|\\[\s\S])*)""#).unwrap();
+    let re_kodama = Regex::new(
+        r#"<kodama(?<attrs>(\s+([a-zA-Z]+)="([^"\\]|\\[\s\S])*")*)>(?<inner>[\s\S]*?)</kodama>"#,
+    )
+    .unwrap();
+    let re_attrs = Regex::new(r#"(?<key>[a-zA-Z]+)="(?<value>([^"\\]|\\[\s\S])*)""#).unwrap();
 
     for capture in re_kodama.captures_iter(&html_str) {
         let all = capture.get(0).unwrap();
@@ -40,14 +41,14 @@ pub fn parse_typst(slug: &str, root_dir: &str) -> Result<ShallowSection, Compile
         content.push_str(&html_str[cursor..all.start()]);
         cursor = all.end();
 
-        let attrs_str = capture.get(1).unwrap().as_str();
+        let attrs_str = capture.name("attrs").unwrap().as_str();
         let attrs: HashMap<&str, String> = re_attrs
             .captures_iter(attrs_str)
             .map(|c| {
                 (
-                    c.get(1).unwrap().as_str(),
+                    c.name("key").unwrap().as_str(),
                     String::from_utf8_lossy(
-                        escape_bytes::unescape(c.get(2).unwrap().as_str().as_bytes())
+                        escape_bytes::unescape(c.name("value").unwrap().as_str().as_bytes())
                             .unwrap()
                             .as_slice(),
                     )
@@ -64,10 +65,20 @@ pub fn parse_typst(slug: &str, root_dir: &str) -> Result<ShallowSection, Compile
             ))
         };
 
-        let inner = capture.get(5).unwrap().as_str().trim();
+        let value = attrs.get("value").map_or_else(
+            || capture.name("inner").unwrap().as_str().trim().to_string(),
+            ToString::to_string,
+        );
+        fn str_opt(value: String) -> Option<String> {
+            if value.is_empty() {
+                None
+            } else {
+                Some(value)
+            }
+        }
         match attr("type")?.as_ref() {
             "meta" => {
-                metadata.insert(attr("key")?.to_string(), inner.to_string());
+                metadata.insert(attr("key")?.to_string(), value);
             }
             "embed" => {
                 if !content.is_empty() {
@@ -78,11 +89,7 @@ pub fn parse_typst(slug: &str, root_dir: &str) -> Result<ShallowSection, Compile
                 let def = SectionOption::default();
 
                 let url = attr("url")?.to_string();
-                let title = if inner == "" {
-                    None
-                } else {
-                    Some(inner.to_string())
-                };
+                let title = str_opt(value);
                 let numbering = process_bool(attrs.get("numbering"), def.numbering);
                 let details_open = process_bool(attrs.get("open"), def.details_open);
                 let catalog = process_bool(attrs.get("catalog"), def.catalog);
@@ -99,18 +106,14 @@ pub fn parse_typst(slug: &str, root_dir: &str) -> Result<ShallowSection, Compile
                 }
 
                 let slug = attr("slug")?.to_string();
-                let text = if inner == "" {
-                    None
-                } else {
-                    Some(inner.to_string())
-                };
+                let text = str_opt(value);
                 contents.push(LazyContent::Local(LocalLink { slug, text }))
             }
             tag => {
                 return Err(CompileError::Syntax(
                     Some(concat!(file!(), '#', line!())),
                     Box::new(format!("Unknown kodama element type {}", tag)),
-                    relative_path.to_string(),
+                    relative_path,
                 ))
             }
         }
@@ -122,17 +125,19 @@ pub fn parse_typst(slug: &str, root_dir: &str) -> Result<ShallowSection, Compile
         contents.push(LazyContent::Plain(content));
     }
 
+    let metadata = EntryMetaData(metadata);
+
     if contents.len() == 1 {
         if let LazyContent::Plain(html) = &contents[0] {
             return Ok(ShallowSection {
-                metadata: EntryMetaData(metadata),
+                metadata,
                 content: HTMLContent::Plain(html.to_string()),
             });
         }
     }
 
     Ok(ShallowSection {
-        metadata: EntryMetaData(metadata),
+        metadata,
         content: HTMLContent::Lazy(contents),
     })
 }

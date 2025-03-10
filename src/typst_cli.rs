@@ -162,8 +162,9 @@ pub fn compile_file(
     } else {
         let stderr = String::from_utf8_lossy(&output.stderr);
         eprintln!(
-            "Command failed in {}: \n  {}",
+            "Command failed in {}: \n  In file {}, {}",
             concat!(file!(), '#', line!()),
+            typst_path,
             stderr
         );
         String::new()
