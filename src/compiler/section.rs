@@ -103,7 +103,25 @@ impl HTMLContent {
         string
     }
 
-    pub fn to_text(&self) -> String {
+    fn remove_tag_a(s: &str) -> String {
+        let attrs = r#"(\s+[a-zA-Z]+="([^"\\]|\\[\s\S])*")*"#;
+        let re = Regex::new(&format!(
+            r#"<a{}>|</a>|<a{}/>"#,
+            attrs, attrs
+        ))
+        .unwrap();
+        let mut cursor = 0;
+        let mut string = String::new();
+        for capture in re.captures_iter(s).map(Result::unwrap) {
+            let all = capture.get(0).unwrap();
+            string.push_str(&s[cursor..all.start()]);
+            cursor = all.end();
+        }
+        string.push_str(&s[cursor..]);
+        string
+    }
+
+    pub fn to_page_title(&self) -> String {
         match self {
             HTMLContent::Plain(s) => HTMLContent::remove_tags(s),
             HTMLContent::Lazy(contents) => {
@@ -111,6 +129,25 @@ impl HTMLContent {
                 for content in contents {
                     match content {
                         LazyContent::Plain(s) => str.push_str(&HTMLContent::remove_tags(s)),
+                        LazyContent::Embed(embed) => str
+                            .push_str(embed.title.as_ref().map(String::as_str).unwrap_or_default()),
+                        LazyContent::Local(local) => str
+                            .push_str(local.text.as_ref().map(String::as_str).unwrap_or_default()),
+                    }
+                }
+                str
+            }
+        }
+    }
+
+    pub fn to_link_title(&self) -> String {
+        match self {
+            HTMLContent::Plain(s) => HTMLContent::remove_tag_a(s),
+            HTMLContent::Lazy(contents) => {
+                let mut str = String::new();
+                for content in contents {
+                    match content {
+                        LazyContent::Plain(s) => str.push_str(&HTMLContent::remove_tag_a(s)),
                         LazyContent::Embed(embed) => str
                             .push_str(embed.title.as_ref().map(String::as_str).unwrap_or_default()),
                         LazyContent::Local(local) => str

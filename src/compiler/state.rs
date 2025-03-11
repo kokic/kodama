@@ -39,7 +39,7 @@ impl CompileState {
             .residued
             .iter_mut()
             .map(|(key, value)| {
-                value.metadata.compute_page_title();
+                value.metadata.compute_titles();
                 (key.to_string(), value.metadata.clone())
             })
             .collect();

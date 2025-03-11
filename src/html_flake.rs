@@ -75,7 +75,7 @@ pub fn html_entry_header(mut etc: Vec<String>) -> String {
 
 pub fn catalog_item(
     slug: &str,
-    text: &str,
+    link_title: &str,
     page_title: &str,
     details_open: bool,
     taxon: &str,
@@ -95,7 +95,7 @@ pub fn catalog_item(
       (html!(span class = "link" =>
         (html!(a href = {href} =>
           (html!(span class = "taxon" => {taxon}))
-          (text)))))
+          (link_title)))))
       (child_html))
 }
 
@@ -130,8 +130,8 @@ pub fn html_link(href: &str, title: &str, text: &str, class_name: &str) -> Strin
       (html!(a href = {href}, title = {title} => {text})))
 }
 
-pub fn html_header_nav(title: &str, page_title: &str, href: &str) -> String {
-    let link = html!(a href={href}, title={page_title} => ("« ") (title));
+pub fn html_header_nav(link_title: &str, page_title: &str, href: &str) -> String {
+    let link = html!(a href={href}, title={page_title} => ("« ") (link_title));
     let nav_inner = html!(div class = "logo" => (link));
     html!(header class = "header" => (html!(nav class = "nav" => {nav_inner})))
 }

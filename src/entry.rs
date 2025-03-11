@@ -14,7 +14,10 @@ pub const KEY_TAXON: &'static str = "taxon";
 
 /// Control the "Previous Level" information in the current page navigation.
 pub const KEY_PARENT: &'static str = "parent";
+/// Controls the title of the page, also which in `<a title="?">`
 pub const KEY_PAGE_TITLE: &'static str = "page-title";
+/// Controls the title in body of `<a>` tags
+pub const KEY_LINK_TITLE: &'static str = "link-title";
 
 /// `backlinks: bool`:
 /// Controls whether the current page displays backlinks.
@@ -87,9 +90,12 @@ where
         return self.get(KEY_TITLE);
     }
 
-    #[allow(dead_code)]
     fn page_title(&self) -> Option<&String> {
         return self.get_str(KEY_PAGE_TITLE);
+    }
+
+    fn link_title(&self) -> Option<&String> {
+        return self.get_str(KEY_LINK_TITLE);
     }
 
     fn slug(&self) -> Option<&String> {
@@ -138,12 +144,21 @@ impl MetaData<String> for EntryMetaData {
 }
 
 impl HTMLMetaData {
-    pub fn compute_page_title(&mut self) {
+    pub fn compute_titles(&mut self) {
         if self.page_title().is_none() {
             if let Some(title) = self.title() {
                 self.0.insert(
                     KEY_PAGE_TITLE.to_string(),
-                    HTMLContent::Plain(title.to_text()),
+                    HTMLContent::Plain(title.to_page_title()),
+                );
+            }
+        }
+
+        if self.link_title().is_none() {
+            if let Some(title) = self.title() {
+                self.0.insert(
+                    KEY_LINK_TITLE.to_string(),
+                    HTMLContent::Plain(title.to_link_title()),
                 );
             }
         }
