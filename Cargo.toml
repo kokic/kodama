@@ -5,8 +5,12 @@ edition = "2021"
 
 [dependencies]
 clap = { version = "4.5.23", features = ["derive"] }
-escape-bytes = "0.1.1"
-fancy-regex = "0.14.0"
+htmlize = { version = "1.0.5", features = ["unescape"]}
+lazy_static = "1.5.0"
 pulldown-cmark = { version = "0.12.2", default-features = false, features = ["html"] }
+regex-lite = "0.1.6"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
+
+[profile.release]
+strip = true

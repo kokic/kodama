@@ -1,6 +1,7 @@
 use std::{collections::HashSet, mem};
 
-use fancy_regex::Regex;
+use lazy_static::lazy_static;
+use regex_lite::Regex;
 use serde::{Deserialize, Serialize};
 
 use crate::entry::{EntryMetaData, HTMLMetaData, MetaData};
@@ -85,16 +86,10 @@ impl HTMLContent {
         }
     }
 
-    fn remove_tags(s: &str) -> String {
-        let attrs = r#"(\s+[a-zA-Z]+="([^"\\]|\\[\s\S])*")*"#;
-        let re = Regex::new(&format!(
-            r#"<[A-Za-z]+{}>|</[A-Za-z]+>|<[A-Za-z]+{}/>"#,
-            attrs, attrs
-        ))
-        .unwrap();
+    fn remove_tag(s: &str, regex: &Regex) -> String {
         let mut cursor = 0;
         let mut string = String::new();
-        for capture in re.captures_iter(s).map(Result::unwrap) {
+        for capture in regex.captures_iter(s) {
             let all = capture.get(0).unwrap();
             string.push_str(&s[cursor..all.start()]);
             cursor = all.end();
@@ -103,60 +98,47 @@ impl HTMLContent {
         string
     }
 
-    fn remove_tag_a(s: &str) -> String {
-        let attrs = r#"(\s+[a-zA-Z]+="([^"\\]|\\[\s\S])*")*"#;
-        let re = Regex::new(&format!(
-            r#"<a{}>|</a>|<a{}/>"#,
-            attrs, attrs
-        ))
-        .unwrap();
-        let mut cursor = 0;
-        let mut string = String::new();
-        for capture in re.captures_iter(s).map(Result::unwrap) {
-            let all = capture.get(0).unwrap();
-            string.push_str(&s[cursor..all.start()]);
-            cursor = all.end();
+    fn to_some_title(&self, regex: &Regex) -> String {
+        match self {
+            HTMLContent::Plain(s) => HTMLContent::remove_tag(s, regex),
+            HTMLContent::Lazy(contents) => {
+                let mut str = String::new();
+                for content in contents {
+                    match content {
+                        LazyContent::Plain(s) => str.push_str(&HTMLContent::remove_tag(s, regex)),
+                        LazyContent::Embed(embed) => str
+                            .push_str(embed.title.as_ref().map(String::as_str).unwrap_or_default()),
+                        LazyContent::Local(local) => str
+                            .push_str(local.text.as_ref().map(String::as_str).unwrap_or_default()),
+                    }
+                }
+                str
+            }
         }
-        string.push_str(&s[cursor..]);
-        string
     }
 
     pub fn to_page_title(&self) -> String {
-        match self {
-            HTMLContent::Plain(s) => HTMLContent::remove_tags(s),
-            HTMLContent::Lazy(contents) => {
-                let mut str = String::new();
-                for content in contents {
-                    match content {
-                        LazyContent::Plain(s) => str.push_str(&HTMLContent::remove_tags(s)),
-                        LazyContent::Embed(embed) => str
-                            .push_str(embed.title.as_ref().map(String::as_str).unwrap_or_default()),
-                        LazyContent::Local(local) => str
-                            .push_str(local.text.as_ref().map(String::as_str).unwrap_or_default()),
-                    }
-                }
-                str
-            }
+        lazy_static! {
+            static ref re_tags: Regex = {
+                let attrs = r#"(\s+[a-zA-Z]+="([^"\\]|\\[\s\S])*")*"#;
+                Regex::new(&format!(
+                    r#"<[A-Za-z]+{}>|</[A-Za-z]+>|<[A-Za-z]+{}/>"#,
+                    attrs, attrs
+                ))
+                .unwrap()
+            };
         }
+        self.to_some_title(&re_tags)
     }
 
     pub fn to_link_title(&self) -> String {
-        match self {
-            HTMLContent::Plain(s) => HTMLContent::remove_tag_a(s),
-            HTMLContent::Lazy(contents) => {
-                let mut str = String::new();
-                for content in contents {
-                    match content {
-                        LazyContent::Plain(s) => str.push_str(&HTMLContent::remove_tag_a(s)),
-                        LazyContent::Embed(embed) => str
-                            .push_str(embed.title.as_ref().map(String::as_str).unwrap_or_default()),
-                        LazyContent::Local(local) => str
-                            .push_str(local.text.as_ref().map(String::as_str).unwrap_or_default()),
-                    }
-                }
-                str
-            }
+        lazy_static! {
+            static ref re_tag_a: Regex = {
+                let attrs = r#"(\s+[a-zA-Z]+="([^"\\]|\\[\s\S])*")*"#;
+                Regex::new(&format!(r#"<a{}>|</a>|<a{}/>"#, attrs, attrs)).unwrap()
+            };
         }
+        self.to_some_title(&re_tag_a)
     }
 }
 

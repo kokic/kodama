@@ -1,15 +1,17 @@
+use super::html_parser::{HTMLParser, HTMLTagKind};
+use super::section::{EmbedContent, LocalLink, SectionOption};
 use super::section::{HTMLContent, HTMLContentBuilder, LazyContent};
 use super::{CompileError, ShallowSection};
-use crate::compiler::section::{EmbedContent, LocalLink, SectionOption};
 use crate::entry::HTMLMetaData;
 use crate::slug::to_slug;
 use crate::typst_cli;
-use fancy_regex::Regex;
+use std::borrow::Cow;
 use std::collections::HashMap;
+use std::ops::Deref;
 use std::str;
 
-fn process_bool(m: Option<&String>, def: bool) -> bool {
-    match m.map(String::as_str) {
+fn parse_bool(m: Option<&Cow<'_, str>>, def: bool) -> bool {
+    match m.map(|s| s.deref()) {
         None | Some("auto") => def,
         Some("false") | Some("0") | Some("none") => false,
         _ => true,
@@ -24,105 +26,56 @@ fn parse_typst_html(
     let mut builder = HTMLContentBuilder::new();
     let mut cursor: usize = 0;
 
-    let pre_kodama = |tags: &str, alt: u8| {
-        format!(
-            r#"<kodama(?<tag{}>{})(?<attrs{}>(\s+([a-zA-Z]+)="([^"\\]|\\[\s\S])*")*)>(?<inner{}>[\s\S]*?)</kodama(?P=tag{})>"#,
-            alt, tags, alt, alt, alt
-        )
-    };
-    let re_kodama = Regex::new(&format!(
-        "<span>{}</span>|{}",
-        pre_kodama("local", 0),
-        pre_kodama("meta|embed|local", 1)
-    ))
-    .unwrap();
-    let re_attrs = Regex::new(r#"(?<key>[a-zA-Z]+)="(?<value>([^"\\]|\\[\s\S])*)""#).unwrap();
-
-    for capture in re_kodama.captures_iter(&html_str).map(Result::unwrap) {
-        let all = capture.get(0).unwrap();
-        let get_capture = |name: &str| {
-            capture
-                .name(&format!("{}0", name))
-                .or(capture.name(&format!("{}1", name)))
-        };
-
-        builder.push_str(&html_str[cursor..all.start()]);
-        cursor = all.end();
-
-        let attrs_str = get_capture("attrs").unwrap().as_str();
-        let attrs: HashMap<&str, String> = re_attrs
-            .captures_iter(attrs_str)
-            .map(Result::unwrap)
-            .map(|c| {
-                (
-                    c.name("key").unwrap().as_str(),
-                    String::from_utf8_lossy(
-                        escape_bytes::unescape(c.name("value").unwrap().as_str().as_bytes())
-                            .unwrap()
-                            .as_slice(),
-                    )
-                    .into_owned(),
-                )
-            })
-            .collect();
+    for span in HTMLParser::new(&html_str) {
+        builder.push_str(&html_str[cursor..span.start]);
+        cursor = span.end;
 
         let attr = |attr_name: &str| {
-            attrs.get(attr_name).ok_or(CompileError::Syntax(
+            span.attrs.get(attr_name).ok_or(CompileError::Syntax(
                 Some(concat!(file!(), '#', line!())),
-                Box::new(format!("No attribute '{}' in tag kodama", attr_name)),
+                Box::new(format!("No attribute '{}' in a kodama tag", attr_name)),
                 relative_path.to_string(),
             ))
         };
 
         let value = || {
-            let value = attrs.get("value").map_or_else(
-                || get_capture("inner").unwrap().as_str().trim().to_string(),
-                |s| s.to_string(),
-            );
+            let value = span
+                .attrs
+                .get("value")
+                .map_or_else(|| span.body.to_string(), |s| s.to_string());
             if value.is_empty() {
                 None
             } else {
                 Some(value)
             }
         };
-        match get_capture("tag").unwrap().as_str() {
-            "meta" => {
-                let content = if let Some(value) = attrs.get("value") {
+        match span.kind {
+            HTMLTagKind::Meta => {
+                let content = if let Some(value) = span.attrs.get("value") {
                     HTMLContent::Plain(value.to_string())
                 } else {
-                    parse_typst_html(
-                        get_capture("inner").unwrap().as_str().trim(),
-                        relative_path,
-                        &mut HashMap::new(),
-                    )?
+                    parse_typst_html(span.body, relative_path, &mut HashMap::new())?
                 };
                 metadata.insert(attr("key")?.to_string(), content);
             }
-            "embed" => {
+            HTMLTagKind::Embed => {
                 let def = SectionOption::default();
 
                 let url = attr("url")?.to_string();
                 let title = value();
-                let numbering = process_bool(attrs.get("numbering"), def.numbering);
-                let details_open = process_bool(attrs.get("open"), def.details_open);
-                let catalog = process_bool(attrs.get("catalog"), def.catalog);
+                let numbering = parse_bool(span.attrs.get("numbering"), def.numbering);
+                let details_open = parse_bool(span.attrs.get("open"), def.details_open);
+                let catalog = parse_bool(span.attrs.get("catalog"), def.catalog);
                 builder.push(LazyContent::Embed(EmbedContent {
                     url,
                     title,
                     option: SectionOption::new(numbering, details_open, catalog),
                 }))
             }
-            "local" => {
+            HTMLTagKind::Local { span: _ } => {
                 let slug = to_slug(attr("slug")?);
                 let text = value();
                 builder.push(LazyContent::Local(LocalLink { slug, text }))
-            }
-            tag => {
-                return Err(CompileError::Syntax(
-                    Some(concat!(file!(), '#', line!())),
-                    Box::new(format!("Unknown kodama element type {}", tag)),
-                    relative_path.to_string(),
-                ))
             }
         }
     }

@@ -322,7 +322,7 @@ where
         &|_| false,
         &mut collect,
         &|s| (s, ()),
-        &|_, _| panic!("Unreachable!"),
+        &|_, _| unreachable!(),
     )?;
     for (path, _) in collect {
         std::fs::remove_file(Path::new(&path))?;

@@ -6,6 +6,7 @@ pub mod state;
 pub mod taxon;
 pub mod typst;
 pub mod writer;
+pub mod html_parser;
 
 use std::{collections::HashMap, fmt::Debug, path::Path};
 
