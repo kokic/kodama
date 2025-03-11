@@ -1,5 +1,7 @@
 use std::{
+    collections::HashMap,
     fs::{self, create_dir_all},
+    hash::Hash,
     path::{Path, PathBuf},
     sync::{LazyLock, Mutex},
 };
@@ -107,7 +109,7 @@ pub struct Blink {
 }
 
 pub const CACHE_DIR_NAME: &str = ".cache";
-pub const BUFFER_FILE_NAME: &str = "buffer"; 
+pub const BUFFER_FILE_NAME: &str = "buffer";
 pub const HASH_DIR_NAME: &str = "hash";
 pub const ENTRY_DIR_NAME: &str = "entry";
 
@@ -279,23 +281,30 @@ pub fn verify_update_hash(path: &str, content: &str) -> Result<bool, std::io::Er
     Ok(is_modified)
 }
 
-pub fn files_match_with<F, G, A>(
+pub fn files_match_with<F, G, H, E, A>(
     dir: &Path,
     predicate: &F,
-    collect: &mut Vec<A>,
-    map: &G,
+    ignore_dir: &G,
+    collect: &mut HashMap<String, A>,
+    map: &H,
+    error: &E,
 ) -> Result<(), std::io::Error>
 where
     F: Fn(&Path) -> bool,
-    G: Fn(String) -> A,
+    G: Fn(&Path) -> bool,
+    H: Fn(String) -> (String, A),
+    E: Fn(&String, &A) -> std::io::Error,
 {
     for entry in std::fs::read_dir(dir)? {
         let path = entry?.path();
         if path.is_file() && predicate(&path) {
             let path = crate::slug::posix_style(path.to_str().unwrap());
-            collect.push(map(path));
-        } else if path.is_dir() {
-            files_match_with(&path, predicate, collect, map)?;
+            let (a, b) = map(path.to_string());
+            if let Some(b) = collect.insert(a, b) {
+                return Err(error(&path, &b));
+            };
+        } else if path.is_dir() && !ignore_dir(&path) {
+            files_match_with(&path, predicate, ignore_dir, collect, map, error)?;
         }
     }
     Ok(())
@@ -306,9 +315,16 @@ pub fn delete_all_with<F>(dir: &str, predicate: &F) -> Result<(), std::io::Error
 where
     F: Fn(&Path) -> bool,
 {
-    let mut collect = vec![];
-    files_match_with(Path::new(dir), predicate, &mut collect, &|s| s)?;
-    for path in collect {
+    let mut collect = HashMap::new();
+    files_match_with(
+        Path::new(dir),
+        predicate,
+        &|_| false,
+        &mut collect,
+        &|s| (s, ()),
+        &|_, _| panic!("Unreachable!"),
+    )?;
+    for (path, _) in collect {
         std::fs::remove_file(Path::new(&path))?;
     }
     Ok(())
