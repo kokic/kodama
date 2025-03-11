@@ -32,12 +32,13 @@ pub const KEY_COLLECT: &'static str = "collect";
 /// Controls whether the current page process as reference.
 pub const KEY_ASREF: &'static str = "asref";
 
-const PRESET_METADATA: [&'static str; 8] = [
+const PRESET_METADATA: [&'static str; 9] = [
     KEY_TITLE,
     KEY_SLUG,
     KEY_TAXON,
     KEY_PARENT,
     KEY_PAGE_TITLE,
+    KEY_LINK_TITLE,
     KEY_BACKLINKS,
     KEY_COLLECT,
     KEY_ASREF,
