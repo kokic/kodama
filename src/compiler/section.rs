@@ -120,7 +120,7 @@ impl HTMLContent {
     pub fn to_page_title(&self) -> String {
         lazy_static! {
             static ref re_tags: Regex = {
-                let attrs = r#"(\s+[a-zA-Z]+="([^"\\]|\\[\s\S])*")*"#;
+                let attrs = r#"(\s+[a-zA-Z-]+="([^"\\]|\\[\s\S])*")*"#;
                 Regex::new(&format!(
                     r#"<[A-Za-z]+{}>|</[A-Za-z]+>|<[A-Za-z]+{}/>"#,
                     attrs, attrs
@@ -134,7 +134,7 @@ impl HTMLContent {
     pub fn to_link_title(&self) -> String {
         lazy_static! {
             static ref re_tag_a: Regex = {
-                let attrs = r#"(\s+[a-zA-Z]+="([^"\\]|\\[\s\S])*")*"#;
+                let attrs = r#"(\s+[a-zA-Z-]+="([^"\\]|\\[\s\S])*")*"#;
                 Regex::new(&format!(r#"<a{}>|</a>|<a{}/>"#, attrs, attrs)).unwrap()
             };
         }

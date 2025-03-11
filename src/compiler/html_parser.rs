@@ -47,13 +47,13 @@ impl<'a> HTMLParser<'a> {
         lazy_static! {
             static ref re_tag: Regex = {
                 fn kodama(alt: u8) -> String {
-                    format!(r#"kodama(?<tag{}>meta|embed|local>)"#, alt)
+                    format!(r#"kodama(?<tag{}>meta|embed|local)"#, alt)
                 }
                 fn local(alt: u8) -> String {
-                    format!(r#"kodama(?<tag{}>local>)"#, alt)
+                    format!(r#"kodama(?<tag{}>local)"#, alt)
                 }
                 fn attrs(alt: u8) -> String {
-                    format!(r#"(?<attrs{}>(\s+([a-zA-Z]+)="([^"\\]|\\[\s\S])*")*)"#, alt)
+                    format!(r#"(?<attrs{}>(\s+([a-zA-Z-]+)="([^"\\]|\\[\s\S])*")*)"#, alt)
                 }
                 Regex::new(&format!(
                     r#"<span>\s*<{}{}>|</{}>\s*</span>|<{}{}>|</{}>"#,
