@@ -7,11 +7,10 @@ use crate::slug::to_slug;
 use crate::typst_cli;
 use std::borrow::Cow;
 use std::collections::HashMap;
-use std::ops::Deref;
 use std::str;
 
 fn parse_bool(m: Option<&Cow<'_, str>>, def: bool) -> bool {
-    match m.map(|s| s.deref()) {
+    match m.map(|s| s.as_ref()) {
         None | Some("auto") => def,
         Some("false") | Some("0") | Some("none") => false,
         _ => true,

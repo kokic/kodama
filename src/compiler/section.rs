@@ -1,8 +1,6 @@
-use std::{collections::HashSet, mem};
-
-use lazy_static::lazy_static;
 use regex_lite::Regex;
 use serde::{Deserialize, Serialize};
+use std::{collections::HashSet, mem, sync::LazyLock};
 
 use crate::entry::{EntryMetaData, HTMLMetaData, MetaData};
 
@@ -118,27 +116,23 @@ impl HTMLContent {
     }
 
     pub fn to_page_title(&self) -> String {
-        lazy_static! {
-            static ref re_tags: Regex = {
-                let attrs = r#"(\s+[a-zA-Z-]+="([^"\\]|\\[\s\S])*")*"#;
-                Regex::new(&format!(
-                    r#"<[A-Za-z]+{}>|</[A-Za-z]+>|<[A-Za-z]+{}/>"#,
-                    attrs, attrs
-                ))
-                .unwrap()
-            };
-        }
-        self.to_some_title(&re_tags)
+        static RE_TAGS: LazyLock<Regex> = LazyLock::new(|| {
+            let attrs = r#"(\s+[a-zA-Z-]+="([^"\\]|\\[\s\S])*")*"#;
+            Regex::new(&format!(
+                r#"<[A-Za-z]+{}>|</[A-Za-z]+>|<[A-Za-z]+{}/>"#,
+                attrs, attrs
+            ))
+            .unwrap()
+        });
+        self.to_some_title(&RE_TAGS)
     }
 
     pub fn to_link_title(&self) -> String {
-        lazy_static! {
-            static ref re_tag_a: Regex = {
-                let attrs = r#"(\s+[a-zA-Z-]+="([^"\\]|\\[\s\S])*")*"#;
-                Regex::new(&format!(r#"<a{}>|</a>|<a{}/>"#, attrs, attrs)).unwrap()
-            };
-        }
-        self.to_some_title(&re_tag_a)
+        static RE_TAG_A: LazyLock<Regex> = LazyLock::new(|| {
+            let attrs = r#"(\s+[a-zA-Z-]+="([^"\\]|\\[\s\S])*")*"#;
+            Regex::new(&format!(r#"<a{}>|</a>|<a{}/>"#, attrs, attrs)).unwrap()
+        });
+        self.to_some_title(&RE_TAG_A)
     }
 }
 

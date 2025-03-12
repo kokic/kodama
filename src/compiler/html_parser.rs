@@ -1,9 +1,9 @@
 use htmlize::unescape_attribute;
-use lazy_static::lazy_static;
 use regex_lite::{CaptureMatches, Captures, Regex};
 use std::borrow::Cow;
 use std::collections::HashMap;
 use std::str;
+use std::sync::LazyLock;
 
 #[derive(Clone, Copy)]
 pub enum HTMLTagKind {
@@ -61,40 +61,38 @@ pub struct HTMLParser<'a> {
 
 impl<'a> HTMLParser<'a> {
     pub fn new(html_str: &'a str) -> HTMLParser<'a> {
-        lazy_static! {
-            static ref re_tag: Regex = {
-                fn real(alt: u8) -> String {
-                    format!(r#"<?real{}>"#, alt)
-                }
-                fn kodama(alt: u8) -> String {
-                    format!(r#"kodama(?<tag{}>meta|embed|local)"#, alt)
-                }
-                fn local(alt: u8) -> String {
-                    format!(r#"kodama(?<tag{}>local)"#, alt)
-                }
-                fn attrs(alt: u8) -> String {
-                    format!(
-                        r#"(?<attrs{}>(\s+([a-zA-Z-]+)="([^"\\]|\\[\s\S])*")*)"#,
-                        alt
-                    )
-                }
-                Regex::new(&format!(
-                    r#"<span>\s*({}<{}{}>)|({}</{}>)\s*</span>|<{}{}>|</{}>"#,
-                    real(0),
-                    local(0),
-                    attrs(0),
-                    real(1),
-                    local(1),
-                    kodama(2),
-                    attrs(2),
-                    kodama(3),
-                ))
-                .unwrap()
-            };
-        }
+        static RE_TAG: LazyLock<Regex> = LazyLock::new(|| {
+            fn real(alt: u8) -> String {
+                format!(r#"<?real{}>"#, alt)
+            }
+            fn kodama(alt: u8) -> String {
+                format!(r#"kodama(?<tag{}>meta|embed|local)"#, alt)
+            }
+            fn local(alt: u8) -> String {
+                format!(r#"kodama(?<tag{}>local)"#, alt)
+            }
+            fn attrs(alt: u8) -> String {
+                format!(
+                    r#"(?<attrs{}>(\s+([a-zA-Z-]+)="([^"\\]|\\[\s\S])*")*)"#,
+                    alt
+                )
+            }
+            Regex::new(&format!(
+                r#"<span>\s*({}<{}{}>)|({}</{}>)\s*</span>|<{}{}>|</{}>"#,
+                real(0),
+                local(0),
+                attrs(0),
+                real(1),
+                local(1),
+                kodama(2),
+                attrs(2),
+                kodama(3),
+            ))
+            .unwrap()
+        });
         HTMLParser {
             html_str,
-            captures: re_tag.captures_iter(&html_str),
+            captures: RE_TAG.captures_iter(&html_str),
         }
     }
 }
@@ -172,12 +170,11 @@ impl<'a> Iterator for HTMLParser<'a> {
             close_tag.mid.map(|mid| close_tag.end = mid);
         }
 
-        lazy_static! {
-            static ref re_attr: Regex =
-                Regex::new(r#"(?<key>[a-zA-Z-]+)="(?<value>([^"\\]|\\[\s\S])*)""#).unwrap();
-        }
+        static RE_ATTR: LazyLock<Regex> = LazyLock::new(|| {
+            Regex::new(r#"(?<key>[a-zA-Z-]+)="(?<value>([^"\\]|\\[\s\S])*)""#).unwrap()
+        });
 
-        let attrs: HashMap<&str, Cow<'_, str>> = re_attr
+        let attrs: HashMap<&str, Cow<'_, str>> = RE_ATTR
             .captures_iter(attrs_str)
             .map(|c| {
                 (
