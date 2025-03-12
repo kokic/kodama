@@ -1,7 +1,6 @@
 use std::ops::Not;
 
 use crate::{
-    compiler::taxon::Taxon,
     config,
     entry::{EntryMetaData, MetaData},
     html,
@@ -24,7 +23,7 @@ pub fn html_article_inner(
         hide_metadata,
         open,
         article_id,
-        metadata.taxon(),
+        metadata.data_taxon(),
     )
 }
 
@@ -41,14 +40,13 @@ pub fn html_section(
     hide_metadata: bool,
     open: bool,
     id: String,
-    taxon: Option<&String>,
+    data_taxon: Option<&String>,
 ) -> String {
     let mut class_name: Vec<&str> = vec!["block"];
     if hide_metadata {
         class_name.push("hide-metadata");
     }
-    let taxon = taxon.map_or("", |s| s);
-    let data_taxon = Taxon::to_data_taxon(&taxon);
+    let data_taxon = data_taxon.map_or("", |s| s);
     let open = open.then(|| "open").unwrap_or("");
     let inner_html = format!("{}{}", (html!(summary => {summary})), content);
     let html_details = format!(
@@ -75,15 +73,15 @@ pub fn html_entry_header(mut etc: Vec<String>) -> String {
 
 pub fn catalog_item(
     slug: &str,
-    link_title: &str,
+    title: &str,
     page_title: &str,
     details_open: bool,
     taxon: &str,
     child_html: &str,
 ) -> String {
     let slug_url = config::full_html_url(slug);
-    let title = format!("{} [{}]", page_title, slug);
-    let href = format!("#{}", crate::slug::to_hash_id(slug)); // #id
+    let title_text = format!("{} [{}]", page_title, slug);
+    let data_target = format!("#{}", crate::slug::to_hash_id(slug)); // #id
 
     let mut class_name: Vec<String> = vec![];
     if !details_open {
@@ -91,11 +89,11 @@ pub fn catalog_item(
     }
 
     html!(li class = {class_name.join(" ")} =>
-      (html!(a class = "bullet", href={slug_url}, title={title} => "■"))
-      (html!(span class = "link" =>
-        (html!(a href = {href} =>
+      (html!(a class = "bullet", href={slug_url}, title={title_text} => "■"))
+      // TODO: js jump
+      (html!(span class = "link local", data_target = {data_target} =>
           (html!(span class = "taxon" => {taxon}))
-          (link_title)))))
+          (title)))
       (child_html))
 }
 

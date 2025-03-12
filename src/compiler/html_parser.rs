@@ -63,7 +63,7 @@ impl<'a> HTMLParser<'a> {
     pub fn new(html_str: &'a str) -> HTMLParser<'a> {
         static RE_TAG: LazyLock<Regex> = LazyLock::new(|| {
             fn real(alt: u8) -> String {
-                format!(r#"<?real{}>"#, alt)
+                format!(r#"?<real{}>"#, alt)
             }
             fn kodama(alt: u8) -> String {
                 format!(r#"kodama(?<tag{}>meta|embed|local)"#, alt)
@@ -73,7 +73,7 @@ impl<'a> HTMLParser<'a> {
             }
             fn attrs(alt: u8) -> String {
                 format!(
-                    r#"(?<attrs{}>(\s+([a-zA-Z-]+)="([^"\\]|\\[\s\S])*")*)"#,
+                    r#"(?<attrs{}>(\s+([a-zA-Z-]+)(="([^"\\]|\\[\s\S])*")?)*)"#,
                     alt
                 )
             }
@@ -171,7 +171,7 @@ impl<'a> Iterator for HTMLParser<'a> {
         }
 
         static RE_ATTR: LazyLock<Regex> = LazyLock::new(|| {
-            Regex::new(r#"(?<key>[a-zA-Z-]+)="(?<value>([^"\\]|\\[\s\S])*)""#).unwrap()
+            Regex::new(r#"(?<key>[a-zA-Z-]+)(="(?<value>([^"\\]|\\[\s\S])*)")?"#).unwrap()
         });
 
         let attrs: HashMap<&str, Cow<'_, str>> = RE_ATTR
@@ -179,7 +179,7 @@ impl<'a> Iterator for HTMLParser<'a> {
             .map(|c| {
                 (
                     c.name("key").unwrap().as_str(),
-                    unescape_attribute(c.name("value").unwrap().as_str()).to_owned(),
+                    unescape_attribute(c.name("value").map_or("", |s| s.as_str())).to_owned(),
                 )
             })
             .collect();

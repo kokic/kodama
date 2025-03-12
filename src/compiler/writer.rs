@@ -147,11 +147,11 @@ impl Writer {
 
     fn catalog_item(section: &Section, taxon: &str, child_html: &str) -> String {
         let slug = &section.slug();
-        let link_title = section.metadata.link_title().map_or("", |s| s);
+        let title = section.metadata.title().map_or("", |s| s);
         let page_title = section.metadata.page_title().map_or("", |s| s);
         html_flake::catalog_item(
             slug,
-            link_title,
+            title,
             page_title,
             section.option.details_open,
             taxon,

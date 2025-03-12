@@ -1,4 +1,8 @@
-use crate::{compiler::section::HTMLContent, config, html, html_flake::html_entry_header};
+use crate::{
+    compiler::{section::HTMLContent, taxon::Taxon},
+    config, html,
+    html_flake::html_entry_header,
+};
 use serde::{Deserialize, Serialize};
 use std::collections::{hash_map::Keys, HashMap};
 
@@ -11,6 +15,7 @@ pub struct EntryMetaData(pub HashMap<String, String>);
 pub const KEY_TITLE: &'static str = "title";
 pub const KEY_SLUG: &'static str = "slug";
 pub const KEY_TAXON: &'static str = "taxon";
+pub const KEY_DATA_TAXON: &'static str = "data-taxon";
 
 /// Control the "Previous Level" information in the current page navigation.
 pub const KEY_PARENT: &'static str = "parent";
@@ -32,10 +37,11 @@ pub const KEY_COLLECT: &'static str = "collect";
 /// Controls whether the current page process as reference.
 pub const KEY_ASREF: &'static str = "asref";
 
-const PRESET_METADATA: [&'static str; 9] = [
+const PRESET_METADATA: [&'static str; 10] = [
     KEY_TITLE,
     KEY_SLUG,
     KEY_TAXON,
+    KEY_DATA_TAXON,
     KEY_PARENT,
     KEY_PAGE_TITLE,
     KEY_LINK_TITLE,
@@ -85,6 +91,10 @@ where
     /// Return taxon text
     fn taxon(&self) -> Option<&V> {
         return self.get(KEY_TAXON);
+    }
+
+    fn data_taxon(&self) -> Option<&String> {
+        return self.get_str(KEY_DATA_TAXON);
     }
 
     fn title(&self) -> Option<&V> {
@@ -145,12 +155,12 @@ impl MetaData<String> for EntryMetaData {
 }
 
 impl HTMLMetaData {
-    pub fn compute_titles(&mut self) {
+    pub fn compute_textual_attrs(&mut self) {
         if self.page_title().is_none() {
             if let Some(title) = self.title() {
                 self.0.insert(
                     KEY_PAGE_TITLE.to_string(),
-                    HTMLContent::Plain(title.to_page_title()),
+                    HTMLContent::Plain(title.remove_all_tags()),
                 );
             }
         }
@@ -159,7 +169,16 @@ impl HTMLMetaData {
             if let Some(title) = self.title() {
                 self.0.insert(
                     KEY_LINK_TITLE.to_string(),
-                    HTMLContent::Plain(title.to_link_title()),
+                    HTMLContent::Plain(title.remove_a_tag()),
+                );
+            }
+        }
+
+        if self.data_taxon().is_none() {
+            if let Some(taxon) = self.taxon() {
+                self.0.insert(
+                    KEY_DATA_TAXON.to_string(),
+                    HTMLContent::Plain(Taxon::to_data_taxon(&taxon.remove_all_tags()).to_string()),
                 );
             }
         }

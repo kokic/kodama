@@ -68,6 +68,7 @@ pub enum HTMLContent {
 }
 
 impl HTMLContent {
+    #[allow(dead_code)]
     pub fn as_str(&self) -> Option<&str> {
         if let HTMLContent::Plain(s) = self {
             Some(s)
@@ -84,55 +85,59 @@ impl HTMLContent {
         }
     }
 
-    fn remove_tag(s: &str, regex: &Regex) -> String {
-        let mut cursor = 0;
-        let mut string = String::new();
-        for capture in regex.captures_iter(s) {
-            let all = capture.get(0).unwrap();
-            string.push_str(&s[cursor..all.start()]);
-            cursor = all.end();
-        }
-        string.push_str(&s[cursor..]);
-        string
-    }
+    fn remove_some(&self, regex: &Regex) -> String {
+        let remove_tag = |s| {
+            let mut cursor = 0;
+            let mut string = String::new();
+            for capture in regex.captures_iter(s) {
+                let all = capture.get(0).unwrap();
+                string.push_str(&s[cursor..all.start()]);
+                cursor = all.end();
+            }
+            string.push_str(&s[cursor..]);
+            string
+        };
 
-    fn to_some_title(&self, regex: &Regex) -> String {
         match self {
-            HTMLContent::Plain(s) => HTMLContent::remove_tag(s, regex),
+            HTMLContent::Plain(s) => remove_tag(s),
             HTMLContent::Lazy(contents) => {
                 let mut str = String::new();
                 for content in contents {
-                    match content {
-                        LazyContent::Plain(s) => str.push_str(&HTMLContent::remove_tag(s, regex)),
-                        LazyContent::Embed(embed) => str
-                            .push_str(embed.title.as_ref().map(String::as_str).unwrap_or_default()),
-                        LazyContent::Local(local) => str
-                            .push_str(local.text.as_ref().map(String::as_str).unwrap_or_default()),
-                    }
+                    let s = match content {
+                        LazyContent::Plain(s) => remove_tag(s),
+                        LazyContent::Embed(embed) => embed
+                            .title
+                            .as_ref()
+                            .map(|s| remove_tag(s))
+                            .unwrap_or_default(),
+
+                        LazyContent::Local(local) => local
+                            .text
+                            .as_ref()
+                            .map(|s| remove_tag(s))
+                            .unwrap_or_default(),
+                    };
+                    str.push_str(&s);
                 }
                 str
             }
         }
     }
 
-    pub fn to_page_title(&self) -> String {
+    pub fn remove_all_tags(&self) -> String {
         static RE_TAGS: LazyLock<Regex> = LazyLock::new(|| {
-            let attrs = r#"(\s+[a-zA-Z-]+="([^"\\]|\\[\s\S])*")*"#;
-            Regex::new(&format!(
-                r#"<[A-Za-z]+{}>|</[A-Za-z]+>|<[A-Za-z]+{}/>"#,
-                attrs, attrs
-            ))
-            .unwrap()
+            let attrs = r#"(\s+[a-zA-Z-]+(="([^"\\]|\\[\s\S])*")?)*"#;
+            Regex::new(&format!(r#"<[A-Za-z]+{}\s*/?>|</[A-Za-z]+>"#, attrs)).unwrap()
         });
-        self.to_some_title(&RE_TAGS)
+        self.remove_some(&RE_TAGS)
     }
 
-    pub fn to_link_title(&self) -> String {
+    pub fn remove_a_tag(&self) -> String {
         static RE_TAG_A: LazyLock<Regex> = LazyLock::new(|| {
-            let attrs = r#"(\s+[a-zA-Z-]+="([^"\\]|\\[\s\S])*")*"#;
-            Regex::new(&format!(r#"<a{}>|</a>|<a{}/>"#, attrs, attrs)).unwrap()
+            let attrs = r#"(\s+[a-zA-Z-]+(="([^"\\]|\\[\s\S])*")?)*"#;
+            Regex::new(&format!(r#"<a{}\s*/?>|</a>"#, attrs)).unwrap()
         });
-        self.to_some_title(&RE_TAG_A)
+        self.remove_some(&RE_TAG_A)
     }
 }
 

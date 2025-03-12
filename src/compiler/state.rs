@@ -39,7 +39,7 @@ impl CompileState {
             .residued
             .iter_mut()
             .map(|(key, value)| {
-                value.metadata.compute_titles();
+                value.metadata.compute_textual_attrs();
                 (key.to_string(), value.metadata.clone())
             })
             .collect();
@@ -124,7 +124,10 @@ impl CompileState {
                             /*
                              * Making oneself the content of a backlink should not be expected behavior.
                              */
-                            if *link_slug != slug && self.is_enable_backlinks(&link_slug) {
+                            if *link_slug != slug
+                                && format!("{}:metadata", link_slug) != slug
+                                && self.is_enable_backlinks(&link_slug)
+                            {
                                 callback.insert_backlinks(
                                     link_slug.to_string(),
                                     vec![slug.to_string()],
@@ -198,10 +201,7 @@ impl CompileState {
     pub fn is_reference(&self, slug: &str) -> bool {
         self.metadata
             .get(slug)
-            .map(|e| {
-                e.is_asref()
-                    || Taxon::is_reference(e.taxon().and_then(HTMLContent::as_str).unwrap_or(""))
-            })
+            .map(|e| e.is_asref() || Taxon::is_reference(e.data_taxon().map_or("", String::as_str)))
             .unwrap_or(false)
     }
 }

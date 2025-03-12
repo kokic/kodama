@@ -3,6 +3,7 @@ use super::section::{EmbedContent, LocalLink, SectionOption};
 use super::section::{HTMLContent, HTMLContentBuilder, LazyContent};
 use super::{CompileError, ShallowSection};
 use crate::entry::HTMLMetaData;
+use crate::process::embed_markdown;
 use crate::slug::to_slug;
 use crate::typst_cli;
 use std::borrow::Cow;
@@ -50,12 +51,18 @@ fn parse_typst_html(
         };
         match span.kind {
             HTMLTagKind::Meta => {
-                let content = if let Some(value) = span.attrs.get("value") {
+                let key = attr("key")?.as_ref();
+                let mut val = if let Some(value) = span.attrs.get("value") {
                     HTMLContent::Plain(value.to_string())
                 } else {
                     parse_typst_html(span.body, relative_path, &mut HashMap::new())?
                 };
-                metadata.insert(attr("key")?.to_string(), content);
+                if key == "taxon" {
+                    if let HTMLContent::Plain(v) = val {
+                        val = HTMLContent::Plain(embed_markdown::display_taxon(&v));
+                    }
+                }
+                metadata.insert(key.to_string(), val);
             }
             HTMLTagKind::Embed => {
                 let def = SectionOption::default();
