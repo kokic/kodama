@@ -19,10 +19,7 @@ pub const KEY_DATA_TAXON: &'static str = "data-taxon";
 
 /// Control the "Previous Level" information in the current page navigation.
 pub const KEY_PARENT: &'static str = "parent";
-/// Controls the title of the page, also which in `<a title="?">`
 pub const KEY_PAGE_TITLE: &'static str = "page-title";
-/// Controls the title in body of `<a>` tags
-pub const KEY_LINK_TITLE: &'static str = "link-title";
 
 /// `backlinks: bool`:
 /// Controls whether the current page displays backlinks.
@@ -37,14 +34,13 @@ pub const KEY_COLLECT: &'static str = "collect";
 /// Controls whether the current page process as reference.
 pub const KEY_ASREF: &'static str = "asref";
 
-const PRESET_METADATA: [&'static str; 10] = [
+const PRESET_METADATA: [&'static str; 9] = [
     KEY_TITLE,
     KEY_SLUG,
     KEY_TAXON,
     KEY_DATA_TAXON,
     KEY_PARENT,
     KEY_PAGE_TITLE,
-    KEY_LINK_TITLE,
     KEY_BACKLINKS,
     KEY_COLLECT,
     KEY_ASREF,
@@ -105,10 +101,6 @@ where
         return self.get_str(KEY_PAGE_TITLE);
     }
 
-    fn link_title(&self) -> Option<&String> {
-        return self.get_str(KEY_LINK_TITLE);
-    }
-
     fn slug(&self) -> Option<&String> {
         return self.get_str(KEY_SLUG);
     }
@@ -161,15 +153,6 @@ impl HTMLMetaData {
                 self.0.insert(
                     KEY_PAGE_TITLE.to_string(),
                     HTMLContent::Plain(title.remove_all_tags()),
-                );
-            }
-        }
-
-        if self.link_title().is_none() {
-            if let Some(title) = self.title() {
-                self.0.insert(
-                    KEY_LINK_TITLE.to_string(),
-                    HTMLContent::Plain(title.remove_a_tag()),
                 );
             }
         }

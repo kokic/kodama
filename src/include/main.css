@@ -278,12 +278,12 @@ hr {
   height: 1pt;
 }
 
-.logo a {
+.logo>span {
   color: var(--logo-color);
   text-decoration: none;
 }
 
-.logo a:hover {
+.logo>span:hover {
   color: var(--logo-hover-color);
 }
 

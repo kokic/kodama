@@ -86,9 +86,9 @@ impl Writer {
                 let parent = &callback.parent;
                 state.compiled.get(parent).map(|section| {
                     let href = config::full_html_url(parent);
-                    let link_title = section.metadata.link_title().map_or("", |s| s);
+                    let title = section.metadata.title().map_or("", |s| s);
                     let page_title = section.metadata.page_title().map_or("", |s| s);
-                    html_flake::html_header_nav(link_title, page_title, &href)
+                    html_flake::html_header_nav(title, page_title, &href)
                 })
             })
             .unwrap_or_default()

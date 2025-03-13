@@ -81,7 +81,7 @@ pub fn catalog_item(
 ) -> String {
     let slug_url = config::full_html_url(slug);
     let title_text = format!("{} [{}]", page_title, slug);
-    let data_target = format!("#{}", crate::slug::to_hash_id(slug)); // #id
+    let onclick = format!("window.location.href='#{}'", crate::slug::to_hash_id(slug)); // #id
 
     let mut class_name: Vec<String> = vec![];
     if !details_open {
@@ -90,8 +90,7 @@ pub fn catalog_item(
 
     html!(li class = {class_name.join(" ")} =>
       (html!(a class = "bullet", href={slug_url}, title={title_text} => "■"))
-      // TODO: js jump
-      (html!(span class = "link local", data_target = {data_target} =>
+      (html!(span class = "link local", onclick = {onclick} =>
           (html!(span class = "taxon" => {taxon}))
           (title)))
       (child_html))
@@ -128,8 +127,9 @@ pub fn html_link(href: &str, title: &str, text: &str, class_name: &str) -> Strin
       (html!(a href = {href}, title = {title} => {text})))
 }
 
-pub fn html_header_nav(link_title: &str, page_title: &str, href: &str) -> String {
-    let link = html!(a href={href}, title={page_title} => ("« ") (link_title));
+pub fn html_header_nav(title: &str, page_title: &str, href: &str) -> String {
+    let onclick = format!("window.location.href='{}'", href);
+    let link = html!(span onclick={onclick}, title={page_title} => ("« ") (title));
     let nav_inner = html!(div class = "logo" => (link));
     html!(header class = "header" => (html!(nav class = "nav" => {nav_inner})))
 }

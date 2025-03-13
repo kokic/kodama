@@ -85,11 +85,16 @@ impl HTMLContent {
         }
     }
 
-    fn remove_some(&self, regex: &Regex) -> String {
+    pub fn remove_all_tags(&self) -> String {
+        static RE_TAGS: LazyLock<Regex> = LazyLock::new(|| {
+            let attrs = r#"(\s+[a-zA-Z-]+(="([^"\\]|\\[\s\S])*")?)*"#;
+            Regex::new(&format!(r#"<[A-Za-z]+{}\s*/?>|</[A-Za-z]+>"#, attrs)).unwrap()
+        });
+
         let remove_tag = |s| {
             let mut cursor = 0;
             let mut string = String::new();
-            for capture in regex.captures_iter(s) {
+            for capture in RE_TAGS.captures_iter(s) {
                 let all = capture.get(0).unwrap();
                 string.push_str(&s[cursor..all.start()]);
                 cursor = all.end();
@@ -122,22 +127,6 @@ impl HTMLContent {
                 str
             }
         }
-    }
-
-    pub fn remove_all_tags(&self) -> String {
-        static RE_TAGS: LazyLock<Regex> = LazyLock::new(|| {
-            let attrs = r#"(\s+[a-zA-Z-]+(="([^"\\]|\\[\s\S])*")?)*"#;
-            Regex::new(&format!(r#"<[A-Za-z]+{}\s*/?>|</[A-Za-z]+>"#, attrs)).unwrap()
-        });
-        self.remove_some(&RE_TAGS)
-    }
-
-    pub fn remove_a_tag(&self) -> String {
-        static RE_TAG_A: LazyLock<Regex> = LazyLock::new(|| {
-            let attrs = r#"(\s+[a-zA-Z-]+(="([^"\\]|\\[\s\S])*")?)*"#;
-            Regex::new(&format!(r#"<a{}\s*/?>|</a>"#, attrs)).unwrap()
-        });
-        self.remove_some(&RE_TAG_A)
     }
 }
 
