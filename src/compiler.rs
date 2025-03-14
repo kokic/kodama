@@ -14,10 +14,11 @@ use parser::parse_markdown;
 use section::{HTMLContent, ShallowSection};
 use state::CompileState;
 use typst::parse_typst;
+use walkdir::WalkDir;
 use writer::Writer;
 
 use crate::{
-    config::{self, files_match_with, verify_and_file_hash},
+    config::{self, verify_and_file_hash},
     slug::{self, Ext},
 };
 
@@ -125,18 +126,23 @@ pub fn all_source_files(root_dir: &Path) -> Result<Workspace, std::io::Error> {
                 return Err(err_collide(&path, &ext));
             };
         } else if path.is_dir() && !should_ignored_dir(&path) {
-            files_match_with(
-                &path,
-                &is_source,
-                &should_ignored_dir,
-                &mut slug_exts,
-                &|p| {
-                    let (slug, ext) = slug::path_to_slug(p);
-                    // TODO: same as above
-                    (slug, ext.expect("invalid file extension"))
-                },
-                &err_collide,
-            )?;
+            for entry in WalkDir::new(&path)
+                .follow_links(true)
+                .into_iter()
+                .filter_entry(|e| {
+                    let path = e.path();
+                    path.is_file() || !should_ignored_dir(path)
+                })
+            {
+                let path = entry?.into_path();
+                if path.is_file() {
+                    let (slug, ext) = slug::path_to_slug(&path);
+                    let Some(ext) = ext else { continue };
+                    if let Some(ext) = slug_exts.insert(slug, ext) {
+                        return Err(err_collide(&path, &ext));
+                    }
+                }
+            }
         }
     }
 

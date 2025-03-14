@@ -1,10 +1,11 @@
 use std::{
-    collections::HashMap,
     fs::{self, create_dir_all},
     hash::Hash,
     path::{Path, PathBuf},
     sync::{LazyLock, Mutex},
 };
+
+use walkdir::WalkDir;
 
 #[derive(Clone, clap::ValueEnum)]
 pub enum FooterMode {
@@ -281,51 +282,16 @@ pub fn verify_update_hash(path: &str, content: &str) -> Result<bool, std::io::Er
     Ok(is_modified)
 }
 
-pub fn files_match_with<F, G, H, E, K, V>(
-    dir: &Path,
-    predicate: &F,
-    ignore_dir: &G,
-    collect: &mut HashMap<K, V>,
-    map: &H,
-    error: &E,
-) -> Result<(), std::io::Error>
-where
-    F: Fn(&Path) -> bool,
-    G: Fn(&Path) -> bool,
-    H: Fn(&Path) -> (K, V),
-    E: Fn(&Path, &V) -> std::io::Error,
-    K: Hash + Eq,
-{
-    for entry in std::fs::read_dir(dir)? {
-        let path = entry?.path();
-        if path.is_file() && predicate(&path) {
-            let (a, b) = map(&path);
-            if let Some(b) = collect.insert(a, b) {
-                return Err(error(&path, &b));
-            };
-        } else if path.is_dir() && !ignore_dir(&path) {
-            files_match_with(&path, predicate, ignore_dir, collect, map, error)?;
-        }
-    }
-    Ok(())
-}
-
 #[allow(dead_code)]
 pub fn delete_all_with<F>(dir: &str, predicate: &F) -> Result<(), std::io::Error>
 where
     F: Fn(&Path) -> bool,
 {
-    let mut collect = HashMap::new();
-    files_match_with(
-        Path::new(dir),
-        predicate,
-        &|_| false,
-        &mut collect,
-        &|p| (p.to_owned(), ()),
-        &|_, _| unreachable!(),
-    )?;
-    for (path, _) in collect {
-        std::fs::remove_file(path)?;
+    for entry in WalkDir::new(dir) {
+        let path = entry?.into_path();
+        if path.is_file() && predicate(&path) {
+            std::fs::remove_file(path)?;
+        }
     }
     Ok(())
 }
