@@ -1,12 +1,12 @@
 pub mod callback;
 pub mod counter;
+pub mod html_parser;
 pub mod parser;
 pub mod section;
 pub mod state;
 pub mod taxon;
 pub mod typst;
 pub mod writer;
-pub mod html_parser;
 
 use std::{collections::HashMap, fmt::Debug, path::Path};
 
@@ -18,7 +18,7 @@ use writer::Writer;
 
 use crate::{
     config::{self, files_match_with, verify_and_file_hash},
-    slug::{self, posix_style},
+    slug::{self, posix_style, Ext},
 };
 
 #[allow(dead_code)]
@@ -55,10 +55,9 @@ pub fn compile_all(workspace_dir: &str) -> Result<(), CompileError> {
             let shallow: ShallowSection = serde_json::from_str(&serialized).unwrap();
             shallow
         } else {
-            let shallow = match ext.as_str() {
-                "md" => parse_markdown(slug)?,
-                "typst" => parse_typst(slug, workspace_dir)?,
-                _ => panic!(),
+            let shallow = match ext {
+                Ext::Markdown => parse_markdown(slug)?,
+                Ext::Typst => parse_typst(slug, workspace_dir)?,
             };
             let serialized = serde_json::to_string(&shallow).unwrap();
             std::fs::write(entry_path_buf, serialized).map_err(|e| {
@@ -99,7 +98,7 @@ pub fn is_source(path: &Path) -> bool {
         .unwrap_or(false)
 }
 
-fn err_collide(path: &String, ext: &String) -> std::io::Error {
+fn err_collide(path: &String, ext: &Ext) -> std::io::Error {
     std::io::Error::new(
         std::io::ErrorKind::AlreadyExists,
         format!("{} collides with another file with '.{}'", path, ext),
@@ -120,7 +119,8 @@ pub fn all_source_files(root_dir: &Path) -> Result<Workspace, std::io::Error> {
         if path.is_file() && is_source(&path) && !should_ignored_file(&path) {
             let path = posix_style(path.to_str().unwrap());
             let (slug, ext) = to_slug_ext(path.to_string());
-            if let Some(ext) = slug_exts.insert(slug, ext) {
+            // TODO: remove this expect and replace is_source with it
+            if let Some(ext) = slug_exts.insert(slug, ext.expect("invalid file extension")) {
                 return Err(err_collide(&path, &ext));
             };
         } else if path.is_dir() && !should_ignored_dir(&path) {
@@ -129,7 +129,11 @@ pub fn all_source_files(root_dir: &Path) -> Result<Workspace, std::io::Error> {
                 &is_source,
                 &should_ignored_dir,
                 &mut slug_exts,
-                &to_slug_ext,
+                &|s| {
+                    let (slug, ext) = to_slug_ext(s);
+                    // TODO: same as above
+                    (slug, ext.expect("invalid file extension"))
+                },
                 &err_collide,
             )?;
         }
@@ -140,5 +144,5 @@ pub fn all_source_files(root_dir: &Path) -> Result<Workspace, std::io::Error> {
 
 #[derive(Debug)]
 pub struct Workspace {
-    pub slug_exts: HashMap<String, String>,
+    pub slug_exts: HashMap<String, Ext>,
 }
