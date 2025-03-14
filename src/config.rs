@@ -281,25 +281,25 @@ pub fn verify_update_hash(path: &str, content: &str) -> Result<bool, std::io::Er
     Ok(is_modified)
 }
 
-pub fn files_match_with<F, G, H, E, A>(
+pub fn files_match_with<F, G, H, E, K, V>(
     dir: &Path,
     predicate: &F,
     ignore_dir: &G,
-    collect: &mut HashMap<String, A>,
+    collect: &mut HashMap<K, V>,
     map: &H,
     error: &E,
 ) -> Result<(), std::io::Error>
 where
     F: Fn(&Path) -> bool,
     G: Fn(&Path) -> bool,
-    H: Fn(String) -> (String, A),
-    E: Fn(&String, &A) -> std::io::Error,
+    H: Fn(&Path) -> (K, V),
+    E: Fn(&Path, &V) -> std::io::Error,
+    K: Hash + Eq,
 {
     for entry in std::fs::read_dir(dir)? {
         let path = entry?.path();
         if path.is_file() && predicate(&path) {
-            let path = crate::slug::posix_style(path.to_str().unwrap());
-            let (a, b) = map(path.to_string());
+            let (a, b) = map(&path);
             if let Some(b) = collect.insert(a, b) {
                 return Err(error(&path, &b));
             };
@@ -321,11 +321,11 @@ where
         predicate,
         &|_| false,
         &mut collect,
-        &|s| (s, ()),
+        &|p| (p.to_owned(), ()),
         &|_, _| unreachable!(),
     )?;
     for (path, _) in collect {
-        std::fs::remove_file(Path::new(&path))?;
+        std::fs::remove_file(path)?;
     }
     Ok(())
 }

@@ -18,7 +18,7 @@ use writer::Writer;
 
 use crate::{
     config::{self, files_match_with, verify_and_file_hash},
-    slug::{self, posix_style, Ext},
+    slug::{self, Ext},
 };
 
 #[allow(dead_code)]
@@ -98,10 +98,14 @@ pub fn is_source(path: &Path) -> bool {
         .unwrap_or(false)
 }
 
-fn err_collide(path: &String, ext: &Ext) -> std::io::Error {
+fn err_collide(path: &Path, ext: &Ext) -> std::io::Error {
     std::io::Error::new(
         std::io::ErrorKind::AlreadyExists,
-        format!("{} collides with another file with '.{}'", path, ext),
+        format!(
+            "{} collides with another file with '.{}'",
+            path.display(),
+            ext
+        ),
     )
 }
 
@@ -109,16 +113,13 @@ fn err_collide(path: &String, ext: &Ext) -> std::io::Error {
  * collect all source file paths in workspace dir
  */
 pub fn all_source_files(root_dir: &Path) -> Result<Workspace, std::io::Error> {
-    let root_dir_str = root_dir.to_str().unwrap();
-    let offset = root_dir_str.len();
     let mut slug_exts = HashMap::new();
-    let to_slug_ext = |s: String| slug::to_slug_ext(&s[offset..]);
+    let to_slug_ext = |p: &Path| slug::path_to_slug(p.strip_prefix(root_dir).unwrap_or(p));
 
     for entry in std::fs::read_dir(root_dir)? {
         let path = entry?.path();
         if path.is_file() && is_source(&path) && !should_ignored_file(&path) {
-            let path = posix_style(path.to_str().unwrap());
-            let (slug, ext) = to_slug_ext(path.to_string());
+            let (slug, ext) = to_slug_ext(&path);
             // TODO: remove this expect and replace is_source with it
             if let Some(ext) = slug_exts.insert(slug, ext.expect("invalid file extension")) {
                 return Err(err_collide(&path, &ext));
@@ -129,8 +130,8 @@ pub fn all_source_files(root_dir: &Path) -> Result<Workspace, std::io::Error> {
                 &is_source,
                 &should_ignored_dir,
                 &mut slug_exts,
-                &|s| {
-                    let (slug, ext) = to_slug_ext(s);
+                &|p| {
+                    let (slug, ext) = slug::path_to_slug(p);
                     // TODO: same as above
                     (slug, ext.expect("invalid file extension"))
                 },

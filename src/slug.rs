@@ -1,4 +1,4 @@
-use std::{fmt::Display, str::FromStr};
+use std::{fmt::Display, path::Path, str::FromStr};
 
 #[derive(Debug)]
 pub enum Ext {
@@ -36,20 +36,20 @@ pub fn to_hash_id(slug: &str) -> String {
 
 /// path to slug
 pub fn to_slug(fullname: &str) -> String {
-    to_slug_ext(fullname).0
+    path_to_slug(Path::new(fullname)).0
 }
 
-pub fn to_slug_ext(fullname: &str) -> (String, Option<Ext>) {
-    let mut slug = fullname;
-    if fullname.starts_with("/") {
-        slug = &slug[1..]
-    } else if fullname.starts_with("./") {
-        slug = &slug[2..]
-    }
-    let (maybe_slug, ext) = slug.rsplit_once('.').unzip();
-    let slug = maybe_slug.unwrap_or(slug);
-    let ext = ext.and_then(|e| e.parse().ok());
-    (pretty_path(std::path::Path::new(&slug)), ext)
+pub fn path_to_slug(path: &Path) -> (String, Option<Ext>) {
+    let slug = path
+        // this works for both windows and unix
+        .strip_prefix("./")
+        .or_else(|_| path.strip_prefix("/"))
+        .unwrap_or(path);
+    let ext = slug
+        .extension()
+        .and_then(|e| e.to_str())
+        .and_then(|e| e.parse().ok());
+    (pretty_path(&slug.with_extension("")), ext)
 }
 
 pub fn pretty_path(path: &std::path::Path) -> String {
