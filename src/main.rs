@@ -8,10 +8,12 @@ mod recorder;
 mod slug;
 mod typst_cli;
 
-use std::fs;
+use config::{output_path, CompileConfig, FooterMode};
+
+use std::{fs, path::Path};
 
 use clap::Parser;
-use config::{output_path, CompileConfig, FooterMode};
+use eyre::{eyre, WrapErr};
 
 #[derive(Parser)]
 #[command(version, about, long_about = None)]
@@ -45,18 +47,18 @@ struct CompileCommand {
     root: String,
 
     /// Disable pretty urls (`/page` to `/page.html`)
-    #[arg(short, long, default_value_t = false)]
+    #[arg(short, long)]
     disable_pretty_urls: bool,
 
     /// Hide parents part in slug (e.g. `tutorials/install` to `install`)
-    #[arg(short, long, default_value_t = config::DEFAULT_CONFIG.short_slug)]
+    #[arg(short, long)]
     short_slug: bool,
 
     /// Specify the inline mode for the footer sections
     #[arg(short, long, default_value_t = FooterMode::Link)]
     footer_mode: FooterMode,
 
-    /// Disable exporting the `main.css` file to the output directory.
+    /// Disable exporting the `*.css` file to the output directory.
     #[arg(long)]
     disable_export_css: bool,
 }
@@ -88,7 +90,7 @@ struct CleanCommand {
     html: bool,
 }
 
-fn main() {
+fn main() -> eyre::Result<()> {
     let cli = Cli::parse();
     match &cli.command {
         Command::Compile(compile_command) => {
@@ -109,13 +111,11 @@ fn main() {
             );
 
             if !compile_command.disable_export_css {
-                export_css_files()
+                export_css_files().wrap_err("failed to export CSS")?;
             }
 
-            match compiler::compile_all(root) {
-                Err(err) => eprintln!("{:?}", err),
-                Ok(_) => (),
-            }
+            compiler::compile_all(root)
+                .wrap_err_with(|| eyre!("failed to compile project `{root}`"))?;
         }
         Command::Clean(clean_command) => {
             config::mutex_set(
@@ -131,47 +131,43 @@ fn main() {
                 ),
             );
 
-            let cache_dir = &config::get_cache_dir();
+            let cache_dir = config::get_cache_dir();
+
+            let path_ends_with =
+                |suffix: &'static str| move |p: &Path| p.to_string_lossy().ends_with(suffix);
 
             clean_command.markdown.then(|| {
-                let _ = config::delete_all_with(&cache_dir, &|s| {
-                    s.to_str().unwrap().ends_with(".md.hash")
-                });
+                let _ = config::delete_all_with(&cache_dir, &path_ends_with(".md.hash"));
             });
 
             clean_command.typ.then(|| {
-                let _ = config::delete_all_with(&cache_dir, &|s| {
-                    s.to_str().unwrap().ends_with(".typ.hash")
-                });
+                let _ = config::delete_all_with(&cache_dir, &path_ends_with(".typ.hash"));
             });
 
             clean_command.typst.then(|| {
-                let _ = config::delete_all_with(&cache_dir, &|s| {
-                    s.to_str().unwrap().ends_with(".typst.hash")
-                });
+                let _ = config::delete_all_with(&cache_dir, &path_ends_with(".typst.hash"));
             });
 
             clean_command.html.then(|| {
-                let _ = config::delete_all_with(&cache_dir, &|s| {
-                    s.to_str().unwrap().ends_with(".html.hash")
-                });
+                let _ = config::delete_all_with(&cache_dir, &path_ends_with(".html.hash"));
             });
         }
     }
+    Ok(())
 }
 
-fn export_css_files() {
-    export_css_file(&html_flake::html_main_style(), "main.css");
-    export_css_file(&&html_flake::html_typst_style(), "typst.css");
+fn export_css_files() -> eyre::Result<()> {
+    export_css_file(html_flake::html_main_style(), "main.css")?;
+    export_css_file(html_flake::html_typst_style(), "typst.css")?;
+    Ok(())
 }
 
-fn export_css_file(css_content: &str, name: &str) {
+fn export_css_file(css_content: &str, name: &str) -> eyre::Result<()> {
     let path = output_path(name);
     let path = std::path::Path::new(&path);
     if !path.exists() {
-        match fs::write(path, css_content) {
-            Err(err) => eprintln!("{:?}", err),
-            Ok(_) => (),
-        }
+        fs::write(path, css_content)
+            .wrap_err_with(|| eyre!("failed to write CSS file to `{}`", path.display()))?;
     }
+    Ok(())
 }

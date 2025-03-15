@@ -1,7 +1,7 @@
 use crate::{
     compiler::{section::HTMLContent, taxon::Taxon},
-    config, html,
-    html_flake::html_entry_header,
+    config,
+    html_flake, slug::Slug,
 };
 use serde::{Deserialize, Serialize};
 use std::collections::{hash_map::Keys, HashMap};
@@ -101,8 +101,8 @@ where
         return self.get_str(KEY_PAGE_TITLE);
     }
 
-    fn slug(&self) -> Option<&String> {
-        return self.get_str(KEY_SLUG);
+    fn slug(&self) -> Option<Slug> {
+        return self.get_str(KEY_SLUG).map(Slug::new);
     }
 
     fn is_enable_backlinks(&self) -> bool {
@@ -175,21 +175,16 @@ impl EntryMetaData {
         let entry_title = self.0.get("title").map(|s| s.as_str()).unwrap_or("");
         let title = adhoc_title.unwrap_or(entry_title);
 
-        let slug = self.get("slug").unwrap();
-        let slug_text = EntryMetaData::to_slug_text(&slug);
-        let slug_url = config::full_html_url(&slug);
+        let slug = Slug::new(self.get("slug").unwrap());
+        let slug_text = EntryMetaData::to_slug_text(slug.as_str());
+        let slug_url = config::full_html_url(slug);
         let span_class: Vec<String> = vec!["taxon".to_string()];
 
-        html!(header =>
-          (html!(h1 =>
-            (html!(span class = {span_class.join(" ")} => {taxon}))
-            {title} {" "}
-            (html!(a class = "slug", href = {slug_url} => "["{&slug_text}"]"))))
-          (html!(html_entry_header(self.etc()))))
+        html_flake::html_header(title, taxon, &slug_url, &slug_text, span_class.join(" "), self.etc())
     }
 
     /// hidden suffix `/index` in slug text.
-    pub fn to_slug_text(slug: &String) -> String {
+    pub fn to_slug_text(slug: &str) -> String {
         let mut slug_text = match slug.ends_with("/index") {
             true => &slug[..slug.len() - "/index".len()],
             false => slug,

@@ -2,7 +2,7 @@ use std::{fs, path::Path, process::Command};
 
 use crate::{
     config::{self, verify_and_file_hash},
-    html, html_flake,
+    html_flake,
 };
 
 pub fn source_to_inline_html(typst_path: &str, html_path: &str) -> Result<String, std::io::Error> {
@@ -66,10 +66,7 @@ pub fn source_to_inline_svg(src: &str, config: InlineConfig) -> Result<String, s
     );
     let svg = source_to_svg(format!("{}{}", styles, src).as_str(), &config.root_dir)?;
 
-    Ok(format!(
-        "\n{}\n",
-        html!(span class = "inline-typst" => {svg})
-    ))
+    Ok(format!("\n{}\n", html_flake::html_inline_typst_span(&svg)))
 }
 
 pub fn source_to_html(full_path: &str, root_dir: &str) -> Result<String, std::io::Error> {
@@ -181,8 +178,7 @@ pub fn write_svg(typst_path: &str, svg_path: &str) -> Result<(), std::io::Error>
 
     if output.status.success() {
         let stdout = String::from_utf8_lossy(&output.stdout);
-        let thematized = thematize(stdout);
-        fs::write(svg_path, thematized)?;
+        fs::write(svg_path, stdout.as_bytes())?;
 
         println!(
             "Compiled to SVG: {}",
@@ -195,20 +191,9 @@ pub fn write_svg(typst_path: &str, svg_path: &str) -> Result<(), std::io::Error>
     Ok(())
 }
 
-fn thematize(s: std::borrow::Cow<'_, str>) -> String {
-    let index = s.rfind("</svg>").unwrap();
-    format!(
-        "{}<style>\n{}\n</style>\n</svg>",
-        &s[0..index],
-        html_flake::html_typst_style()
-    )
-}
-
 fn failed_in_file(src_pos: &'static str, file_path: &str, stderr: std::borrow::Cow<'_, str>) {
     eprintln!(
         "Command failed in {}: \n  In file {}, {}",
-        src_pos,
-        file_path,
-        stderr
+        src_pos, file_path, stderr
     );
 }

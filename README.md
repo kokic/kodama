@@ -1,7 +1,7 @@
 
 # Kodama
 
-A [Typst](https://github.com/typst/typst)-friendly static Zettelkasten site generator.
+A [Typst](https://github.com/typst/typst)-friendly static Zettelkästen site generator.
 
 [[Chinese README](./README.zh-CN.md)] [[Demo](https://kokic.github.io)] [[Tutorials]](https://kokic.github.io/tutorials)
 
@@ -15,9 +15,9 @@ A [Typst](https://github.com/typst/typst)-friendly static Zettelkasten site gene
 
 - Native compatibility with all Markdown editors, as Kodama processes standard Markdown syntax [^markdown-syntax], and is thoughtfully designed in terms of [embedding syntax](#embedding-syntax). Therefore, no editor plugins are needed for easy writing.
 
-- Organize Markdown files in the manner of [Jon Sterling's Forest](https://www.jonmsterling.com/foreign-forester-tfmt-000V.xml).
+- Organize Markdown files in the manner of [Jon Sterling's Forest](https://www.jonmsterling.com/foreign/www.forester-notes.org/tfmt-000V/index.xml).
 
-- Following Jon Sterling's terminology ["Forester"](https://www.jonmsterling.com/foreign-forester-index.xml), Kodama can be considered a "variant forester", [here](#not-a-forester) explains their differences and the reasons for doing so.
+- Following Jon Sterling's terminology ["Forester"](https://www.jonmsterling.com/foreign/www.forester-notes.org/index/index.xml), Kodama can be considered a "variant forester", [here](#not-a-forester) explains their differences and the reasons for doing so.
 
 ## Usage
 
@@ -36,7 +36,7 @@ Options:
 
 ## Embedding Syntax
 
-Kodama currently supports embedding two types of files, `.md` and `.typ`. The former is to support the [Forest way of organizing content](https://www.jonmsterling.com/foreign-forester-tfmt-0001.xml). The latter's role is even more obvious.
+Kodama currently supports embedding two types of files, `.md` and `.typ`. The former is to support the [Forest way of organizing content](https://www.jonmsterling.com/foreign/www.forester-notes.org/tfmt-0001/index.xml). The latter's role is even more obvious.
 
 First, the syntax for embedding files is standard Markdown link syntax, which has the advantage that when writing content, all editors with Markdown support can correctly jump to sub-files.
 

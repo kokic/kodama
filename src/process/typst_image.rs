@@ -1,7 +1,7 @@
 use std::fs;
 
 use crate::{
-    compiler::{section::{HTMLContent, LazyContent}, CompileError},
+    compiler::section::{HTMLContent, LazyContent},
     config::{self, join_path, output_path, parent_dir},
     html_flake::{html_figure, html_figure_code},
     recorder::{ParseRecorder, State},
@@ -203,7 +203,7 @@ impl Processer for TypstImage {
         s: &pulldown_cmark::CowStr<'_>,
         recorder: &mut ParseRecorder,
         _metadata: &mut std::collections::HashMap<String, HTMLContent>,
-    )  -> Result<(), CompileError> {
+    ) -> eyre::Result<()> {
         if allow_inline(&recorder.state) {
             // [1]: imported / inline typst / span / block
             recorder.push(s.to_string());

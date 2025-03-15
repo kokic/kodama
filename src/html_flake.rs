@@ -3,7 +3,7 @@ use std::ops::Not;
 use crate::{
     config,
     entry::{EntryMetaData, MetaData},
-    html,
+    html_macro::html, slug::Slug,
 };
 
 pub fn html_article_inner(
@@ -29,9 +29,9 @@ pub fn html_article_inner(
 
 pub fn html_footer_section(summary: &str, content: &String) -> String {
     let summary = format!("<header><h1>{}</h1></header>", summary);
-    let inner_html = format!("{}{}", (html!(summary => {summary})), content);
+    let inner_html = format!("{}{}", (html!(summary { (summary) })), content);
     let html_details = format!("<details open>{}</details>", inner_html);
-    html!(section class="block" => {html_details})
+    html!(section class="block" { (html_details) })
 }
 
 pub fn html_section(
@@ -48,31 +48,43 @@ pub fn html_section(
     }
     let data_taxon = data_taxon.map_or("", |s| s);
     let open = open.then(|| "open").unwrap_or("");
-    let inner_html = format!("{}{}", (html!(summary => {summary})), content);
-    let html_details = format!(
-        r#"
-      <details id="{}" {}>{}</details>
-    "#,
-        id, open, inner_html
-    );
-    html!(section class = {class_name.join(" ")}, data_taxon = {data_taxon} => {html_details})
+    let inner_html = format!("{}{}", (html!(summary id={id} { (summary) })), content);
+    let html_details = format!("<details {}>{}</details>", open, inner_html);
+    html!(section class={class_name.join(" ")} data_taxon={data_taxon} { (html_details) })
 }
 
-pub fn html_entry_header(mut etc: Vec<String>) -> String {
+pub fn html_header_metadata(mut etc: Vec<String>) -> String {
     let mut meta_items: Vec<String> = vec![];
     meta_items.append(&mut etc);
-
     let items = meta_items
         .iter()
-        .map(|item| html!(li class = "meta-item" => {item}))
-        .reduce(|s, t| s + &t)
+        .map(|item| html!(li class="meta-item" { (item) }))
+        .reduce(|s: String, t: String| s + t.as_str())
         .unwrap_or(String::new());
 
-    html!(div class="metadata" => (html!(ul => {items})))
+    html!(div class="metadata" { ul { (items) } })
+}
+
+pub fn html_header(
+    title: &str,
+    taxon: &str,
+    slug_url: &str,
+    slug_text: &str,
+    span_class: String,
+    etc: Vec<String>,
+) -> String {
+    html!(header {
+        h1 {
+            span class={span_class} { (taxon) }
+            (title) " "
+            a class="slug" href={slug_url} { "["(slug_text)"]" }
+        }
+        (html_header_metadata(etc))
+    })
 }
 
 pub fn catalog_item(
-    slug: &str,
+    slug: Slug,
     title: &str,
     page_title: &str,
     details_open: bool,
@@ -81,19 +93,39 @@ pub fn catalog_item(
 ) -> String {
     let slug_url = config::full_html_url(slug);
     let title_text = format!("{} [{}]", page_title, slug);
-    let onclick = format!("window.location.href='#{}'", crate::slug::to_hash_id(slug)); // #id
+    let onclick = format!("window.location.href='#{}'", crate::slug::to_hash_id(slug.as_str()));
 
     let mut class_name: Vec<String> = vec![];
     if !details_open {
         class_name.push("item-summary".to_string());
     }
 
-    html!(li class = {class_name.join(" ")} =>
-      (html!(a class = "bullet", href={slug_url}, title={title_text} => "■"))
-      (html!(span class = "link local", onclick = {onclick} =>
-          (html!(span class = "taxon" => {taxon}))
-          (title)))
-      (child_html))
+    html!(li class={class_name.join(" ")} {
+        a class="bullet" href={slug_url} title={title_text} { "■" }
+        span class="link local" onclick={onclick} {
+            span class="taxon" { (taxon) }
+            (title)
+        }
+        (child_html)
+    })
+}
+
+pub fn html_catalog_block(items: &str) -> String {
+    html!(div class="block" { h1 { "Table of Contents" } (items) })
+}
+
+pub fn html_inline_typst_span(svg: &str) -> String {
+    html!(span class="inline-typst" { (svg) })
+}
+
+pub fn html_footer(references_html: &str, backlinks_html: &str) -> String {
+    html!(footer { (references_html) (backlinks_html) })
+}
+
+pub fn footnote_reference(s: &str, back_id: &str, number: usize) -> String {
+    html!(sup class="footnote-reference" id={back_id} {
+      a href={format!("#{}", s)} { (number) }
+    })
 }
 
 pub fn html_image(image_src: &str) -> String {
@@ -106,32 +138,38 @@ pub fn html_figure(image_src: &str, center: bool, caption: String) -> String {
     }
     let mut caption = caption;
     if !caption.is_empty() {
-        caption = html!(figcaption => (caption))
+        caption = html!(figcaption { (caption) })
     }
-    html!(figure => (html_image(image_src)) (caption))
+    html!(figure { (html_image(image_src)) (caption) })
 }
 
 pub fn html_figure_code(image_src: &str, caption: String, code: String) -> String {
     let mut caption = caption;
     if !caption.is_empty() {
-        caption = html!(figcaption => (caption))
+        caption = html!(figcaption { (caption) })
     }
-    let figure = html!(figure => (html_image(image_src)) (caption));
-    let pre = html!(pre => (code));
-    let details = html!(details => (html!(summary => (figure))) (pre));
-    details
+    let figure = html!(figure { (html_image(image_src)) (caption) });
+    let pre = html!(pre { (code) });
+    html!(details { summary { (figure) } (pre) })
 }
 
 pub fn html_link(href: &str, title: &str, text: &str, class_name: &str) -> String {
-    html!(span class = format!("link {}", class_name) => 
-      (html!(a href = {href}, title = {title} => {text})))
+    html!(span class={format!("link {}", class_name)} {
+        a href={href} title={title} { (text) }
+    })
 }
 
 pub fn html_header_nav(title: &str, page_title: &str, href: &str) -> String {
     let onclick = format!("window.location.href='{}'", href);
-    let link = html!(span onclick={onclick}, title={page_title} => ("« ") (title));
-    let nav_inner = html!(div class = "logo" => (link));
-    html!(header class = "header" => (html!(nav class = "nav" => {nav_inner})))
+    html!(header class="header" {
+        nav class="nav" {
+            div class="logo" {
+                span onclick={onclick} title={page_title} {
+                    "« " (title)
+                }
+            }
+        }
+    })
 }
 
 pub fn html_doc(
@@ -145,30 +183,34 @@ pub fn html_doc(
     let toc_html = catalog_html
         .is_empty()
         .not()
-        .then(|| html!(nav id = "toc" => {catalog_html}))
+        .then(|| html!(nav id="toc" { (catalog_html) }))
         .unwrap_or_default();
 
-    let body_inner = html!(div id="grid-wrapper" => 
-      (html!(article => (article_inner) (footer_html)))
+    let body_inner = html!(div id="grid-wrapper" {
+      article { (article_inner) (footer_html) }
       "\n\n"
-      (toc_html));
+      (toc_html)
+    });
 
-    let html = html!(html lang = "en-US" => 
-      (html!(head => r#"
+    let html = html!(html lang="en-US" {
+        head {
+            r#"
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
 <meta name="viewport" content="width=device-width">"#
-        (format!("<title>{page_title}</title>")) 
-        (html_import_meta())
-        (html_css())
-        (html_import_fonts())
-        (html_import_math()) ))
-      (html!(body => (header_html) (body_inner))));
-    format!("{}\n{}", doc_type, &html)
+            (format!("<title>{page_title}</title>"))
+            (html_import_meta())
+            (html_css())
+            (html_import_fonts())
+            (html_import_math())
+        }
+        body { (header_html) (body_inner) }
+    });
+    format!("{}\n{}", doc_type, html)
 }
 
 pub fn html_css() -> String {
     match config::disable_export_css() {
-        true => html!(style => (html_main_style()) (html_typst_style())),
+        true => html!(style { (html_main_style()) (html_typst_style()) }),
         false => {
             let base_url = config::base_url();
             format!(

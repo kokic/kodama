@@ -1,7 +1,7 @@
 use pulldown_cmark::{Tag, TagEnd};
 
 use crate::{
-    compiler::{section::{HTMLContent, LazyContent}, CompileError},
+    compiler::section::{HTMLContent, LazyContent},
     recorder::{ParseRecorder, State},
 };
 
@@ -41,7 +41,7 @@ impl Processer for Figure {
         s: &pulldown_cmark::CowStr<'_>,
         recorder: &mut ParseRecorder,
         _metadata: &mut std::collections::HashMap<String, HTMLContent>,
-    ) -> Result<(), CompileError> {
+    ) -> eyre::Result<()> {
         if recorder.state == State::Figure {
             recorder.push(s.to_string()); // [1]: alt text
         }

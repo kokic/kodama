@@ -5,12 +5,12 @@ use crate::{
     compiler::{
         parser::parse_spanned_markdown,
         section::{EmbedContent, HTMLContent, LazyContent, LocalLink, SectionOption},
-        CompileError,
     },
     html_flake::html_link,
     recorder::{ParseRecorder, State},
     slug::to_slug,
 };
+use eyre::{eyre, WrapErr};
 use pulldown_cmark::{Tag, TagEnd};
 
 pub struct Embed;
@@ -106,14 +106,14 @@ impl Processer for Embed {
         s: &pulldown_cmark::CowStr<'_>,
         recorder: &mut ParseRecorder,
         metadata: &mut HashMap<String, HTMLContent>,
-    ) -> Result<(), CompileError> {
+    ) -> eyre::Result<()> {
         if allow_inline(&recorder.state) {
             recorder.push(s.to_string()); // [1, 2, ...]: Text
             return Ok(());
         }
 
         if recorder.state == State::Metadata && s.trim().len() != 0 {
-            parse_metadata(s, metadata, recorder)?;
+            parse_metadata(s, metadata, recorder).wrap_err("failed to parse metadata")?;
         }
         Ok(())
     }
@@ -148,17 +148,18 @@ pub fn parse_metadata(
     s: &str,
     metadata: &mut HashMap<String, HTMLContent>,
     recorder: &mut ParseRecorder,
-) -> Result<(), CompileError> {
+) -> eyre::Result<()> {
     let lines: Vec<&str> = s.split("\n").collect();
     for s in lines {
         if s.trim().len() != 0 {
             let pos = s
                 .find(':')
-                .expect(&format!("metadata item expect `name: value` in {}", s));
+                .ok_or_else(|| eyre!("expected metadata format `name: value`, found `{s}`"))?;
             let key = s[0..pos].trim();
             let val = s[pos + 1..].trim();
 
-            let mut val = parse_spanned_markdown(val, &format!("{}:metadata", recorder.current))?;
+            let mut val = parse_spanned_markdown(val, &format!("{}:metadata", recorder.current))
+                .wrap_err("failed to parse metadata value")?;
             if key == "taxon" {
                 if let HTMLContent::Plain(v) = val {
                     val = HTMLContent::Plain(display_taxon(&v));

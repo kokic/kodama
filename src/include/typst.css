@@ -1,3 +1,5 @@
+/* For embeded SVG source. */
+
 :root {
   --typst-text-color: black;
 }
@@ -22,4 +24,12 @@
 
 .typst-group path[stroke="#000000"] {
   stroke: var(--typst-text-color);
+}
+
+/* For external SVG files. */
+
+@media (prefers-color-scheme: dark) {
+  figure>img {
+    filter: invert(1) hue-rotate(180deg);
+  }
 }

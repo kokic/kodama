@@ -1,7 +1,7 @@
 
 # Kodama
 
-一个 [Typst](https://github.com/typst/typst) 友好的静态 Zettelkasten 站点生成器. 
+一个 [Typst](https://github.com/typst/typst) 友好的静态 Zettelkästen 站点生成器. 
 
 [[英语说明](./README.md)] [[Demo](https://kokic.github.io)] [[Tutorials]](https://kokic.github.io/tutorials)
 
@@ -15,9 +15,9 @@
 
 - 所有 Markdown 编辑器的原生兼容性, 因为 Kodama 处理的语法是标准的 Markdown [^markdown-syntax], 并且在具体设计上 [别出心裁](#嵌入语法). 因此无需任何编辑器插件, 也能轻松书写. 
 
-- 能以 [Jon Sterling 的森林](https://www.jonmsterling.com/foreign-forester-tfmt-000V.xml) 般的方式组织 Markdown 文件. 
+- 能以 [Jon Sterling 的森林](https://www.jonmsterling.com/foreign/www.forester-notes.org/tfmt-000V/index.xml) 般的方式组织 Markdown 文件. 
 
-- 沿用 Jon Sterling 的术语 ["护林员"](https://www.jonmsterling.com/foreign-forester-index.xml), Kodama 可以被认为是一个 "变种护林员", [此处](#并非护林员) 说明了它们的差异以及这样做的理由. 
+- 沿用 Jon Sterling 的术语 ["护林员"](https://www.jonmsterling.com/foreign/www.forester-notes.org/index/index.xml), Kodama 可以被认为是一个 "变种护林员", [此处](#并非护林员) 说明了它们的差异以及这样做的理由. 
 
 ## 使用
 
@@ -36,7 +36,7 @@ Options:
 
 ## 嵌入语法
 
-Kodama 目前能够嵌入两种类型的文件, `.md` 和 `.typ`. 前者是为了支持 [Forest 组织内容的方式](https://www.jonmsterling.com/foreign-forester-tfmt-0001.xml). 后者的作用更是显而易见.  
+Kodama 目前能够嵌入两种类型的文件, `.md` 和 `.typ`. 前者是为了支持 [Forest 组织内容的方式](https://www.jonmsterling.com/foreign/www.forester-notes.org/tfmt-0001/index.xml). 后者的作用更是显而易见.  
 
 首先, 所有嵌入文件的语法都是标准的 Markdown 链接语法, 这样设计的好处在于, 用户在书写内容时, 所有带有 Markdown 支持的编辑器都能正确跳转到子文件. 
 

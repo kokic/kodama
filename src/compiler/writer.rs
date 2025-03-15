@@ -4,8 +4,8 @@ use crate::{
     compiler::counter::Counter,
     config::{self, verify_update_hash},
     entry::MetaData,
-    html,
-    html_flake::{self, html_article_inner},
+    html_flake,
+    slug::Slug,
 };
 
 use super::{
@@ -35,10 +35,13 @@ impl Writer {
         }
     }
 
-    pub fn write_needed_slugs(all_slugs: &Vec<String>, state: &CompileState) {
+    pub fn write_needed_slugs<I>(all_slugs: I, state: &CompileState)
+    where
+        I: IntoIterator<Item = Slug>,
+    {
         all_slugs
-            .iter()
-            .for_each(|slug| match state.compiled.get(slug) {
+            .into_iter()
+            .for_each(|slug| match state.compiled().get(&slug) {
                 /*
                  * No need for `state.compiled.remove(slug)` here,
                  * because writing to a file does not require a mutable reference
@@ -56,13 +59,13 @@ impl Writer {
         let catalog_html = items
             .is_empty()
             .not()
-            .then(|| Writer::catalog_block(&items))
+            .then(|| html_flake::html_catalog_block(&items))
             .unwrap_or_default();
 
         let slug = section.slug();
-        let html_header = Writer::header(state, &slug);
+        let html_header = Writer::header(state, slug);
 
-        let callback = state.callback.0.get(&slug);
+        let callback = state.callback().0.get(&slug);
         let footer_html = Writer::footer(state, &section.references, callback);
         let page_title = section.metadata.page_title().map_or("", |s| s.as_str());
 
@@ -77,14 +80,14 @@ impl Writer {
         (html, page_title.to_string())
     }
 
-    fn header(state: &CompileState, slug: &str) -> String {
+    fn header(state: &CompileState, slug: Slug) -> String {
         state
-            .callback
+            .callback()
             .0
-            .get(slug)
+            .get(&slug)
             .and_then(|callback| {
-                let parent = &callback.parent;
-                state.compiled.get(parent).map(|section| {
+                let parent = callback.parent;
+                state.compiled().get(&parent).map(|section| {
                     let href = config::full_html_url(parent);
                     let title = section.metadata.title().map_or("", |s| s);
                     let page_title = section.metadata.page_title().map_or("", |s| s);
@@ -96,17 +99,16 @@ impl Writer {
 
     fn footer(
         state: &CompileState,
-        references: &HashSet<String>,
+        references: &HashSet<Slug>,
         callback: Option<&CallbackValue>,
     ) -> String {
-        let mut references: Vec<&String> = references.iter().collect();
+        let mut references: Vec<Slug> = references.iter().copied().collect();
         references.sort();
 
         let references_html = references
             .iter()
             .map(|slug| {
-                let slug = slug.to_string();
-                let section = state.compiled.get(&slug).unwrap();
+                let section = state.compiled().get(slug).unwrap();
                 Writer::footer_section_to_html(section)
             })
             .reduce(|s, t| s + &t)
@@ -115,13 +117,14 @@ impl Writer {
 
         let backlinks_html = callback
             .map(|s| {
-                let mut backlinks: Vec<&String> = s.backlinks.iter().collect();
+                let mut backlinks: Vec<Slug> = s.backlinks.iter().copied().collect();
                 backlinks.sort();
                 backlinks
                     .iter()
+                    .copied()
                     .map(|slug| {
                         let slug = Writer::clip_metadata_badge(slug);
-                        let section = state.compiled.get(&slug).unwrap();
+                        let section = state.compiled().get(&slug).unwrap();
                         Writer::footer_section_to_html(section)
                     })
                     .reduce(|s, t| s + &t)
@@ -130,23 +133,15 @@ impl Writer {
             })
             .unwrap_or_default();
 
-        html!(footer => (references_html) (backlinks_html))
+        html_flake::html_footer(&references_html, &backlinks_html)
     }
 
-    fn clip_metadata_badge(slug: &str) -> String {
-        match slug.ends_with(":metadata") {
-            true => slug[0..slug.len() - ":metadata".len()].to_string(),
-            false => slug.to_string(),
-        }
-    }
-
-    fn catalog_block(items: &str) -> String {
-        html!(div class = "block" =>
-          (html!(h1 => "Table of Contents")) (items))
+    fn clip_metadata_badge(slug: Slug) -> Slug {
+        slug.as_str().strip_suffix(":metadata").map_or(slug, Slug::new)
     }
 
     fn catalog_item(section: &Section, taxon: &str, child_html: &str) -> String {
-        let slug = &section.slug();
+        let slug = section.slug();
         let title = section.metadata.title().map_or("", |s| s);
         let page_title = section.metadata.page_title().map_or("", |s| s);
         html_flake::catalog_item(
@@ -182,7 +177,14 @@ impl Writer {
                         .reduce(|s, t| s + &t)
                         .unwrap(),
                 };
-                html_article_inner(&section.metadata, &contents, false, false, None, None)
+                html_flake::html_article_inner(
+                    &section.metadata,
+                    &contents,
+                    false,
+                    false,
+                    None,
+                    None,
+                )
             }
         }
     }
@@ -229,7 +231,7 @@ impl Writer {
                 .unwrap_or(String::new()),
         };
 
-        let article_inner = html_article_inner(
+        let article_inner = html_flake::html_article_inner(
             &section.metadata,
             &contents,
             hide_metadata,

@@ -1,10 +1,12 @@
+use eyre::{eyre, WrapErr};
+
 use super::html_parser::{HTMLParser, HTMLTagKind};
 use super::section::{EmbedContent, LocalLink, SectionOption};
 use super::section::{HTMLContent, HTMLContentBuilder, LazyContent};
-use super::{CompileError, ShallowSection};
+use super::ShallowSection;
 use crate::entry::HTMLMetaData;
 use crate::process::embed_markdown;
-use crate::slug::to_slug;
+use crate::slug::{to_slug, Slug};
 use crate::typst_cli;
 use std::borrow::Cow;
 use std::collections::HashMap;
@@ -22,7 +24,7 @@ fn parse_typst_html(
     html_str: &str,
     relative_path: &str,
     metadata: &mut HashMap<String, HTMLContent>,
-) -> Result<HTMLContent, CompileError> {
+) -> eyre::Result<HTMLContent> {
     let mut builder = HTMLContentBuilder::new();
     let mut cursor: usize = 0;
 
@@ -31,11 +33,9 @@ fn parse_typst_html(
         cursor = span.end;
 
         let attr = |attr_name: &str| {
-            span.attrs.get(attr_name).ok_or(CompileError::Syntax(
-                Some(concat!(file!(), '#', line!())),
-                Box::new(format!("No attribute '{}' in a kodama tag", attr_name)),
-                relative_path.to_string(),
-            ))
+            span.attrs
+                .get(attr_name)
+                .ok_or_else(|| eyre!("missing attribute `{attr_name}` in kodama tag"))
         };
 
         let value = || {
@@ -91,15 +91,10 @@ fn parse_typst_html(
     Ok(builder.build())
 }
 
-pub fn parse_typst(slug: &str, root_dir: &str) -> Result<ShallowSection, CompileError> {
+pub fn parse_typst(slug: Slug, root_dir: &str) -> eyre::Result<ShallowSection> {
     let relative_path = format!("{}.typst", slug);
-    let html_str = typst_cli::file_to_html(&relative_path, root_dir).map_err(|e| {
-        CompileError::IO(
-            Some(concat!(file!(), '#', line!())),
-            e,
-            relative_path.to_string(),
-        )
-    })?;
+    let html_str = typst_cli::file_to_html(&relative_path, root_dir)
+        .wrap_err_with(|| eyre!("failed to compile typst file `{relative_path}` to html"))?;
 
     let mut metadata: HashMap<String, HTMLContent> = HashMap::new();
     metadata.insert("slug".to_string(), HTMLContent::Plain(slug.to_string()));
