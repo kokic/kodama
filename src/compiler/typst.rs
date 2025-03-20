@@ -6,7 +6,7 @@ use super::section::{HTMLContent, HTMLContentBuilder, LazyContent};
 use super::ShallowSection;
 use crate::entry::HTMLMetaData;
 use crate::process::embed_markdown;
-use crate::slug::to_slug;
+use crate::slug::{to_slug, Slug};
 use crate::typst_cli;
 use std::borrow::Cow;
 use std::collections::HashMap;
@@ -91,7 +91,7 @@ fn parse_typst_html(
     Ok(builder.build())
 }
 
-pub fn parse_typst(slug: &str, root_dir: &str) -> eyre::Result<ShallowSection> {
+pub fn parse_typst(slug: Slug, root_dir: &str) -> eyre::Result<ShallowSection> {
     let relative_path = format!("{}.typst", slug);
     let html_str = typst_cli::file_to_html(&relative_path, root_dir)
         .wrap_err_with(|| eyre!("failed to compile typst file `{relative_path}` to html"))?;

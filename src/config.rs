@@ -7,6 +7,8 @@ use std::{
 
 use walkdir::WalkDir;
 
+use crate::slug::Slug;
+
 #[derive(Clone, clap::ValueEnum)]
 pub enum FooterMode {
     Link,
@@ -171,7 +173,7 @@ pub fn full_url(path: &str) -> String {
     format!("{}{}", base_url(), path)
 }
 
-pub fn full_html_url(slug: &str) -> String {
+pub fn full_html_url(slug: Slug) -> String {
     full_url(&format!("{}{}", slug, lock_config().page_suffix))
 }
 

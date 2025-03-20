@@ -3,7 +3,7 @@ use std::ops::Not;
 use crate::{
     config,
     entry::{EntryMetaData, MetaData},
-    html_macro::html,
+    html_macro::html, slug::Slug,
 };
 
 pub fn html_article_inner(
@@ -84,7 +84,7 @@ pub fn html_header(
 }
 
 pub fn catalog_item(
-    slug: &str,
+    slug: Slug,
     title: &str,
     page_title: &str,
     details_open: bool,
@@ -93,7 +93,7 @@ pub fn catalog_item(
 ) -> String {
     let slug_url = config::full_html_url(slug);
     let title_text = format!("{} [{}]", page_title, slug);
-    let onclick = format!("window.location.href='#{}'", crate::slug::to_hash_id(slug));
+    let onclick = format!("window.location.href='#{}'", crate::slug::to_hash_id(slug.as_str()));
 
     let mut class_name: Vec<String> = vec![];
     if !details_open {

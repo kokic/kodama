@@ -2,7 +2,10 @@ use regex_lite::Regex;
 use serde::{Deserialize, Serialize};
 use std::{collections::HashSet, mem, sync::LazyLock};
 
-use crate::entry::{EntryMetaData, HTMLMetaData, MetaData};
+use crate::{
+    entry::{EntryMetaData, HTMLMetaData, MetaData},
+    slug::Slug,
+};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SectionOption {
@@ -40,7 +43,7 @@ pub struct EmbedContent {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct LocalLink {
-    pub slug: String,
+    pub slug: Slug,
     pub text: Option<String>,
 }
 
@@ -181,8 +184,8 @@ pub struct ShallowSection {
 }
 
 impl ShallowSection {
-    pub fn slug(&self) -> String {
-        self.metadata.slug().unwrap().to_string()
+    pub fn slug(&self) -> Slug {
+        self.metadata.slug().unwrap()
     }
 
     #[allow(dead_code)]
@@ -204,14 +207,14 @@ pub struct Section {
     pub metadata: EntryMetaData,
     pub children: SectionContents,
     pub option: SectionOption,
-    pub references: HashSet<String>,
+    pub references: HashSet<Slug>,
 }
 
 impl Section {
     pub fn new(
         metadata: EntryMetaData,
         children: SectionContents,
-        references: HashSet<String>,
+        references: HashSet<Slug>,
     ) -> Section {
         Section {
             metadata,
@@ -221,8 +224,8 @@ impl Section {
         }
     }
 
-    pub fn slug(&self) -> String {
-        self.metadata.slug().unwrap().to_string()
+    pub fn slug(&self) -> Slug {
+        self.metadata.slug().unwrap()
     }
 
     pub fn spanned(&self) -> String {

@@ -5,7 +5,7 @@ use eyre::OptionExt;
 use crate::{
     config,
     entry::{EntryMetaData, HTMLMetaData, MetaData, KEY_SLUG},
-    slug,
+    slug::{self, Slug},
 };
 
 use super::{
@@ -16,37 +16,37 @@ use super::{
 
 #[derive(Debug)]
 pub struct CompileState {
-    residued: BTreeSet<String>,
-    compiled: HashMap<String, Section>,
+    residued: BTreeSet<Slug>,
+    compiled: HashMap<Slug, Section>,
     callback: Callback,
 }
 
-type Shallows = HashMap<String, ShallowSection>;
+type Shallows = HashMap<Slug, ShallowSection>;
 
 pub fn compile_all(mut shallows: Shallows) -> eyre::Result<CompileState> {
     for shallow in shallows.values_mut() {
         shallow.metadata.compute_textual_attrs();
     }
 
-    let residued: BTreeSet<String> = shallows.keys().cloned().collect();
+    let residued: BTreeSet<Slug> = shallows.keys().copied().collect();
 
     let mut state = CompileState::new(residued);
     state
-        .compile(&shallows, "index")
+        .compile(&shallows, Slug::new("index"))
         .ok_or_eyre("missing `index` section, please provide `index.md` or `index.typst`")?;
 
     /*
      * Unlinked or unembedded pages.
      */
     while let Some(slug) = state.residued.pop_first() {
-        state.compile(&shallows, &slug);
+        state.compile(&shallows, slug);
     }
 
     Ok(state)
 }
 
 impl CompileState {
-    fn new(residued: BTreeSet<String>) -> CompileState {
+    fn new(residued: BTreeSet<Slug>) -> CompileState {
         CompileState {
             residued,
             compiled: HashMap::new(),
@@ -54,16 +54,16 @@ impl CompileState {
         }
     }
 
-    fn compile(&mut self, shallows: &Shallows, slug: &str) -> Option<&Section> {
+    fn compile(&mut self, shallows: &Shallows, slug: Slug) -> Option<&Section> {
         self.fetch_section(shallows, slug)
     }
 
-    fn fetch_section(&mut self, shallows: &Shallows, slug: &str) -> Option<&Section> {
-        if self.compiled.contains_key(slug) {
-            Some(self.compiled.get(slug).unwrap())
+    fn fetch_section(&mut self, shallows: &Shallows, slug: Slug) -> Option<&Section> {
+        if self.compiled.contains_key(&slug) {
+            Some(self.compiled.get(&slug).unwrap())
         } else {
             shallows
-                .get(slug)
+                .get(&slug)
                 .map(|shallow| self.compile_shallow(shallows, shallow))
         }
     }
@@ -71,7 +71,7 @@ impl CompileState {
     fn compile_shallow(&mut self, shallows: &Shallows, shallow: &ShallowSection) -> &Section {
         let slug = shallow.slug();
         let mut children: SectionContents = vec![];
-        let mut references: HashSet<String> = HashSet::new();
+        let mut references: HashSet<Slug> = HashSet::new();
 
         match &shallow.content {
             HTMLContent::Plain(html) => {
@@ -87,7 +87,7 @@ impl CompileState {
                         }
                         LazyContent::Embed(embed_content) => {
                             let child_slug = slug::to_slug(&embed_content.url);
-                            let refered = match self.fetch_section(shallows, &child_slug) {
+                            let refered = match self.fetch_section(shallows, child_slug) {
                                 Some(refered_section) => refered_section,
                                 None => {
                                     eprintln!(
@@ -101,7 +101,7 @@ impl CompileState {
                             if embed_content.option.details_open {
                                 references.extend(refered.references.clone());
                             }
-                            callback.insert_parent(child_slug, slug.to_string());
+                            callback.insert_parent(child_slug, slug);
 
                             let mut child_section = refered.clone();
                             child_section.option = embed_content.option.clone();
@@ -113,24 +113,24 @@ impl CompileState {
                             children.push(SectionContent::Embed(child_section));
                         }
                         LazyContent::Local(local_link) => {
-                            let link_slug = &local_link.slug;
+                            let link_slug = local_link.slug;
                             let article_title = get_metadata(shallows, link_slug)
                                 .map_or("", |s| s.page_title().map_or("", |s| s));
 
                             if is_reference(shallows, link_slug) {
-                                references.insert(link_slug.to_string());
+                                references.insert(link_slug);
                             }
 
                             /*
                              * Making oneself the content of a backlink should not be expected behavior.
                              */
-                            if *link_slug != slug
+                            if link_slug != slug
                                 && format!("{}:metadata", link_slug) != slug
                                 && is_enable_backlinks(shallows, link_slug)
                             {
                                 callback.insert_backlinks(
-                                    link_slug.to_string(),
-                                    vec![slug.to_string()],
+                                    link_slug,
+                                    vec![slug],
                                 );
                             }
 
@@ -160,7 +160,7 @@ impl CompileState {
                 return;
             }
             let value = shallow.metadata.get(key).unwrap();
-            let spanned: ShallowSection = Self::metadata_to_section(value, &slug);
+            let spanned: ShallowSection = Self::metadata_to_section(value, slug);
             let compiled = self.compile_shallow(shallows, &spanned);
             let html = compiled.spanned();
             metadata.update(key.to_string(), html);
@@ -170,11 +170,11 @@ impl CompileState {
         self.residued.remove(&slug);
 
         let section = Section::new(metadata, children, references);
-        self.compiled.insert(slug.to_string(), section);
+        self.compiled.insert(slug, section);
         self.compiled.get(&slug).unwrap()
     }
 
-    fn metadata_to_section(content: &HTMLContent, current_slug: &str) -> ShallowSection {
+    fn metadata_to_section(content: &HTMLContent, current_slug: Slug) -> ShallowSection {
         let mut metadata = HashMap::new();
         metadata.insert(
             KEY_SLUG.to_string(),
@@ -187,7 +187,7 @@ impl CompileState {
         }
     }
 
-    pub fn compiled(&self) -> &HashMap<String, Section> {
+    pub fn compiled(&self) -> &HashMap<Slug, Section> {
         &self.compiled
     }
 
@@ -196,20 +196,20 @@ impl CompileState {
     }
 }
 
-fn get_metadata<'s>(shallows: &'s Shallows, slug: &str) -> Option<&'s HTMLMetaData> {
-    shallows.get(slug).map(|s| &s.metadata)
+fn get_metadata<'s>(shallows: &'s Shallows, slug: Slug) -> Option<&'s HTMLMetaData> {
+    shallows.get(&slug).map(|s| &s.metadata)
 }
 
-fn is_enable_backlinks(shallows: &Shallows, slug: &str) -> bool {
+fn is_enable_backlinks(shallows: &Shallows, slug: Slug) -> bool {
     shallows
-        .get(slug)
+        .get(&slug)
         .map(|s| s.metadata.is_enable_backlinks())
         .unwrap_or(true)
 }
 
-fn is_reference(shallows: &Shallows, slug: &str) -> bool {
+fn is_reference(shallows: &Shallows, slug: Slug) -> bool {
     shallows
-        .get(slug)
+        .get(&slug)
         .map(|s| {
             let metadata = &s.metadata;
             metadata.is_asref()

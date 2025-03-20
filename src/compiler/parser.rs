@@ -4,7 +4,7 @@ use eyre::{eyre, WrapErr};
 use pulldown_cmark::{html, CowStr, Event, Options, Tag, TagEnd};
 
 use crate::{
-    config::input_path, entry::HTMLMetaData, process::processer::Processer, recorder::ParseRecorder,
+    config::input_path, entry::HTMLMetaData, process::processer::Processer, recorder::ParseRecorder, slug::Slug,
 };
 
 use super::{
@@ -19,7 +19,7 @@ pub const OPTIONS: Options = Options::ENABLE_MATH
     .union(Options::ENABLE_FOOTNOTES);
 
 pub fn initialize(
-    slug: &str,
+    slug: Slug,
 ) -> eyre::Result<(String, HashMap<String, HTMLContent>, ParseRecorder)> {
     // global data store
     let mut metadata: HashMap<String, HTMLContent> = HashMap::new();
@@ -34,7 +34,7 @@ pub fn initialize(
         .wrap_err_with(|| eyre!("failed to read markdown file `{markdown_path}`"))
 }
 
-pub fn parse_markdown(slug: &str) -> eyre::Result<ShallowSection> {
+pub fn parse_markdown(slug: Slug) -> eyre::Result<ShallowSection> {
     let mut processers: Vec<Box<dyn Processer>> = vec![
         Box::new(crate::process::footnote::Footnote),
         Box::new(crate::process::figure::Figure),
