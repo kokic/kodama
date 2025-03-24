@@ -114,8 +114,13 @@ impl CompileState {
                         }
                         LazyContent::Local(local_link) => {
                             let link_slug = local_link.slug;
-                            let article_title = get_metadata(shallows, link_slug)
-                                .map_or("", |s| s.page_title().map_or("", |s| s));
+                            
+                            let metadata = get_metadata(shallows, link_slug);
+                            let article_title = get_metadata(shallows, link_slug).map_or("", |s| {
+                                s.title().map(|c| c.as_string()).flatten().map_or("", |s| s)
+                            });
+                            let page_title =
+                                metadata.map_or("", |s| s.page_title().map_or(article_title, |s| s));
 
                             if is_reference(shallows, link_slug) {
                                 references.insert(link_slug);
@@ -128,10 +133,7 @@ impl CompileState {
                                 && format!("{}:metadata", link_slug) != slug
                                 && is_enable_backlinks(shallows, link_slug)
                             {
-                                callback.insert_backlinks(
-                                    link_slug,
-                                    vec![slug],
-                                );
+                                callback.insert_backlinks(link_slug, vec![slug]);
                             }
 
                             let local_link = local_link.text.clone();
@@ -139,7 +141,7 @@ impl CompileState {
 
                             let html = crate::html_flake::html_link(
                                 &config::full_html_url(link_slug),
-                                &format!("{} [{}]", article_title, link_slug),
+                                &format!("{} [{}]", page_title, link_slug),
                                 &text,
                                 crate::recorder::State::LocalLink.strify(),
                             );
