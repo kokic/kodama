@@ -1,3 +1,7 @@
+// Copyright (c) 2025 Kodama Project. All rights reserved.
+// Released under the GPL-3.0 license as described in the file LICENSE.
+// Authors: Alias Qli (@AliasQli)
+
 use htmlize::unescape_attribute;
 use regex_lite::{CaptureMatches, Captures, Regex};
 use std::borrow::Cow;

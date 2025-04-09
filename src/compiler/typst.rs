@@ -1,3 +1,7 @@
+// Copyright (c) 2025 Kodama Project. All rights reserved.
+// Released under the GPL-3.0 license as described in the file LICENSE.
+// Authors: Alias Qli (@AliasQli), Spore (@s-cerevisiae)
+
 use eyre::{eyre, WrapErr};
 
 use super::html_parser::{HTMLParser, HTMLTagKind};

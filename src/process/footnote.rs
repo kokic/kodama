@@ -1,3 +1,7 @@
+// Copyright (c) 2025 Kodama Project. All rights reserved.
+// Released under the GPL-3.0 license as described in the file LICENSE.
+// Authors: Kokic (@kokic), Spore (@s-cerevisiae)
+
 use pulldown_cmark::{CowStr, Tag};
 
 use crate::{html_flake, recorder::ParseRecorder};

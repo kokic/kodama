@@ -1,3 +1,7 @@
+// Copyright (c) 2025 Kodama Project. All rights reserved.
+// Released under the GPL-3.0 license as described in the file LICENSE.
+// Authors: Kokic (@kokic), Spore (@s-cerevisiae)
+
 use crate::{
     compiler::{section::HTMLContent, taxon::Taxon},
     config,
