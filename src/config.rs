@@ -3,20 +3,32 @@
 // Authors: Kokic (@kokic), Spore (@s-cerevisiae)
 
 use std::{
-    fs::{self, create_dir_all},
-    hash::Hash,
-    path::{Path, PathBuf},
-    sync::{LazyLock, Mutex},
+    fs::{self, create_dir_all}, hash::Hash, path::{Path, PathBuf}, str::FromStr, sync::{LazyLock, Mutex}
 };
 
 use walkdir::WalkDir;
 
 use crate::slug::Slug;
 
-#[derive(Clone, clap::ValueEnum)]
+#[derive(Debug, Clone, clap::ValueEnum)]
 pub enum FooterMode {
     Link,
     Embed,
+}
+
+#[derive(Debug)]
+pub struct ParseFooterModeError;
+
+impl FromStr for FooterMode {
+    type Err = ParseFooterModeError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "link" => Ok(FooterMode::Link),
+            "embed" => Ok(FooterMode::Embed), 
+            _ => Err(ParseFooterModeError)
+        }
+    }
 }
 
 impl ToString for FooterMode {

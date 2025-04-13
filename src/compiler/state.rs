@@ -8,7 +8,7 @@ use eyre::OptionExt;
 
 use crate::{
     config,
-    entry::{EntryMetaData, HTMLMetaData, MetaData, KEY_SLUG},
+    entry::{EntryMetaData, HTMLMetaData, MetaData, KEY_SLUG, KEY_TITLE},
     slug::{self, Slug},
 };
 
@@ -72,12 +72,12 @@ impl CompileState {
         }
     }
 
-    fn compile_shallow(&mut self, shallows: &Shallows, shallow: &ShallowSection) -> &Section {
-        let slug = shallow.slug();
+    fn compile_shallow(&mut self, shallows: &Shallows, spanned: &ShallowSection) -> &Section {
+        let slug = spanned.slug();
         let mut children: SectionContents = vec![];
         let mut references: HashSet<Slug> = HashSet::new();
 
-        match &shallow.content {
+        match &spanned.content {
             HTMLContent::Plain(html) => {
                 children.push(SectionContent::Plain(html.to_string()));
             }
@@ -112,19 +112,19 @@ impl CompileState {
                             if let Some(title) = &embed_content.title {
                                 child_section
                                     .metadata
-                                    .update("title".to_string(), title.to_string())
+                                    .update(KEY_TITLE.to_owned(), title.to_string())
                             };
                             children.push(SectionContent::Embed(child_section));
                         }
                         LazyContent::Local(local_link) => {
                             let link_slug = local_link.slug;
-                            
+
                             let metadata = get_metadata(shallows, link_slug);
                             let article_title = get_metadata(shallows, link_slug).map_or("", |s| {
                                 s.title().map(|c| c.as_string()).flatten().map_or("", |s| s)
                             });
-                            let page_title =
-                                metadata.map_or("", |s| s.page_title().map_or(article_title, |s| s));
+                            let page_title = metadata
+                                .map_or("", |s| s.page_title().map_or(article_title, |s| s));
 
                             if is_reference(shallows, link_slug) {
                                 references.insert(link_slug);
@@ -133,10 +133,7 @@ impl CompileState {
                             /*
                              * Making oneself the content of a backlink should not be expected behavior.
                              */
-                            if link_slug != slug
-                                && format!("{}:metadata", link_slug) != slug
-                                && is_enable_backlinks(shallows, link_slug)
-                            {
+                            if link_slug != slug && is_enable_backlinks(shallows, link_slug) {
                                 callback.insert_backlinks(link_slug, vec![slug]);
                             }
 
@@ -161,11 +158,12 @@ impl CompileState {
         // compile metadata
         let mut metadata = EntryMetaData(HashMap::new());
         metadata.update(KEY_SLUG.to_string(), slug.to_string());
-        shallow.metadata.keys().for_each(|key| {
+        spanned.metadata.keys().for_each(|key| {
+            // Obviously, the slug must be a pure string, so we do not perform compilation.
             if key == KEY_SLUG {
                 return;
             }
-            let value = shallow.metadata.get(key).unwrap();
+            let value = spanned.metadata.get(key).unwrap();
             let spanned: ShallowSection = Self::metadata_to_section(value, slug);
             let compiled = self.compile_shallow(shallows, &spanned);
             let html = compiled.spanned();
@@ -184,7 +182,7 @@ impl CompileState {
         let mut metadata = HashMap::new();
         metadata.insert(
             KEY_SLUG.to_string(),
-            HTMLContent::Plain(format!("{}:metadata", current_slug)),
+            HTMLContent::Plain(current_slug.to_string()),
         );
 
         ShallowSection {

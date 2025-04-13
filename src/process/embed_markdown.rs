@@ -162,8 +162,9 @@ pub fn parse_metadata(
             let key = s[0..pos].trim();
             let val = s[pos + 1..].trim();
 
-            let mut val = parse_spanned_markdown(val, &format!("{}:metadata", recorder.current))
-                .wrap_err("failed to parse metadata value")?;
+            let res = parse_spanned_markdown(val, &recorder.current); 
+            let mut val = res.wrap_err("failed to parse metadata value")?;
+            
             if key == "taxon" {
                 if let HTMLContent::Plain(v) = val {
                     val = HTMLContent::Plain(display_taxon(&v));

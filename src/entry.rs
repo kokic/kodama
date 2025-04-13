@@ -4,11 +4,15 @@
 
 use crate::{
     compiler::{section::HTMLContent, taxon::Taxon},
-    config,
-    html_flake, slug::Slug,
+    config::{self, FooterMode},
+    html_flake,
+    slug::Slug,
 };
 use serde::{Deserialize, Serialize};
-use std::collections::{hash_map::Keys, HashMap};
+use std::{
+    collections::{hash_map::Keys, HashMap},
+    str::FromStr,
+};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct HTMLMetaData(pub HashMap<String, HTMLContent>);
@@ -23,6 +27,8 @@ pub const KEY_DATA_TAXON: &'static str = "data-taxon";
 
 /// Control the "Previous Level" information in the current page navigation.
 pub const KEY_PARENT: &'static str = "parent";
+
+/// Control the page title text of the current page.
 pub const KEY_PAGE_TITLE: &'static str = "page-title";
 
 /// `backlinks: bool`:
@@ -38,7 +44,10 @@ pub const KEY_COLLECT: &'static str = "collect";
 /// Controls whether the current page process as reference.
 pub const KEY_ASREF: &'static str = "asref";
 
-const PRESET_METADATA: [&'static str; 9] = [
+/// `footer-mode: embed | link`
+pub const KEY_FOOTER_MODE: &'static str = "footer-mode";
+
+const PRESET_METADATA: [&'static str; 10] = [
     KEY_TITLE,
     KEY_SLUG,
     KEY_TAXON,
@@ -48,6 +57,7 @@ const PRESET_METADATA: [&'static str; 9] = [
     KEY_BACKLINKS,
     KEY_COLLECT,
     KEY_ASREF,
+    KEY_FOOTER_MODE,
 ];
 
 pub trait MetaData<V>
@@ -184,7 +194,14 @@ impl EntryMetaData {
         let slug_url = config::full_html_url(slug);
         let span_class: Vec<String> = vec!["taxon".to_string()];
 
-        html_flake::html_header(title, taxon, &slug_url, &slug_text, span_class.join(" "), self.etc())
+        html_flake::html_header(
+            title,
+            taxon,
+            &slug_url,
+            &slug_text,
+            span_class.join(" "),
+            self.etc(),
+        )
     }
 
     /// hidden suffix `/index` in slug text.
@@ -202,5 +219,11 @@ impl EntryMetaData {
 
     pub fn update(&mut self, key: String, value: String) {
         let _ = self.0.insert(key, value);
+    }
+
+    pub fn footer_mode(&self) -> Option<FooterMode> {
+        return self.get_str(&KEY_FOOTER_MODE).map(|s| {
+            FooterMode::from_str(s).expect("footer-mode must be either `embed` or `link`.")
+        });
     }
 }

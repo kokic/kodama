@@ -6,7 +6,7 @@ use std::{collections::HashSet, ops::Not, path::Path};
 
 use crate::{
     compiler::counter::Counter,
-    config::{self, verify_update_hash},
+    config::{self, verify_update_hash, FooterMode},
     entry::MetaData,
     html_flake,
     slug::Slug,
@@ -70,7 +70,7 @@ impl Writer {
         let html_header = Writer::header(state, slug);
 
         let callback = state.callback().0.get(&slug);
-        let footer_html = Writer::footer(state, &section.references, callback);
+        let footer_html = Writer::footer(section.metadata.footer_mode(), state, &section.references, callback);
         let page_title = section.metadata.page_title().map_or("", |s| s.as_str());
 
         let html = crate::html_flake::html_doc(
@@ -85,23 +85,28 @@ impl Writer {
     }
 
     fn header(state: &CompileState, slug: Slug) -> String {
-        state
+        // We must avoid section `index` defaulting to itself as its parent section.
+        if slug.as_str() == "index" {
+            return String::default();
+        }
+
+        let parent = state
             .callback()
             .0
             .get(&slug)
-            .and_then(|callback| {
-                let parent = callback.parent;
-                state.compiled().get(&parent).map(|section| {
-                    let href = config::full_html_url(parent);
-                    let title = section.metadata.title().map_or("", |s| s);
-                    let page_title = section.metadata.page_title().map_or("", |s| s);
-                    html_flake::html_header_nav(title, page_title, &href)
-                })
-            })
-            .unwrap_or_default()
+            .map_or(Slug::new("index"), |callback| callback.parent);
+        let section = state
+            .compiled()
+            .get(&parent)
+            .expect(&format!("missing slug `{:?}`", parent));
+        let href = config::full_html_url(parent);
+        let title = section.metadata.title().map_or("", |s| s);
+        let page_title = section.metadata.page_title().map_or("", |s| s);
+        html_flake::html_header_nav(title, page_title, &href)
     }
 
     fn footer(
+        page_option: Option<FooterMode>, 
         state: &CompileState,
         references: &HashSet<Slug>,
         callback: Option<&CallbackValue>,
@@ -113,7 +118,7 @@ impl Writer {
             .iter()
             .map(|slug| {
                 let section = state.compiled().get(slug).unwrap();
-                Writer::footer_section_to_html(section)
+                Writer::footer_section_to_html(page_option.clone(), section)
             })
             .reduce(|s, t| s + &t)
             .map(|s| html_flake::html_footer_section("References", &s))
@@ -127,9 +132,8 @@ impl Writer {
                     .iter()
                     .copied()
                     .map(|slug| {
-                        let slug = Writer::clip_metadata_badge(slug);
                         let section = state.compiled().get(&slug).unwrap();
-                        Writer::footer_section_to_html(section)
+                        Writer::footer_section_to_html(page_option.clone(), section)
                     })
                     .reduce(|s, t| s + &t)
                     .map(|s| html_flake::html_footer_section("Backlinks", &s))
@@ -140,8 +144,11 @@ impl Writer {
         html_flake::html_footer(&references_html, &backlinks_html)
     }
 
+    #[allow(dead_code)]
     fn clip_metadata_badge(slug: Slug) -> Slug {
-        slug.as_str().strip_suffix(":metadata").map_or(slug, Slug::new)
+        slug.as_str()
+            .strip_suffix(":metadata")
+            .map_or(slug, Slug::new)
     }
 
     fn catalog_item(section: &Section, taxon: &str, child_html: &str) -> String {
@@ -158,18 +165,20 @@ impl Writer {
         )
     }
 
-    fn footer_content_to_html(content: &SectionContent) -> String {
+    fn footer_content_to_html(page_option: Option<FooterMode>, content: &SectionContent) -> String {
         match content {
             SectionContent::Plain(s) => s.to_string(),
-            SectionContent::Embed(section) => Writer::footer_section_to_html(section),
+            SectionContent::Embed(section) => Writer::footer_section_to_html(page_option, section),
         }
     }
 
-    fn footer_section_to_html(section: &Section) -> String {
-        match config::footer_mode() {
+    fn footer_section_to_html(page_option: Option<FooterMode>, section: &Section) -> String {
+        let footer_mode = page_option.clone().unwrap_or(config::footer_mode());
+
+        match footer_mode {
             config::FooterMode::Link => {
                 let summary = section.metadata.to_header(None, None);
-                format!(r#"<section class="block">{summary}</section>"#)
+                format!(r#"<section class="block" style="margin-bottom: 0.4em;">{summary}</section>"#)
             }
             config::FooterMode::Embed => {
                 let contents = match section.children.len() > 0 {
@@ -177,7 +186,7 @@ impl Writer {
                     true => section
                         .children
                         .iter()
-                        .map(Writer::footer_content_to_html)
+                        .map(|c| Writer::footer_content_to_html(page_option.clone(), c))
                         .reduce(|s, t| s + &t)
                         .unwrap(),
                 };
