@@ -188,17 +188,13 @@ impl EntryMetaData {
         let taxon = adhoc_taxon.unwrap_or(entry_taxon);
         let entry_title = self.0.get("title").map(|s| s.as_str()).unwrap_or("");
         let title = adhoc_title.unwrap_or(entry_title);
-
         let slug = Slug::new(self.get("slug").unwrap());
-        let slug_text = EntryMetaData::to_slug_text(slug.as_str());
-        let slug_url = config::full_html_url(slug);
         let span_class: Vec<String> = vec!["taxon".to_string()];
 
         html_flake::html_header(
             title,
             taxon,
-            &slug_url,
-            &slug_text,
+            &slug, 
             span_class.join(" "),
             self.etc(),
         )

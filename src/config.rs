@@ -50,6 +50,9 @@ pub struct CompileConfig<S> {
 
     /// `false`: This is very useful for users who want to modify existing styles or configure other themes.
     pub disable_export_css: bool,
+
+    /// URL prefix for opening files in the editor. 
+    pub edit: Option<S>, 
 }
 
 impl CompileConfig<&'static str> {
@@ -62,6 +65,7 @@ impl CompileConfig<&'static str> {
             short_slug: true,
             footer_mode: FooterMode::Link,
             disable_export_css: true,
+            edit: None, 
         }
     }
 }
@@ -76,6 +80,7 @@ impl CompileConfig<String> {
             short_slug: true,
             footer_mode: FooterMode::Link,
             disable_export_css: true,
+            edit: None, 
         }
     }
 
@@ -87,6 +92,7 @@ impl CompileConfig<String> {
         short_slug: bool,
         footer_mode: FooterMode,
         disable_export_css: bool,
+        edit: Option<String>, 
     ) -> CompileConfig<String> {
         CompileConfig {
             root_dir,
@@ -96,6 +102,7 @@ impl CompileConfig<String> {
             short_slug,
             footer_mode,
             disable_export_css,
+            edit, 
         }
     }
 }
@@ -174,6 +181,10 @@ pub fn footer_mode() -> FooterMode {
 
 pub fn disable_export_css() -> bool {
     lock_config().disable_export_css
+}
+
+pub fn editor_url() -> Option<String> {
+    lock_config().edit.clone()
 }
 
 pub fn get_cache_dir() -> String {
