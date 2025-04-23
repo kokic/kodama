@@ -8,7 +8,8 @@ use eyre::{eyre, WrapErr};
 use pulldown_cmark::{html, CowStr, Event, Options, Tag, TagEnd};
 
 use crate::{
-    config::input_path, entry::HTMLMetaData, process::processer::Processer, recorder::ParseRecorder, slug::Slug,
+    config::input_path, entry::HTMLMetaData, process::processer::Processer,
+    recorder::ParseRecorder, slug::Slug,
 };
 
 use super::{
@@ -94,14 +95,16 @@ pub fn parse_content(
     let mut contents: LazyContents = vec![];
     let parser = pulldown_cmark::Parser::new_ext(&markdown_input, OPTIONS);
 
+    let mut in_accumulated = false;
+    let mut accumulated_events: Vec<Event<'_>> = vec![];
+
     for mut event in parser {
         match &event {
             Event::Start(tag) => {
-                if ignore_paragraph {
-                    match tag {
-                        Tag::Paragraph => continue,
-                        _ => (),
-                    }
+                match tag {
+                    Tag::Paragraph if ignore_paragraph => continue,
+                    Tag::Table(_) => in_accumulated = true,
+                    _ => (),
                 }
 
                 processers
@@ -110,11 +113,13 @@ pub fn parse_content(
             }
 
             Event::End(tag) => {
-                if ignore_paragraph {
-                    match tag {
-                        TagEnd::Paragraph => continue,
-                        _ => (),
+                match tag {
+                    TagEnd::Paragraph if ignore_paragraph => continue,
+                    TagEnd::Table => {
+                        in_accumulated = false;
+                        accumulated_events.push(event.clone());
                     }
+                    _ => (),
                 }
 
                 let mut content: Option<LazyContent> = None;
@@ -180,16 +185,26 @@ pub fn parse_content(
             _ => (),
         };
 
+        if in_accumulated {
+            accumulated_events.push(event.clone());
+            continue;
+        }
+
         match recorder.is_html_writable() {
             true => {
                 let mut html_output = String::new();
                 if recorder.data.len() > 0 {
                     html_output = recorder.data.remove(0);
                 } else {
-                    html::push_html(&mut html_output, [event].into_iter());
+                    if accumulated_events.len() > 0 && !in_accumulated {
+                        html::push_html(&mut html_output, accumulated_events.clone().into_iter());
+                        accumulated_events.clear();
+                    } else {
+                        html::push_html(&mut html_output, [event].into_iter());
+                    }
                 }
 
-                // condensed contents
+                // merge plain contents
                 match contents.last() {
                     Some(LazyContent::Plain(s)) => {
                         let last_index = contents.len() - 1;
@@ -208,4 +223,37 @@ pub fn parse_content(
         }
     }
     Ok(HTMLContent::Lazy(contents))
+}
+
+mod test {
+
+    #[test]
+    fn test_table_td() {
+        use std::collections::HashMap;
+        use crate::{
+            compiler::section::HTMLContent, process::processer::Processer, recorder::ParseRecorder,
+        };
+
+        let mut processers: Vec<Box<dyn Processer>> = vec![
+            Box::new(crate::process::footnote::Footnote),
+            Box::new(crate::process::figure::Figure),
+            Box::new(crate::process::typst_image::TypstImage),
+            Box::new(crate::process::katex_compat::KatexCompact),
+            Box::new(crate::process::embed_markdown::Embed),
+        ];
+
+        let source = "| a | b |\n| - | - |\n| c | d |";
+        let mut metadata: HashMap<String, HTMLContent> = HashMap::new();
+        let mut recorder = ParseRecorder::new("test".to_owned());
+
+        let contents = super::parse_content(
+            &source,
+            &mut recorder,
+            &mut metadata,
+            &mut processers,
+            false,
+        );
+        
+        assert_eq!(contents.unwrap().as_str().unwrap(), "<table><thead><tr><th>a</th><th>b</th></tr></thead><tbody>\n<tr><td>c</td><td>d</td></tr>\n</tbody></table>\n");
+    }
 }
