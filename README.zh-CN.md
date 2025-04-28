@@ -1,6 +1,8 @@
 
 # Kodama
 
+![](https://kokic.github.io/projects/kodama.svg)
+
 一个 [Typst](https://github.com/typst/typst) 友好的静态 Zettelkästen 站点生成器. 
 
 [[英语说明](./README.md)] [[Demo](https://kokic.github.io)] [[Tutorials]](https://kokic.github.io/tutorials)
