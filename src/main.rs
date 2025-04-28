@@ -42,7 +42,7 @@ struct CompileCommand {
     #[arg(short, long, default_value_t = config::DEFAULT_CONFIG.base_url.into())]
     base: String,
 
-    /// Path to output directory.
+    /// Path to output directory
     #[arg(short, long, default_value_t = config::DEFAULT_CONFIG.output_dir.into())]
     output: String,
 
@@ -62,9 +62,13 @@ struct CompileCommand {
     #[arg(short, long, default_value_t = FooterMode::Link)]
     footer_mode: FooterMode,
 
-    /// Disable exporting the `*.css` file to the output directory.
+    /// Disable exporting the `*.css` file to the output directory
     #[arg(long)]
     disable_export_css: bool,
+
+    /// Display URL redirect links prepared for the editor (e.g. `vscode://file:`)
+    #[arg(long)]
+    edit: Option<String>,
 }
 
 #[derive(clap::Args)]
@@ -111,8 +115,14 @@ fn main() -> eyre::Result<()> {
                     compile_command.short_slug,
                     compile_command.footer_mode.clone(),
                     compile_command.disable_export_css,
+                    compile_command.edit.clone(),
                 ),
             );
+
+            match &compile_command.edit {
+                Some(s) => println!("[{}] EDIT MODE IS ENABLE. Please note that your disk file path information will be included in the pages!", s),
+                None => (),
+            }
 
             if !compile_command.disable_export_css {
                 export_css_files().wrap_err("failed to export CSS")?;
@@ -132,6 +142,7 @@ fn main() -> eyre::Result<()> {
                     config::DEFAULT_CONFIG.short_slug,
                     FooterMode::Link,
                     true,
+                    None,
                 ),
             );
 

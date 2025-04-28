@@ -10,6 +10,8 @@ use crate::process::processer::FootnoteCounter;
 pub enum State {
     /// Writable state
     None,
+
+    /// Embeded contents
     Embed,
 
     /// Shared for inline typst

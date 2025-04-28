@@ -2,12 +2,13 @@
 // Released under the GPL-3.0 license as described in the file LICENSE.
 // Authors: Kokic (@kokic), Spore (@s-cerevisiae)
 
-use std::ops::Not;
+use std::{ops::Not, path::PathBuf};
 
 use crate::{
-    config,
+    config::{self, input_path},
     entry::{EntryMetaData, MetaData},
-    html_macro::html, slug::Slug,
+    html_macro::html,
+    slug::Slug,
 };
 
 pub fn html_article_inner(
@@ -72,16 +73,35 @@ pub fn html_header_metadata(mut etc: Vec<String>) -> String {
 pub fn html_header(
     title: &str,
     taxon: &str,
-    slug_url: &str,
-    slug_text: &str,
+    slug: &Slug,
     span_class: String,
     etc: Vec<String>,
 ) -> String {
+    let slug_text = EntryMetaData::to_slug_text(slug.as_str());
+    let slug_url = config::full_html_url(*slug);
+
+    let editor_url = match config::editor_url() {
+        Some(prefix) => {
+            let source_url = format!(
+                "{}{}",
+                prefix,
+                PathBuf::from(input_path(format!("{}.md", slug.as_str())))
+                    .canonicalize()
+                    .unwrap()
+                    .to_str()
+                    .unwrap()
+            );
+            html!(a class="slug" href={source_url} { "[edit]" })
+        }
+        None => String::default(),
+    };
+
     html!(header {
         h1 {
             span class={span_class} { (taxon) }
             (title) " "
             a class="slug" href={slug_url} { "["(slug_text)"]" }
+            (editor_url)
         }
         (html_header_metadata(etc))
     })
@@ -97,7 +117,10 @@ pub fn catalog_item(
 ) -> String {
     let slug_url = config::full_html_url(slug);
     let title_text = format!("{} [{}]", page_title, slug);
-    let onclick = format!("window.location.href='#{}'", crate::slug::to_hash_id(slug.as_str()));
+    let onclick = format!(
+        "window.location.href='#{}'",
+        crate::slug::to_hash_id(slug.as_str())
+    );
 
     let mut class_name: Vec<String> = vec![];
     if !details_open {

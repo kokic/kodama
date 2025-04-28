@@ -180,7 +180,6 @@ impl HTMLContentBuilder {
     }
 }
 
-///
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ShallowSection {
     pub metadata: HTMLMetaData,

@@ -1,6 +1,8 @@
 
 # Kodama
 
+<img src="https://kokic.github.io/projects/kodama.svg" title="kodama" width=150 /> 
+
 A [Typst](https://github.com/typst/typst)-friendly static Zettelkästen site generator.
 
 [[Chinese README](./README.zh-CN.md)] [[Demo](https://kokic.github.io)] [[Tutorials]](https://kokic.github.io/tutorials)
