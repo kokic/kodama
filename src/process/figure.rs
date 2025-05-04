@@ -2,7 +2,7 @@
 // Released under the GPL-3.0 license as described in the file LICENSE.
 // Authors: Kokic (@kokic), Spore (@s-cerevisiae)
 
-use pulldown_cmark::{Tag, TagEnd};
+use pulldown_cmark::{Event, Tag, TagEnd};
 
 use crate::{
     compiler::section::{HTMLContent, LazyContent},
@@ -12,6 +12,37 @@ use crate::{
 use super::processer::Processer;
 
 pub struct Figure;
+
+pub struct Figure2<E> {
+    events: E,
+    title: String,
+    dest_url: String,
+}
+
+impl<'e, E: Iterator<Item = Event<'e>>> Iterator for Figure2<E> {
+    type Item = Event<'e>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        for e in self.events.by_ref() {
+            match e {
+                Event::Start(Tag::Image { dest_url, .. }) => self.dest_url = dest_url.into(),
+                Event::Text(text) => self.title.push_str(&text),
+                Event::End(TagEnd::Image) => {
+                    let html = format!(
+                        r#"<img src="{}" title="{}" alt="{}">"#,
+                        self.dest_url, self.title, self.title
+                    );
+                    self.title.clear();
+                    self.dest_url.clear();
+                    return Some(Event::Html(html.into()));
+                }
+                _ => return Some(e),
+            }
+        }
+
+        None
+    }
+}
 
 impl Processer for Figure {
     fn start(&mut self, tag: &Tag<'_>, recorder: &mut ParseRecorder) {
