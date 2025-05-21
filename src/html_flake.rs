@@ -227,6 +227,7 @@ pub fn html_doc(
             (format!("<title>{page_title}</title>"))
             (html_import_meta())
             (html_css())
+            (html_import_style())
             (html_import_fonts())
             (html_import_math())
         }
@@ -251,6 +252,10 @@ pub fn html_css() -> String {
 
 pub fn html_import_meta() -> String {
     return config::CUSTOM_META_HTML.clone();
+}
+
+pub fn html_import_style() -> String {
+    return config::CUSTOM_STYLE_HTML.clone();
 }
 
 pub fn html_import_fonts() -> String {

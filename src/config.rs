@@ -114,6 +114,10 @@ pub static CUSTOM_META_HTML: LazyLock<String> = LazyLock::new(|| {
     std::fs::read_to_string(join_path(&root_dir(), "import-meta.html")).unwrap_or_default()
 });
 
+pub static CUSTOM_STYLE_HTML: LazyLock<String> = LazyLock::new(|| {
+    std::fs::read_to_string(join_path(&root_dir(), "import-style.html")).unwrap_or_default()
+});
+
 pub static CUSTOM_FONTS_HTML: LazyLock<String> = LazyLock::new(|| {
     fs::read_to_string(join_path(&root_dir(), "import-fonts.html"))
         .unwrap_or(include_str!("include/import-fonts.html").to_string())
