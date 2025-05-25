@@ -12,12 +12,152 @@ use crate::{
     },
     html_flake::html_link,
     recorder::{ParseRecorder, State},
-    slug::to_slug,
+    slug::{to_slug, Slug},
 };
 use eyre::{eyre, WrapErr};
-use pulldown_cmark::{Tag, TagEnd};
+use pulldown_cmark::{Event, Tag, TagEnd};
 
 pub struct Embed;
+
+pub struct Embed2<'m, E> {
+    events: E,
+    state: State,
+    url: Option<String>,
+    content: Option<String>,
+    metadata: &'m mut HashMap<String, HTMLContent>,
+}
+
+impl<'m, E> Embed2<'m, E> {
+    fn exit(&mut self) {
+        self.state = State::None;
+        self.url = None;
+        self.content = None;
+    }
+}
+
+impl<'m, 'e, E: Iterator<Item = Event<'e>>> Iterator for Embed2<'m, E> {
+    type Item = LazyContent;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        for e in self.events.by_ref() {
+            match e {
+                Event::Start(Tag::Link { dest_url, .. }) => {
+                    let (mut url, action) = url_action(&dest_url);
+                    if action == State::Embed.strify() {
+                        self.state = State::Embed;
+                        self.url = Some(url); // [0]
+                    } else if is_external_link(&url) {
+                        self.state = State::ExternalLink;
+                        self.url = Some(url);
+                    } else if is_local_link(&dest_url) {
+                        self.state = State::LocalLink;
+
+                        if url.ends_with(".md") {
+                            url.truncate(url.len() - 3);
+                        }
+                        self.url = Some(url);
+                    }
+                }
+                Event::Start(Tag::MetadataBlock(_)) => {
+                    self.state = State::Metadata;
+                }
+                Event::End(tag) => {
+                    if tag == TagEnd::Link && self.state == State::Embed {
+                        let entry_url = self.url.as_ref().map_or("", |s| s);
+                        let entry_url = crate::config::relativize(entry_url);
+
+                        let embed_text = self.content.as_ref();
+                        let (section_option, inline_title) = parse_embed_text(embed_text);
+
+                        self.exit();
+                        return Some(LazyContent::Embed(EmbedContent {
+                            url: entry_url,
+                            title: inline_title,
+                            option: section_option,
+                        }));
+                    }
+
+                    if tag == TagEnd::Link && self.state == State::LocalLink {
+                        let url = self.url.as_ref().map_or(String::new(), |s| s.to_string());
+                        let text = self.content.take();
+                        self.exit();
+
+                        return Some(LazyContent::Local(LocalLink {
+                            slug: to_slug(&url),
+                            text,
+                        }));
+                    }
+
+                    if tag == TagEnd::Link && self.state == State::ExternalLink {
+                        let url = self.url.as_ref().map_or(String::new(), |s| s.to_string());
+                        let text = self.content.take().unwrap_or_default();
+                        let title = (url == text)
+                            .then(|| url.to_string())
+                            .unwrap_or_else(|| format!("{} [{}]", text, url));
+                        self.exit();
+
+                        let html = html_link(&url, &title, &text, State::ExternalLink.strify());
+                        return Some(LazyContent::Plain(html));
+                    }
+
+                    self.state = State::None;
+                    self.url = None;
+                    self.content = None;
+                }
+                Event::Text(text) => {
+                    if allow_inline(&self.state) {
+                        self.content.get_or_insert_default().push_str(&text);
+                    }
+
+                    if self.state == State::Metadata && !text.trim().is_empty() {
+                        // TODO Correct current slug
+                        parse_metadata2(&text, self.metadata, Slug::new("-")).expect("TODO");
+                    }
+                }
+                Event::InlineMath(math) => {
+                    if allow_inline(&self.state) {
+                        self.content = Some(format!("${}$", math)); // [1, 2, ...]: Text
+                    }
+                }
+                Event::Code(code) => {
+                    if allow_inline(&self.state) {
+                        self.content = Some(format!("<code>{}</code>", code));
+                    }
+                }
+                _ => {}
+            }
+        }
+        None
+    }
+}
+
+pub fn parse_metadata2(
+    s: &str,
+    metadata: &mut HashMap<String, HTMLContent>,
+    current_slug: Slug,
+) -> eyre::Result<()> {
+    let lines: Vec<&str> = s.split("\n").collect();
+    for s in lines {
+        if s.trim().len() != 0 {
+            let pos = s
+                .find(':')
+                .ok_or_else(|| eyre!("expected metadata format `name: value`, found `{s}`"))?;
+            let key = s[0..pos].trim();
+            let val = s[pos + 1..].trim();
+
+            let res = parse_spanned_markdown(val, &current_slug.as_str());
+            let mut val = res.wrap_err("failed to parse metadata value")?;
+
+            if key == "taxon" {
+                if let HTMLContent::Plain(v) = val {
+                    val = HTMLContent::Plain(display_taxon(&v));
+                }
+            }
+            metadata.insert(key.to_string(), val);
+        }
+    }
+    Ok(())
+}
 
 impl Processer for Embed {
     fn start(&mut self, tag: &Tag<'_>, recorder: &mut ParseRecorder) {
@@ -162,9 +302,9 @@ pub fn parse_metadata(
             let key = s[0..pos].trim();
             let val = s[pos + 1..].trim();
 
-            let res = parse_spanned_markdown(val, &recorder.current); 
+            let res = parse_spanned_markdown(val, &recorder.current);
             let mut val = res.wrap_err("failed to parse metadata value")?;
-            
+
             if key == "taxon" {
                 if let HTMLContent::Plain(v) = val {
                     val = HTMLContent::Plain(display_taxon(&v));
