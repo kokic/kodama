@@ -11,8 +11,9 @@ mod process;
 mod recorder;
 mod slug;
 mod typst_cli;
+mod assets_sync;
 
-use config::{output_path, CompileConfig, FooterMode};
+use config::{join_path, output_path, CompileConfig, FooterMode};
 
 use std::{fs, path::Path};
 
@@ -130,6 +131,8 @@ fn main() -> eyre::Result<()> {
 
             compiler::compile_all(root)
                 .wrap_err_with(|| eyre!("failed to compile project `{root}`"))?;
+
+            sync_assets_dir();
         }
         Command::Clean(clean_command) => {
             config::mutex_set(
@@ -185,4 +188,10 @@ fn export_css_file(css_content: &str, name: &str) -> eyre::Result<()> {
             .wrap_err_with(|| eyre!("failed to write CSS file to `{}`", path.display()))?;
     }
     Ok(())
+}
+
+fn sync_assets_dir() {
+    let source = join_path( &config::root_dir(), "assets");
+    let target = join_path(&config::output_dir(), "assets");
+    let _ = assets_sync::sync_assets(source, target);
 }
