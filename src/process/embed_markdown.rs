@@ -2,7 +2,10 @@
 // Released under the GPL-3.0 license as described in the file LICENSE.
 // Authors: Kokic (@kokic), Spore (@s-cerevisiae)
 
-use super::processer::{url_action, Processer};
+use super::{
+    content::EventExtended,
+    processer::{Processer, url_action},
+};
 use std::collections::HashMap;
 
 use crate::{
@@ -12,9 +15,9 @@ use crate::{
     },
     html_flake::html_link,
     recorder::{ParseRecorder, State},
-    slug::{to_slug, Slug},
+    slug::{Slug, to_slug},
 };
-use eyre::{eyre, WrapErr};
+use eyre::{WrapErr, eyre};
 use pulldown_cmark::{Event, Tag, TagEnd};
 
 pub struct Embed;
@@ -36,7 +39,7 @@ impl<'m, E> Embed2<'m, E> {
 }
 
 impl<'m, 'e, E: Iterator<Item = Event<'e>>> Iterator for Embed2<'m, E> {
-    type Item = LazyContent;
+    type Item = EventExtended<'e>;
 
     fn next(&mut self) -> Option<Self::Item> {
         for e in self.events.by_ref() {
@@ -70,7 +73,7 @@ impl<'m, 'e, E: Iterator<Item = Event<'e>>> Iterator for Embed2<'m, E> {
                         let (section_option, inline_title) = parse_embed_text(embed_text);
 
                         self.exit();
-                        return Some(LazyContent::Embed(EmbedContent {
+                        return Some(EventExtended::Embed(EmbedContent {
                             url: entry_url,
                             title: inline_title,
                             option: section_option,
@@ -82,7 +85,7 @@ impl<'m, 'e, E: Iterator<Item = Event<'e>>> Iterator for Embed2<'m, E> {
                         let text = self.content.take();
                         self.exit();
 
-                        return Some(LazyContent::Local(LocalLink {
+                        return Some(EventExtended::Local(LocalLink {
                             slug: to_slug(&url),
                             text,
                         }));
@@ -97,7 +100,7 @@ impl<'m, 'e, E: Iterator<Item = Event<'e>>> Iterator for Embed2<'m, E> {
                         self.exit();
 
                         let html = html_link(&url, &title, &text, State::ExternalLink.strify());
-                        return Some(LazyContent::Plain(html));
+                        return Some(EventExtended::CMark(Event::Html(html.into())));
                     }
 
                     self.state = State::None;
@@ -124,7 +127,7 @@ impl<'m, 'e, E: Iterator<Item = Event<'e>>> Iterator for Embed2<'m, E> {
                         self.content = Some(format!("<code>{}</code>", code));
                     }
                 }
-                _ => {}
+                _ => return Some(EventExtended::CMark(e)),
             }
         }
         None
