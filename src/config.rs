@@ -43,6 +43,7 @@ impl ToString for FooterMode {
 pub struct CompileConfig<S> {
     pub root_dir: S,
     pub output_dir: S,
+    pub assets_dir: S, 
     pub base_url: S,
     pub page_suffix: S,
     pub short_slug: bool,
@@ -60,6 +61,7 @@ impl CompileConfig<&'static str> {
         CompileConfig {
             root_dir: "./",
             output_dir: "./publish",
+            assets_dir: "./assets",
             base_url: "/",
             page_suffix: "",
             short_slug: true,
@@ -75,6 +77,7 @@ impl CompileConfig<String> {
         CompileConfig {
             root_dir: String::new(),
             output_dir: String::new(),
+            assets_dir: String::new(),
             base_url: String::new(),
             page_suffix: String::new(),
             short_slug: true,
@@ -87,6 +90,7 @@ impl CompileConfig<String> {
     pub fn new<'a>(
         root_dir: String,
         output_dir: String,
+        assets_dir: String,
         base_url: String,
         disable_pretty_urls: bool,
         short_slug: bool,
@@ -97,6 +101,7 @@ impl CompileConfig<String> {
         CompileConfig {
             root_dir,
             output_dir,
+            assets_dir, 
             base_url: normalize_base_url(&base_url),
             page_suffix: to_page_suffix(disable_pretty_urls),
             short_slug,
