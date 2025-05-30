@@ -11,8 +11,9 @@ mod process;
 mod recorder;
 mod slug;
 mod typst_cli;
+mod assets_sync;
 
-use config::{output_path, CompileConfig, FooterMode};
+use config::{join_path, output_path, CompileConfig, FooterMode};
 
 use std::{fs, path::Path};
 
@@ -45,6 +46,10 @@ struct CompileCommand {
     /// Path to output directory
     #[arg(short, long, default_value_t = config::DEFAULT_CONFIG.output_dir.into())]
     output: String,
+
+    /// Path to assets directory relative to the output directory
+    #[arg(long, default_value_t = config::DEFAULT_CONFIG.assets_dir.into())]
+    assets: String,
 
     /// Configures the project root (for absolute paths)
     #[arg(short, long, default_value_t = config::DEFAULT_CONFIG.root_dir.into())]
@@ -110,6 +115,7 @@ fn main() -> eyre::Result<()> {
                 CompileConfig::new(
                     root.to_string(),
                     output.to_string(),
+                    compile_command.assets.to_string(),
                     compile_command.base.to_string(),
                     compile_command.disable_pretty_urls,
                     compile_command.short_slug,
@@ -130,6 +136,8 @@ fn main() -> eyre::Result<()> {
 
             compiler::compile_all(root)
                 .wrap_err_with(|| eyre!("failed to compile project `{root}`"))?;
+
+            sync_assets_dir()?;
         }
         Command::Clean(clean_command) => {
             config::mutex_set(
@@ -137,6 +145,7 @@ fn main() -> eyre::Result<()> {
                 CompileConfig::new(
                     clean_command.root.to_string(),
                     clean_command.output.to_string(),
+                    config::DEFAULT_CONFIG.assets_dir.into(),
                     config::DEFAULT_CONFIG.base_url.into(),
                     false,
                     config::DEFAULT_CONFIG.short_slug,
@@ -185,4 +194,11 @@ fn export_css_file(css_content: &str, name: &str) -> eyre::Result<()> {
             .wrap_err_with(|| eyre!("failed to write CSS file to `{}`", path.display()))?;
     }
     Ok(())
+}
+
+fn sync_assets_dir() -> eyre::Result<bool> {
+    let source = join_path( &config::root_dir(), "assets");
+    let target = join_path(&config::output_dir(), "assets");
+    assets_sync::sync_assets(source, target)?;
+    Ok(true)
 }
