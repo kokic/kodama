@@ -2,7 +2,6 @@
 // Released under the GPL-3.0 license as described in the file LICENSE.
 // Authors: Kokic (@kokic)
 
-// use fs_extra::file::{copy, CopyOptions};
 use std::fs::{self};
 use std::path::Path;
 use walkdir::WalkDir;
