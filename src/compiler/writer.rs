@@ -178,7 +178,8 @@ impl Writer {
         match footer_mode {
             config::FooterMode::Link => {
                 let summary = section.metadata.to_header(None, None);
-                format!(r#"<section class="block" style="margin-bottom: 0.4em;">{summary}</section>"#)
+                let data_taxon = section.metadata.data_taxon().map_or("", |s| s);
+                format!(r#"<section class="block" data-taxon="{data_taxon}" style="margin-bottom: 0.4em;">{summary}</section>"#)
             }
             config::FooterMode::Embed => {
                 let contents = match section.children.len() > 0 {
