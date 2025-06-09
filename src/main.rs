@@ -2,6 +2,7 @@
 // Released under the GPL-3.0 license as described in the file LICENSE.
 // Authors: Kokic (@kokic)
 
+mod assets_sync;
 mod compiler;
 mod config;
 mod entry;
@@ -11,14 +12,15 @@ mod process;
 mod recorder;
 mod slug;
 mod typst_cli;
-mod assets_sync;
 
 use config::{join_path, output_path, CompileConfig, FooterMode};
 
-use std::{fs, path::Path};
+use std::{fs, io::Write, path::Path};
 
 use clap::Parser;
 use eyre::{eyre, WrapErr};
+
+use notify::{event::ModifyKind, Config, EventKind, RecommendedWatcher, RecursiveMode, Watcher};
 
 #[derive(Parser)]
 #[command(version, about, long_about = None)]
@@ -35,6 +37,8 @@ enum Command {
 
     /// Clean build files (.cache & publish).
     Clean(CleanCommand),
+
+    Watch(WatchCommand),
 }
 
 #[derive(clap::Args)]
@@ -101,6 +105,12 @@ struct CleanCommand {
     /// Clean html hash files.
     #[arg(long)]
     html: bool,
+}
+
+#[derive(clap::Args)]
+struct WatchCommand {
+    #[arg(long)]
+    dirs: Vec<String>,
 }
 
 fn main() -> eyre::Result<()> {
@@ -176,6 +186,11 @@ fn main() -> eyre::Result<()> {
                 let _ = config::delete_all_with(&cache_dir, &path_ends_with(".html.hash"));
             });
         }
+        Command::Watch(watch_command) => {
+            if let Err(error) = watch(&watch_command.dirs) {
+                eprintln!("Error: {error:?}");
+            }
+        }
     }
     Ok(())
 }
@@ -197,8 +212,64 @@ fn export_css_file(css_content: &str, name: &str) -> eyre::Result<()> {
 }
 
 fn sync_assets_dir() -> eyre::Result<bool> {
-    let source = join_path( &config::root_dir(), "assets");
+    let source = join_path(&config::root_dir(), "assets");
     let target = join_path(&config::output_dir(), "assets");
     assets_sync::sync_assets(source, target)?;
     Ok(true)
+}
+
+/// from: https://github.com/notify-rs/notify/blob/main/examples/monitor_raw.rs#L18
+fn watch<P: AsRef<Path>>(watched_paths: &Vec<P>) -> notify::Result<()> {
+    print!("\x1B[2J\x1B[H");
+    std::io::stdout().flush()?;
+
+    let (tx, rx) = std::sync::mpsc::channel();
+
+    // Automatically select the best implementation for your platform.
+    // You can also access each implementation directly e.g. INotifyWatcher.
+    let mut watcher = RecommendedWatcher::new(tx, Config::default())?;
+
+    // All files and directories at that path and
+    // below will be monitored for changes.
+    for watched_path in watched_paths {
+        let watched_path = watched_path.as_ref();
+        watcher.watch(watched_path, RecursiveMode::Recursive)?;
+
+        println!("Watching: {}", watched_path.to_string_lossy());
+    }
+
+    let row = watched_paths.len() + 1;
+
+    for res in rx {
+        match res {
+            Ok(event) => {
+                if !matches!(event.kind, EventKind::Modify(ModifyKind::Data(_))) {
+                    // Ignore non-modify events
+                    continue;
+                }
+
+                for path in event.paths {
+                    let path_lossy = path.to_string_lossy();
+                    if !path_lossy.contains("/publish/") && !path.ends_with("publish") {
+                        print!("\x1B[{};0H\x1B[2K", row);
+                        print!("Change: {path:?}");
+                        std::io::stdout().flush()?;
+
+                        let output = std::process::Command::new("./build.sh")
+                            .stdout(std::process::Stdio::piped())
+                            .output()
+                            .expect("build command failed to start");
+
+                        if !output.status.success() {
+                            let stderr = String::from_utf8_lossy(&output.stderr);
+                             eprintln!("{}", stderr);
+                        }
+                    }
+                }
+            }
+            Err(error) => eprintln!("Error: {error:?}"),
+        }
+    }
+
+    Ok(())
 }
