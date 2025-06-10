@@ -13,6 +13,7 @@ regex-lite = "0.1.6"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 walkdir = "2.5.0"
+notify = "8.0.0"
 
 [profile.release]
 strip = true

@@ -239,7 +239,7 @@ section.block>details[open] {
 }
 
 .block {
-  width: fit-content;
+  /* width: fit-content; */
   border-radius: var(--radius)
 }
 
@@ -295,6 +295,11 @@ hr {
 section section[data-taxon="Reference"]>details>summary>header>h1>.taxon,
 section section[data-taxon="Person"]>details>summary>header>h1>.taxon {
   display: none;
+}
+
+section .block[data-taxon]>header>h1,
+section .block[data-taxon] details>summary>header>h1 {
+  font-size: 13pt;
 }
 
 footer>section {

@@ -126,7 +126,7 @@ impl CompileState {
                             let page_title = metadata
                                 .map_or("", |s| s.page_title().map_or(article_title, |s| s));
 
-                            if is_reference(shallows, link_slug) {
+                            if link_slug != slug && is_reference(shallows, link_slug) {
                                 references.insert(link_slug);
                             }
 
