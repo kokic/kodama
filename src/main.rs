@@ -238,12 +238,14 @@ fn watch<P: AsRef<Path>>(watched_paths: &Vec<P>, script_path: &str) -> notify::R
 
     // All files and directories at that path and
     // below will be monitored for changes.
+
+    print!("Watching: ");
     for watched_path in watched_paths {
         let watched_path = watched_path.as_ref();
         watcher.watch(watched_path, RecursiveMode::Recursive)?;
-
-        println!("Watching: {}", watched_path.to_string_lossy());
+        print!("\"{}\"  ", watched_path.to_string_lossy());
     }
+    println!("\n\nPress Ctrl+C to stop watching.\n");
 
     let row = watched_paths.len() + 1;
 
