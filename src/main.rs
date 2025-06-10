@@ -38,6 +38,8 @@ enum Command {
     /// Clean build files (.cache & publish).
     Clean(CleanCommand),
 
+    /// Watch files and run build script on changes.
+    #[command(visible_alias = "w")]
     Watch(WatchCommand),
 }
 
@@ -109,8 +111,13 @@ struct CleanCommand {
 
 #[derive(clap::Args)]
 struct WatchCommand {
+    /// Configures watched files.
     #[arg(long)]
     dirs: Vec<String>,
+
+    /// Configures the build script path. 
+    #[arg(short, long, default_value_t = ("./build.sh").to_string())]
+    script: String,
 }
 
 fn main() -> eyre::Result<()> {
@@ -187,7 +194,7 @@ fn main() -> eyre::Result<()> {
             });
         }
         Command::Watch(watch_command) => {
-            if let Err(error) = watch(&watch_command.dirs) {
+            if let Err(error) = watch(&watch_command.dirs, &watch_command.script) {
                 eprintln!("Error: {error:?}");
             }
         }
@@ -219,7 +226,7 @@ fn sync_assets_dir() -> eyre::Result<bool> {
 }
 
 /// from: https://github.com/notify-rs/notify/blob/main/examples/monitor_raw.rs#L18
-fn watch<P: AsRef<Path>>(watched_paths: &Vec<P>) -> notify::Result<()> {
+fn watch<P: AsRef<Path>>(watched_paths: &Vec<P>, script_path: &str) -> notify::Result<()> {
     print!("\x1B[2J\x1B[H");
     std::io::stdout().flush()?;
 
@@ -255,7 +262,7 @@ fn watch<P: AsRef<Path>>(watched_paths: &Vec<P>) -> notify::Result<()> {
                         print!("Change: {path:?}");
                         std::io::stdout().flush()?;
 
-                        let output = std::process::Command::new("./build.sh")
+                        let output = std::process::Command::new(script_path)
                             .stdout(std::process::Stdio::piped())
                             .output()
                             .expect("build command failed to start");
