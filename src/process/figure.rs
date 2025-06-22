@@ -19,6 +19,16 @@ pub struct Figure2<E> {
     dest_url: String,
 }
 
+impl<E> Figure2<E> {
+    pub fn new(events: E, title: String, dest_url: String) -> Self {
+        Self {
+            events,
+            title,
+            dest_url,
+        }
+    }
+}
+
 impl<'e, E: Iterator<Item = Event<'e>>> Iterator for Figure2<E> {
     type Item = Event<'e>;
 

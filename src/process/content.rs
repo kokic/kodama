@@ -7,6 +7,7 @@ use pulldown_cmark_escape::{escape_href, escape_html, escape_html_body_text};
 
 use crate::compiler::section::{EmbedContent, LazyContent, LazyContents, LocalLink};
 
+#[derive(Debug)]
 pub enum EventExtended<'e> {
     CMark(Event<'e>),
     Embed(EmbedContent),

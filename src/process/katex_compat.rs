@@ -14,14 +14,22 @@ pub struct KatexCompat2<E> {
     events: E,
 }
 
+impl<E> KatexCompat2<E> {
+    pub fn new(events: E) -> Self {
+        Self { events }
+    }
+}
+
 impl<'e, E: Iterator<Item = Event<'e>>> Iterator for KatexCompat2<E> {
     type Item = Event<'e>;
 
     fn next(&mut self) -> Option<Self::Item> {
         // TODO: see if inline math is actually needed
-        self.events.next().map(|e| match e {
-            Event::DisplayMath(math) => Event::DisplayMath(formula_disambiguate(&math).into()),
-            _ => e,
+        self.events.next().map(|e| {
+            match e {
+                Event::DisplayMath(math) => Event::DisplayMath(formula_disambiguate(&math).into()),
+                _ => e,
+            }
         })
     }
 }

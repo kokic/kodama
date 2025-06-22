@@ -8,8 +8,14 @@ use eyre::{eyre, WrapErr};
 use pulldown_cmark::{html, CowStr, Event, Options, Tag, TagEnd};
 
 use crate::{
-    config::input_path, entry::HTMLMetaData, process::processer::Processer,
-    recorder::ParseRecorder, slug::Slug,
+    config::input_path,
+    entry::HTMLMetaData,
+    process::{
+        content::to_contents, embed_markdown::Embed2, katex_compat::KatexCompat2,
+        processer::Processer, typst_image::TypstImage2,
+    },
+    recorder::ParseRecorder,
+    slug::Slug,
 };
 
 use super::{
@@ -85,160 +91,41 @@ pub fn parse_spanned_markdown(
     )
 }
 
-pub fn parse_spanned_markdown2(
-    markdown_input: &str,
-    current_slug: &str,
-) -> eyre::Result<HTMLContent> {
-    let mut recorder = ParseRecorder::new(current_slug.to_owned());
-
-    let mut processers: Vec<Box<dyn Processer>> = vec![
-        Box::new(crate::process::typst_image::TypstImage),
-        Box::new(crate::process::katex_compat::KatexCompact),
-        Box::new(crate::process::embed_markdown::Embed),
-    ];
-
-    parse_content2(
-        &markdown_input,
-        &mut recorder,
-        &mut HashMap::new(),
-        &mut processers,
-        true,
-    )
+pub fn parse_spanned_markdown2(markdown_input: &str) -> eyre::Result<HTMLContent> {
+    parse_content2(markdown_input, &mut HashMap::new())
 }
 
 pub fn parse_content2(
     markdown_input: &str,
-    recorder: &mut ParseRecorder,
     metadata: &mut HashMap<String, HTMLContent>,
-    processers: &mut Vec<Box<dyn Processer>>,
-    ignore_paragraph: bool,
 ) -> eyre::Result<HTMLContent> {
-    let mut contents: LazyContents = vec![];
-    let parser = pulldown_cmark::Parser::new_ext(&markdown_input, OPTIONS);
+    let parser = pulldown_cmark::Parser::new_ext(markdown_input, OPTIONS);
 
-    let mut in_accumulated = false;
-    let mut accumulated_events: Vec<Event<'_>> = vec![];
+    let iter = Embed2::new(KatexCompat2::new(TypstImage2::new(parser)), metadata);
 
-    for mut event in parser {
-        match &event {
-            Event::Start(tag) => {
-                match tag {
-                    Tag::Paragraph if ignore_paragraph => continue,
-                    Tag::Table(_) => in_accumulated = true,
-                    _ => (),
-                }
+    Ok(HTMLContent::Lazy(to_contents(iter)))
+}
 
-                processers
-                    .iter_mut()
-                    .for_each(|handler| handler.start(&tag, recorder));
-            }
+#[cfg(test)]
+mod tests {
+    use super::*;
 
-            Event::End(tag) => {
-                match tag {
-                    TagEnd::Paragraph if ignore_paragraph => continue,
-                    TagEnd::Table => {
-                        in_accumulated = false;
-                        accumulated_events.push(event.clone());
-                    }
-                    _ => (),
-                }
+    #[test]
+    fn test_parse_content2() {
+        let input = r#"有两个正方体, 一个边长为 $1$, 另一个边长为 $2$. 请找到另外两个边长为有理数的正方体使它们的体积总和相同. 换言之, 求下述方程的一组 (正) 有理解: 
 
-                let mut content: Option<LazyContent> = None;
-                for handler in processers.iter_mut() {
-                    content = content.or(handler.end(&tag, recorder));
-                }
+$$ x^3 + y^3 \eqq 9 \quad \color{gray}{(= \quad 1^3+2^3)} $$
 
-                match content {
-                    Some(lazy) => match &lazy {
-                        LazyContent::Plain(s) => {
-                            event = Event::Html(CowStr::Boxed(s.to_string().into()))
-                        }
-                        _ => {
-                            contents.push(lazy);
-                            continue;
-                        }
-                    },
-                    None => (),
-                }
-            }
+我们先画出 $x^3 + y^3 = 9$. 然后由已知的 $P=(1,2)$ 出发做切线得到 $2P$, $4P$. 
 
-            Event::Text(s) => {
-                for handler in processers.iter_mut() {
-                    handler.text(s, recorder, metadata)?;
-                }
-            }
+[+](/mille-plateaux/canterbury.md#:embed)
 
-            Event::InlineMath(s) => {
-                let mut html = String::new();
-                processers.iter_mut().for_each(|handler| {
-                    handler.inline_math(&s, recorder).map(|s| html = s);
-                });
-                event = Event::Html(CowStr::Boxed(html.into()));
-            }
+如图, 随后注意到 $8P$ 恰好位于 $x > 0,y > 0$ 的区域, 现在写出其坐标
 
-            Event::DisplayMath(s) => {
-                let mut html = String::new();
-                processers.iter_mut().for_each(|handler| {
-                    handler.display_math(&s, recorder).map(|s| html = s);
-                });
-                event = Event::Html(CowStr::Boxed(html.into()));
-            }
-
-            Event::InlineHtml(s) => {
-                processers
-                    .iter_mut()
-                    .for_each(|handler| handler.inline_html(s, recorder));
-            }
-
-            Event::Code(s) => {
-                processers
-                    .iter_mut()
-                    .for_each(|handler| handler.code(s, recorder));
-            }
-
-            Event::FootnoteReference(s) => {
-                let mut html = String::new();
-                processers.iter_mut().for_each(|handler| {
-                    handler.footnote(&s, recorder).map(|s| html = s);
-                });
-                event = Event::Html(CowStr::Boxed(html.into()));
-            }
-            _ => (),
-        };
-
-        if in_accumulated {
-            accumulated_events.push(event.clone());
-            continue;
-        }
-
-        if recorder.is_html_writable() {
-            let mut html_output = String::new();
-            if !recorder.data.is_empty() {
-                html_output = recorder.data.remove(0);
-            } else if !accumulated_events.is_empty() && !in_accumulated {
-                html::push_html(&mut html_output, accumulated_events.clone().into_iter());
-                accumulated_events.clear();
-            } else {
-                html::push_html(&mut html_output, [event].into_iter());
-            }
-
-            // merge plain contents
-            match contents.last() {
-                Some(LazyContent::Plain(s)) => {
-                    let last_index = contents.len() - 1;
-                    contents[last_index] = LazyContent::Plain(s.to_string() + &html_output);
-                }
-                _ => contents.push(LazyContent::Plain(html_output)),
-            }
-        }
+$$ 8P = \left(\frac{1243617733990094836481}{609623835676137297449}, \frac{487267171714352336560}{609623835676137297449}\right) $$"#;
+        let contents = parse_content2(input, &mut HashMap::new());
+        println!("{contents:?}");
     }
-
-    if contents.len() == 1 {
-        if let LazyContent::Plain(html) = &contents[0] {
-            return Ok(HTMLContent::Plain(html.to_string()));
-        }
-    }
-    Ok(HTMLContent::Lazy(contents))
 }
 
 pub fn parse_content(

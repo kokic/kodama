@@ -4,7 +4,7 @@
 
 use super::{
     content::EventExtended,
-    processer::{Processer, url_action},
+    processer::{url_action, Processer},
 };
 use std::collections::HashMap;
 
@@ -15,9 +15,9 @@ use crate::{
     },
     html_flake::html_link,
     recorder::{ParseRecorder, State},
-    slug::{Slug, to_slug},
+    slug::{to_slug, Slug},
 };
-use eyre::{WrapErr, eyre};
+use eyre::{eyre, WrapErr};
 use pulldown_cmark::{Event, Tag, TagEnd};
 
 pub struct Embed;
@@ -31,6 +31,16 @@ pub struct Embed2<'m, E> {
 }
 
 impl<'m, E> Embed2<'m, E> {
+    pub fn new(events: E, metadata: &'m mut HashMap<String, HTMLContent>) -> Self {
+        Self {
+            events,
+            state: State::None,
+            url: None,
+            content: None,
+            metadata,
+        }
+    }
+
     fn exit(&mut self) {
         self.state = State::None;
         self.url = None;
@@ -106,25 +116,31 @@ impl<'m, 'e, E: Iterator<Item = Event<'e>>> Iterator for Embed2<'m, E> {
                     self.state = State::None;
                     self.url = None;
                     self.content = None;
-                }
-                Event::Text(text) => {
-                    if allow_inline(&self.state) {
-                        self.content.get_or_insert_default().push_str(&text);
-                    }
 
-                    if self.state == State::Metadata && !text.trim().is_empty() {
+                    return Some(EventExtended::CMark(e));
+                }
+                Event::Text(ref text) => {
+                    if allow_inline(&self.state) {
+                        self.content.get_or_insert_default().push_str(text);
+                    } else if self.state == State::Metadata && !text.trim().is_empty() {
                         // TODO Correct current slug
-                        parse_metadata2(&text, self.metadata, Slug::new("-")).expect("TODO");
+                        parse_metadata2(text, self.metadata, Slug::new("-")).expect("TODO");
+                    } else {
+                        return Some(EventExtended::CMark(e));
                     }
                 }
-                Event::InlineMath(math) => {
+                Event::InlineMath(ref math) => {
                     if allow_inline(&self.state) {
                         self.content = Some(format!("${}$", math)); // [1, 2, ...]: Text
+                    } else {
+                        return Some(EventExtended::CMark(e));
                     }
                 }
-                Event::Code(code) => {
+                Event::Code(ref code) => {
                     if allow_inline(&self.state) {
                         self.content = Some(format!("<code>{}</code>", code));
+                    } else {
+                        return Some(EventExtended::CMark(e));
                     }
                 }
                 _ => return Some(EventExtended::CMark(e)),

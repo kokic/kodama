@@ -27,6 +27,16 @@ pub struct TypstImage2<E> {
 }
 
 impl<E> TypstImage2<E> {
+    pub fn new(events: E) -> Self {
+        Self {
+            events,
+            state: State::None,
+            shareds: Vec::new(),
+            url: None,
+            content: None,
+        }
+    }
+
     fn exit(&mut self) {
         self.state = State::None;
         self.url = None;
@@ -62,9 +72,13 @@ impl<'e, E: Iterator<Item = Event<'e>>> Iterator for TypstImage2<E> {
                         self.url = Some(url.to_string());
                     }
                 }
-                Event::Text(content) | Event::InlineMath(content) | Event::Code(content) => {
+                Event::Text(ref content)
+                | Event::InlineMath(ref content)
+                | Event::Code(ref content) => {
                     if allow_inline(&self.state) {
-                        self.content = Some(content.into());
+                        self.content = Some(content.to_string());
+                    } else {
+                        return Some(e);
                     }
                 }
                 Event::End(TagEnd::Link) => match self.state {

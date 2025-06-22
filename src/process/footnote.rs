@@ -17,6 +17,12 @@ pub struct Footnote2<E> {
     entries: HashMap<String, usize>,
 }
 
+impl<E> Footnote2<E> {
+    pub fn new(events: E) -> Self {
+        Self { events, entries: HashMap::new() }
+    }
+}
+
 impl<'e, E: Iterator<Item = Event<'e>>> Iterator for Footnote2<E> {
     type Item = Event<'e>;
 
@@ -24,10 +30,7 @@ impl<'e, E: Iterator<Item = Event<'e>>> Iterator for Footnote2<E> {
         match self.events.next() {
             Some(Event::Start(Tag::FootnoteDefinition(label))) => {
                 let next_number = self.entries.len() + 1;
-                let number = self
-                    .entries
-                    .entry(label.to_string())
-                    .or_insert(next_number);
+                let number = self.entries.entry(label.to_string()).or_insert(next_number);
                 let backref = get_back_id(&label);
                 let html = format!(
                     r##"<div class="footnote-definition" id="{label}">
@@ -39,8 +42,10 @@ impl<'e, E: Iterator<Item = Event<'e>>> Iterator for Footnote2<E> {
                 let next_number = self.entries.len() + 1;
                 let number = self.entries.entry(label.to_string()).or_insert(next_number);
                 let back_id = get_back_id(&label);
-                Some(Event::Html(html_flake::footnote_reference(&label, &back_id, *number).into()))
-            },
+                Some(Event::Html(
+                    html_flake::footnote_reference(&label, &back_id, *number).into(),
+                ))
+            }
             e => e,
         }
     }
