@@ -1,3 +1,10 @@
+/*
+There are some external inputs:
+  sys.inputs.route: relative path of the typst file
+  sys.inputs.sha256: sha256 of sys.inputs.route
+  sys.inputs.random: a random number in 0..INT64_MAX (note, it's a string)
+*/
+
 #let repri(r) = if type(r) == str {
   r
 } else {
