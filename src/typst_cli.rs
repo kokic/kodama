@@ -74,12 +74,9 @@ fn source_to_html(rel_path: &str, root_dir: &str) -> Result<String, std::io::Err
         .arg("-f=html")
         .arg("--features=html")
         .arg(format!("--root={}", root_dir))
-        .arg(format!("--input route={}", rel_path))
-        .arg(format!(
-            "--input sha256={}",
-            sha256::digest(&full_path) // sha256 of the path!
-        ))
-        .arg(format!("--input random={}", fastrand::i64(0..)))
+        .args(["--input", &format!("path={}", rel_path)])
+        .args(["--input", &format!("sha256={}", sha256::digest(&full_path))]) // sha256 of the path!
+        .args(["--input", &format!("random={}", fastrand::i64(0..))])
         .arg(full_path)
         .arg("-")
         .stdout(std::process::Stdio::piped())
