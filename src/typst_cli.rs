@@ -18,8 +18,7 @@ pub fn source_to_inline_html<P: AsRef<Path>>(typst_path: P, html_path: P) -> eyr
     }
 
     let root_dir = config::root_dir();
-    let full_path = root_dir.join(typst_path);
-    let html = source_to_html(&full_path, &root_dir)?;
+    let html = source_to_html(&typst_path, &root_dir)?;
     let html_body = html_to_body_content(&html);
 
     fs::write(&html_path, html)?;
@@ -49,6 +48,10 @@ impl InlineConfig {
     }
 }
 
+pub fn file_to_html(rel_path: &str, root_dir: &str) -> Result<String, std::io::Error> {
+    source_to_html(rel_path, root_dir).map(|s| html_to_body_content(&s))
+}
+
 pub fn source_to_inline_svg(src: &str, config: InlineConfig) -> Result<String, std::io::Error> {
     let styles = format!(
         r#"
@@ -63,15 +66,21 @@ pub fn source_to_inline_svg(src: &str, config: InlineConfig) -> Result<String, s
     Ok(format!("\n{}\n", html_flake::html_inline_typst_span(&svg)))
 }
 
-pub fn source_to_html<P: AsRef<Path>>(full_path: P, root_dir: P) -> Result<String, std::io::Error> {
+fn source_to_html(rel_path: &str, root_dir: &str) -> Result<String, std::io::Error> {
+    let full_path = config::join_path(&root_dir, rel_path);
 
-    let full_path = full_path.as_ref();
     let output = Command::new("typst")
         .arg("c")
         .arg("-f=html")
-        .arg(format!("--root={}", root_dir.as_ref().display()))
         .arg("--features=html")
-        .arg(&full_path)
+        .arg(format!("--root={}", root_dir))
+        .arg(format!("--input route={}", rel_path))
+        .arg(format!(
+            "--input sha256={}",
+            sha256::digest(&full_path) // sha256 of the path!
+        ))
+        .arg(format!("--input random={}", fastrand::i64(0..)))
+        .arg(full_path)
         .arg("-")
         .stdout(std::process::Stdio::piped())
         .output()?;
@@ -81,32 +90,39 @@ pub fn source_to_html<P: AsRef<Path>>(full_path: P, root_dir: P) -> Result<Strin
         stdout.to_string()
     } else {
         let stderr = String::from_utf8_lossy(&output.stderr);
-        failed_in_file(concat!(file!(), '#', line!()), &full_path.to_str().unwrap(), stderr);
+        failed_in_file(concat!(file!(), '#', line!()), rel_path, stderr);
         String::new()
     })
 }
 
-pub fn source_to_svg(src: &str) -> Result<String, std::io::Error> {
-    compile_source(src, "svg")
-}
+fn source_to_svg(src: &str, root_dir: &str) -> Result<String, std::io::Error> {
+    struct Buffer {
+        path: String,
+    }
 
-/// inline typst to inline svg (deprecated)
-pub fn compile_source(
-    src: &str,
-    output_format: &str,
-) -> Result<String, std::io::Error> {
-    let buffer_path = config::buffer_path();
-    fs::write(&buffer_path, src)?;
+    impl Drop for Buffer {
+        fn drop(&mut self) {
+            let _ = fs::remove_file(&self.path);
+        }
+    }
+
+    let root_dir = root_dir;
+    let buffer = Buffer {
+        path: config::buffer_path(),
+    };
+    fs::write(&buffer.path, src)?;
 
     let output = Command::new("typst")
         .arg("c")
+        .arg("-f=svg")
+        .arg(format!("--root={}", root_dir))
+        .arg(&buffer.path)
         .arg(format!("-f={}", output_format))
         .arg(format!("--root={}", crate::config::root_dir().display()))
         .arg(&buffer_path)
         .arg("-")
         .stdout(std::process::Stdio::piped())
         .output()?;
-    fs::remove_file(buffer_path)?;
 
     Ok(if output.status.success() {
         let stdout = String::from_utf8_lossy(&output.stdout);
@@ -118,37 +134,6 @@ pub fn compile_source(
             concat!(file!(), '#', line!()),
             stderr
         );
-        String::new()
-    })
-}
-
-pub fn file_to_html(typst_path: &str, root_dir: &str) -> Result<String, std::io::Error> {
-    compile_file(typst_path, root_dir, "html", Some("--features=html"))
-        .map(|s| html_to_body_content(&s))
-}
-
-pub fn compile_file(
-    typst_path: &str,
-    root_dir: &str,
-    output_format: &str,
-    extra: Option<&str>,
-) -> Result<String, std::io::Error> {
-    let output = Command::new("typst")
-        .arg("c")
-        .arg(format!("-f={}", output_format))
-        .arg(format!("--root={}", root_dir))
-        .args(extra)
-        .arg(typst_path.to_string())
-        .arg("-")
-        .stdout(std::process::Stdio::piped())
-        .output()?;
-
-    Ok(if output.status.success() {
-        let stdout = String::from_utf8_lossy(&output.stdout);
-        stdout.to_string()
-    } else {
-        let stderr = String::from_utf8_lossy(&output.stderr);
-        failed_in_file(concat!(file!(), '#', line!()), &typst_path, stderr);
         String::new()
     })
 }
