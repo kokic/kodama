@@ -272,16 +272,42 @@ pub fn hash_dir() -> PathBuf {
     get_cache_dir().join(HASH_DIR_NAME)
 }
 
+/// Return the hash path `hash_dir/<path>` for the given file or directory.
+///
+/// If the directory does not exist, it will be created.
 pub fn hash_path<P: AsRef<Path>>(path: P) -> PathBuf {
     auto_create_dir_path(vec![&hash_dir(), path.as_ref()]).into()
+}
+
+pub fn hash_file_path<P: AsRef<Path>>(path: P) -> PathBuf {
+    let mut hash_path = hash_dir();
+    hash_path.push(path);
+    hash_path.set_extension(format!(
+        "{}.hash",
+        hash_path.extension().unwrap().to_str().unwrap()
+    ));
+    hash_path
 }
 
 pub fn entry_dir() -> PathBuf {
     get_cache_dir().join(ENTRY_DIR_NAME)
 }
 
+/// Return the entry path `entry_dir/<path>` for the given file or directory.
+///
+/// If the directory does not exist, it will be created.
 pub fn entry_path<P: AsRef<Path>>(path: P) -> PathBuf {
     auto_create_dir_path(vec![&entry_dir(), path.as_ref()]).into()
+}
+
+pub fn entry_file_path<P: AsRef<Path>>(path: P) -> PathBuf {
+    let mut entry_path = entry_dir();
+    entry_path.push(path);
+    entry_path.set_extension(format!(
+        "{}.entry",
+        entry_path.extension().unwrap().to_str().unwrap()
+    ));
+    entry_path
 }
 
 /// Return is file modified i.e. is hash updated.

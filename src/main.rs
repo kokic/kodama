@@ -11,7 +11,6 @@ mod html_macro;
 mod process;
 mod recorder;
 mod slug;
-mod section_path;
 mod typst_cli;
 
 use config::{join_path, output_path, CompileConfig, FooterMode};
@@ -42,6 +41,8 @@ enum Command {
     /// Watch files and run build script on changes.
     #[command(visible_alias = "w")]
     Watch(WatchCommand),
+
+    /// Remove associated files (hash & entry) for the given section paths.
     #[command(visible_alias = "rm")]
     Remove {
         #[arg(required = true)]
@@ -164,16 +165,9 @@ fn main() -> eyre::Result<()> {
         },
         Command::Remove { path } => {
             for section_path in path {
-                // let p = join_path(&config::output_dir(), p);
-
-
-                if section_path.exists() {
-                    fs::remove_file(&section_path)
-                        .wrap_err_with(|| eyre!("failed to remove file `{}`", section_path.display()))?;
-                } else {
-                    println!("File `{}` does not exist, skipping.", section_path.display());
-                }
-
+                remove_with_hint(section_path)?;
+                remove_with_hint(config::hash_file_path(section_path))?;
+                remove_with_hint(config::entry_file_path(section_path))?;
             }
         },
         Command::Clean(clean_command) => {
@@ -227,9 +221,9 @@ fn remove_with_hint<P: AsRef<Path>>(path: P) -> eyre::Result<()> {
     if path.exists() {
         fs::remove_file(path)
             .wrap_err_with(|| eyre!("failed to remove file `{}`", path.display()))?;
-        println!("Removed: `{}`", path.display());
+        println!("Removed: \"{}\"", path.display());
     } else {
-        println!("File `{}` does not exist, skipping.", path.display());
+        println!("File \"{}\" does not exist, skipping.", path.display());
     }
     Ok(())
 }
@@ -245,13 +239,13 @@ fn export_css_file(css_content: &str, name: &str) -> eyre::Result<()> {
     let path = std::path::Path::new(&path);
     if !path.exists() {
         fs::write(path, css_content)
-            .wrap_err_with(|| eyre!("failed to write CSS file to `{}`", path.display()))?;
+            .wrap_err_with(|| eyre!("failed to write CSS file to \"{}\"", path.display()))?;
     }
     Ok(())
 }
 
 fn sync_assets_dir() -> eyre::Result<bool> {
-    let source = join_path( config::root_dir(), "assets".into());
+    let source = join_path(config::root_dir(), "assets".into());
     let target = join_path(config::output_dir(), "assets".into());
     assets_sync::sync_assets(source, target)?;
     Ok(true)
