@@ -11,6 +11,7 @@ mod html_macro;
 mod process;
 mod recorder;
 mod slug;
+mod section_path;
 mod typst_cli;
 
 use config::{join_path, output_path, CompileConfig, FooterMode};
@@ -41,6 +42,11 @@ enum Command {
     /// Watch files and run build script on changes.
     #[command(visible_alias = "w")]
     Watch(WatchCommand),
+    #[command(visible_alias = "rm")]
+    Remove {
+        #[arg(required = true)]
+        path: Vec<std::path::PathBuf>,
+    },
 }
 
 #[derive(clap::Args)]
@@ -155,7 +161,21 @@ fn main() -> eyre::Result<()> {
                 .wrap_err_with(|| eyre!("failed to compile project `{root}`"))?;
 
             sync_assets_dir()?;
-        }
+        },
+        Command::Remove { path } => {
+            for section_path in path {
+                // let p = join_path(&config::output_dir(), p);
+
+
+                if section_path.exists() {
+                    fs::remove_file(&section_path)
+                        .wrap_err_with(|| eyre!("failed to remove file `{}`", section_path.display()))?;
+                } else {
+                    println!("File `{}` does not exist, skipping.", section_path.display());
+                }
+
+            }
+        },
         Command::Clean(clean_command) => {
             config::mutex_set(
                 &config::CONFIG,
@@ -202,6 +222,18 @@ fn main() -> eyre::Result<()> {
     Ok(())
 }
 
+fn remove_with_hint<P: AsRef<Path>>(path: P) -> eyre::Result<()> {
+    let path = path.as_ref();
+    if path.exists() {
+        fs::remove_file(path)
+            .wrap_err_with(|| eyre!("failed to remove file `{}`", path.display()))?;
+        println!("Removed: `{}`", path.display());
+    } else {
+        println!("File `{}` does not exist, skipping.", path.display());
+    }
+    Ok(())
+}
+
 fn export_css_files() -> eyre::Result<()> {
     export_css_file(html_flake::html_main_style(), "main.css")?;
     export_css_file(html_flake::html_typst_style(), "typst.css")?;
@@ -219,8 +251,8 @@ fn export_css_file(css_content: &str, name: &str) -> eyre::Result<()> {
 }
 
 fn sync_assets_dir() -> eyre::Result<bool> {
-    let source = join_path(&config::root_dir(), "assets");
-    let target = join_path(&config::output_dir(), "assets");
+    let source = join_path( config::root_dir(), "assets".into());
+    let target = join_path(config::output_dir(), "assets".into());
     assets_sync::sync_assets(source, target)?;
     Ok(true)
 }

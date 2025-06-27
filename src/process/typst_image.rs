@@ -95,7 +95,6 @@ impl Processer for TypstImage {
                     let config = InlineConfig {
                         margin_x: x.map(|s| s.to_string()),
                         margin_y: args.get(1).or(x).map(|s| s.to_string()),
-                        root_dir: config::root_dir(),
                     };
                     let html = match typst_cli::source_to_inline_svg(&inline_typst, config) {
                         Ok(svg) => svg,
@@ -172,8 +171,8 @@ impl Processer for TypstImage {
                     recorder.exit();
 
                     let root_dir = config::root_dir();
-                    let full_path = config::join_path(&root_dir, &typst_url);
-                    let code = fs::read_to_string(format!("{}.code", full_path))
+                    let full_path = root_dir.join(typst_url);
+                    let code = fs::read_to_string(format!("{}.code", full_path.display()))
                         .unwrap_or_else(|_| fs::read_to_string(full_path).unwrap());
 
                     let html = html_figure_code(&config::full_url(&img_src), caption, code);

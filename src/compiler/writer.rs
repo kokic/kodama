@@ -27,7 +27,7 @@ impl Writer {
         let html_url = format!("{}.html", section.slug());
         let filepath = crate::config::output_path(&html_url);
 
-        let relative_path = config::join_path(&config::output_dir(), &html_url);
+        let relative_path = config::output_dir().join(&html_url);
         if verify_update_hash(&relative_path, &html).expect("Writer::write@hash") {
             match std::fs::write(&filepath, html) {
                 Ok(()) => {
