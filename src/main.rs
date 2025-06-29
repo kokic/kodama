@@ -13,9 +13,13 @@ mod recorder;
 mod slug;
 mod typst_cli;
 
-use config::{join_path, output_path, CompileConfig, FooterMode};
+use config::{output_path, CompileConfig, FooterMode};
 
-use std::{fs, io::Write, path::Path};
+use std::{
+    fs,
+    io::Write,
+    path::{Path, PathBuf},
+};
 
 use clap::Parser;
 use eyre::{eyre, WrapErr};
@@ -35,12 +39,21 @@ enum Command {
     #[command(visible_alias = "c")]
     Compile(CompileCommand),
 
-    /// Clean build files (.cache & publish).
-    Clean(CleanCommand),
-
     /// Watch files and run build script on changes.
     #[command(visible_alias = "w")]
     Watch(WatchCommand),
+
+    /// Remove associated files (hash, entry & HTML) for the given section paths.
+    #[command(visible_alias = "rm")]
+    Remove {
+        /// Section paths to remove.
+        #[arg(required = true)]
+        path: Vec<PathBuf>,
+    },
+
+    // TODO: Move.
+    // 
+    // We are temporarily putting this feature on hold because we have not yet exported the dependency information for the section. 
 }
 
 #[derive(clap::Args)]
@@ -83,39 +96,12 @@ struct CompileCommand {
 }
 
 #[derive(clap::Args)]
-struct CleanCommand {
-    /// Path to output dir.
-    #[arg(short, long, default_value_t = config::DEFAULT_CONFIG.output_dir.into())]
-    output: String,
-
-    /// Configures the project root (for absolute paths)
-    #[arg(short, long, default_value_t = config::DEFAULT_CONFIG.root_dir.into())]
-    root: String,
-
-    /// Clean markdown hash files.
-    #[arg(short, long)]
-    markdown: bool,
-
-    /// Clean typ hash files.
-    #[arg(long)]
-    typ: bool,
-
-    /// Clean typst hash files.
-    #[arg(long)]
-    typst: bool,
-
-    /// Clean html hash files.
-    #[arg(long)]
-    html: bool,
-}
-
-#[derive(clap::Args)]
 struct WatchCommand {
     /// Configures watched files.
     #[arg(long)]
     dirs: Vec<String>,
 
-    /// Configures the build script path. 
+    /// Configures the build script path.
     #[arg(short, long, default_value_t = ("./build.sh").to_string())]
     script: String,
 }
@@ -148,56 +134,39 @@ fn main() -> eyre::Result<()> {
             }
 
             if !compile_command.disable_export_css {
-                export_css_files().wrap_err("failed to export CSS")?;
+                export_css_files().wrap_err("Failed to export CSS")?;
             }
 
             compiler::compile_all(root)
-                .wrap_err_with(|| eyre!("failed to compile project `{root}`"))?;
+                .wrap_err_with(|| eyre!("Failed to compile project `{root}`"))?;
 
             sync_assets_dir()?;
         }
-        Command::Clean(clean_command) => {
-            config::mutex_set(
-                &config::CONFIG,
-                CompileConfig::new(
-                    clean_command.root.to_string(),
-                    clean_command.output.to_string(),
-                    config::DEFAULT_CONFIG.assets_dir.into(),
-                    config::DEFAULT_CONFIG.base_url.into(),
-                    false,
-                    config::DEFAULT_CONFIG.short_slug,
-                    FooterMode::Link,
-                    true,
-                    None,
-                ),
-            );
-
-            let cache_dir = config::get_cache_dir();
-
-            let path_ends_with =
-                |suffix: &'static str| move |p: &Path| p.to_string_lossy().ends_with(suffix);
-
-            clean_command.markdown.then(|| {
-                let _ = config::delete_all_with(&cache_dir, &path_ends_with(".md.hash"));
-            });
-
-            clean_command.typ.then(|| {
-                let _ = config::delete_all_with(&cache_dir, &path_ends_with(".typ.hash"));
-            });
-
-            clean_command.typst.then(|| {
-                let _ = config::delete_all_with(&cache_dir, &path_ends_with(".typst.hash"));
-            });
-
-            clean_command.html.then(|| {
-                let _ = config::delete_all_with(&cache_dir, &path_ends_with(".html.hash"));
-            });
+        Command::Remove { path } => {
+            for section_path in path {
+                remove_with_hint(section_path)?;
+                remove_with_hint(config::hash_file_path(section_path))?;
+                remove_with_hint(config::entry_file_path(section_path))?;
+                remove_with_hint(config::output_path(section_path))?;
+            }
         }
         Command::Watch(watch_command) => {
             if let Err(error) = watch(&watch_command.dirs, &watch_command.script) {
                 eprintln!("Error: {error:?}");
             }
         }
+    }
+    Ok(())
+}
+
+fn remove_with_hint<P: AsRef<Path>>(path: P) -> eyre::Result<()> {
+    let path = path.as_ref();
+    if path.exists() {
+        fs::remove_file(path)
+            .wrap_err_with(|| eyre!("Failed to remove file `{}`", path.display()))?;
+        println!("Removed: \"{}\"", path.display());
+    } else {
+        println!("File \"{}\" does not exist, skipping.", path.display());
     }
     Ok(())
 }
@@ -213,14 +182,14 @@ fn export_css_file(css_content: &str, name: &str) -> eyre::Result<()> {
     let path = std::path::Path::new(&path);
     if !path.exists() {
         fs::write(path, css_content)
-            .wrap_err_with(|| eyre!("failed to write CSS file to `{}`", path.display()))?;
+            .wrap_err_with(|| eyre!("Failed to write CSS file to \"{}\"", path.display()))?;
     }
     Ok(())
 }
 
 fn sync_assets_dir() -> eyre::Result<bool> {
-    let source = join_path(&config::root_dir(), "assets");
-    let target = join_path(&config::output_dir(), "assets");
+    let source = config::root_dir().join(config::assets_dir());
+    let target = config::output_dir().join(config::assets_dir());
     assets_sync::sync_assets(source, target)?;
     Ok(true)
 }
@@ -248,6 +217,8 @@ fn watch<P: AsRef<Path>>(watched_paths: &Vec<P>, script_path: &str) -> notify::R
     println!("\n\nPress Ctrl+C to stop watching.\n");
 
     let row = watched_paths.len() + 1;
+    let output_dir = config::output_dir();
+    let output_dir_name = output_dir.file_name().unwrap();
 
     for res in rx {
         match res {
@@ -258,8 +229,7 @@ fn watch<P: AsRef<Path>>(watched_paths: &Vec<P>, script_path: &str) -> notify::R
                 }
 
                 for path in event.paths {
-                    let path_lossy = path.to_string_lossy();
-                    if !path_lossy.contains("/publish/") && !path.ends_with("publish") {
+                    if path.components().any(|c| c.as_os_str() == output_dir_name) {
                         print!("\x1B[{};0H\x1B[2K", row);
                         print!("Change: {path:?}");
                         std::io::stdout().flush()?;
@@ -267,11 +237,11 @@ fn watch<P: AsRef<Path>>(watched_paths: &Vec<P>, script_path: &str) -> notify::R
                         let output = std::process::Command::new(script_path)
                             .stdout(std::process::Stdio::piped())
                             .output()
-                            .expect("build command failed to start");
+                            .expect("Build command failed to start");
 
                         if !output.status.success() {
                             let stderr = String::from_utf8_lossy(&output.stderr);
-                             eprintln!("{}", stderr);
+                            eprintln!("{}", stderr);
                         }
                     }
                 }

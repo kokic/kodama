@@ -3,9 +3,14 @@
 // Authors: Kokic (@kokic), Spore (@s-cerevisiae)
 
 use std::{
-    fs::{self, create_dir_all}, hash::Hash, path::{Path, PathBuf}, str::FromStr, sync::{LazyLock, Mutex}
+    fs::{self, create_dir_all},
+    hash::Hash,
+    path::{Path, PathBuf},
+    str::FromStr,
+    sync::{LazyLock, Mutex},
 };
 
+use eyre::Context;
 use walkdir::WalkDir;
 
 use crate::slug::Slug;
@@ -25,8 +30,8 @@ impl FromStr for FooterMode {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
             "link" => Ok(FooterMode::Link),
-            "embed" => Ok(FooterMode::Embed), 
-            _ => Err(ParseFooterModeError)
+            "embed" => Ok(FooterMode::Embed),
+            _ => Err(ParseFooterModeError),
         }
     }
 }
@@ -43,7 +48,7 @@ impl ToString for FooterMode {
 pub struct CompileConfig<S> {
     pub root_dir: S,
     pub output_dir: S,
-    pub assets_dir: S, 
+    pub assets_dir: S,
     pub base_url: S,
     pub page_suffix: S,
     pub short_slug: bool,
@@ -52,8 +57,8 @@ pub struct CompileConfig<S> {
     /// `false`: This is very useful for users who want to modify existing styles or configure other themes.
     pub disable_export_css: bool,
 
-    /// URL prefix for opening files in the editor. 
-    pub edit: Option<S>, 
+    /// URL prefix for opening files in the editor.
+    pub edit: Option<S>,
 }
 
 impl CompileConfig<&'static str> {
@@ -67,7 +72,7 @@ impl CompileConfig<&'static str> {
             short_slug: true,
             footer_mode: FooterMode::Link,
             disable_export_css: true,
-            edit: None, 
+            edit: None,
         }
     }
 }
@@ -83,7 +88,7 @@ impl CompileConfig<String> {
             short_slug: true,
             footer_mode: FooterMode::Link,
             disable_export_css: true,
-            edit: None, 
+            edit: None,
         }
     }
 
@@ -96,18 +101,18 @@ impl CompileConfig<String> {
         short_slug: bool,
         footer_mode: FooterMode,
         disable_export_css: bool,
-        edit: Option<String>, 
+        edit: Option<String>,
     ) -> CompileConfig<String> {
         CompileConfig {
             root_dir,
             output_dir,
-            assets_dir, 
+            assets_dir,
             base_url: normalize_base_url(&base_url),
             page_suffix: to_page_suffix(disable_pretty_urls),
             short_slug,
             footer_mode,
             disable_export_css,
-            edit, 
+            edit,
         }
     }
 }
@@ -116,20 +121,20 @@ pub static DEFAULT_CONFIG: CompileConfig<&'static str> = CompileConfig::default(
 pub static CONFIG: Mutex<CompileConfig<String>> = Mutex::new(CompileConfig::empty());
 
 pub static CUSTOM_META_HTML: LazyLock<String> = LazyLock::new(|| {
-    std::fs::read_to_string(join_path(&root_dir(), "import-meta.html")).unwrap_or_default()
+    std::fs::read_to_string(root_dir().join("import-meta.html")).unwrap_or_default()
 });
 
 pub static CUSTOM_STYLE_HTML: LazyLock<String> = LazyLock::new(|| {
-    std::fs::read_to_string(join_path(&root_dir(), "import-style.html")).unwrap_or_default()
+    std::fs::read_to_string(root_dir().join("import-style.html")).unwrap_or_default()
 });
 
 pub static CUSTOM_FONTS_HTML: LazyLock<String> = LazyLock::new(|| {
-    fs::read_to_string(join_path(&root_dir(), "import-fonts.html"))
+    fs::read_to_string(root_dir().join("import-fonts.html"))
         .unwrap_or(include_str!("include/import-fonts.html").to_string())
 });
 
 pub static CUSTOM_MATH_HTML: LazyLock<String> = LazyLock::new(|| {
-    fs::read_to_string(join_path(&root_dir(), "import-math.html"))
+    fs::read_to_string(root_dir().join("import-math.html"))
         .unwrap_or(include_str!("include/import-math.html").to_string())
 });
 
@@ -172,12 +177,12 @@ pub fn is_short_slug() -> bool {
     lock_config().short_slug
 }
 
-pub fn root_dir() -> String {
-    lock_config().root_dir.to_string()
+pub fn root_dir() -> PathBuf {
+    lock_config().root_dir.to_string().into()
 }
 
-pub fn output_dir() -> String {
-    lock_config().output_dir.to_string()
+pub fn output_dir() -> PathBuf {
+    lock_config().output_dir.to_string().into()
 }
 
 pub fn base_url() -> String {
@@ -196,11 +201,17 @@ pub fn editor_url() -> Option<String> {
     lock_config().edit.clone()
 }
 
-pub fn get_cache_dir() -> String {
-    join_path(&root_dir(), CACHE_DIR_NAME)
+pub fn get_cache_dir() -> PathBuf {
+    root_dir().join(CACHE_DIR_NAME)
 }
 
-pub fn full_url(path: &str) -> String {
+pub fn assets_dir() -> PathBuf {
+    root_dir().join(lock_config().assets_dir.to_string())
+}
+
+/// URL keep posix style, so the type of return value is [`String`].
+pub fn full_url<P: AsRef<Path>>(path: P) -> String {
+    let path = crate::slug::pretty_path(path.as_ref());
     if path.starts_with("/") {
         return format!("{}{}", base_url(), path[1..].to_string());
     } else if path.starts_with("./") {
@@ -213,9 +224,9 @@ pub fn full_html_url(slug: Slug) -> String {
     full_url(&format!("{}{}", slug, lock_config().page_suffix))
 }
 
-/**
- * `path` to `./{path}` or `path`.
- */
+/// Convert `path` to `./{path}` or `path`.
+///
+/// This function keep posix style for the path, so it will return a [`String`].
 pub fn relativize(path: &str) -> String {
     match path.starts_with("/") {
         true => format!(".{}", path),
@@ -223,26 +234,26 @@ pub fn relativize(path: &str) -> String {
     }
 }
 
-pub fn parent_dir(path: &str) -> (String, String) {
-    let binding = PathBuf::from(path);
-    let filename = binding.file_name().unwrap().to_str().unwrap();
-    let parent = binding.parent().unwrap().to_str().unwrap();
-    (parent.to_string(), filename.to_string())
+pub fn parent_dir<P: AsRef<Path>>(path: P) -> (PathBuf, PathBuf) {
+    let binding = path.as_ref();
+    let filename = binding.file_name().expect("Path must have a filename");
+    let parent = binding.parent().expect("Path must have a parent");
+    (parent.to_path_buf(), filename.into())
 }
 
-pub fn join_path(dir: &str, name: &str) -> String {
-    let mut input_dir: PathBuf = dir.into();
-    input_dir.push(name);
-    input_dir.to_str().unwrap().to_string().replace("\\", "/")
-}
+// pub fn join_path<P: AsRef<Path>>(dir: P, name: P) -> String {
+//     let mut input_dir: PathBuf = dir.as_ref().into();
+//     input_dir.push(name);
+//     input_dir.to_str().unwrap().to_string()
+// }
 
-pub fn input_path<P: AsRef<Path>>(path: P) -> String {
+pub fn input_path<P: AsRef<Path>>(path: P) -> PathBuf {
     let mut filepath: PathBuf = root_dir().into();
     filepath.push(path);
-    filepath.to_str().unwrap().to_string()
+    filepath
 }
 
-pub fn auto_create_dir_path(paths: Vec<&str>) -> String {
+pub fn auto_create_dir_path<P: AsRef<Path>>(paths: Vec<P>) -> PathBuf {
     let mut filepath: PathBuf = root_dir().into();
     for path in paths {
         filepath.push(path);
@@ -253,31 +264,58 @@ pub fn auto_create_dir_path(paths: Vec<&str>) -> String {
         let _ = create_dir_all(&parent_dir);
     }
 
-    filepath.to_str().unwrap().to_string()
+    filepath
 }
 
-pub fn buffer_path() -> String {
-    join_path(&get_cache_dir(), BUFFER_FILE_NAME)
+pub fn buffer_path() -> PathBuf {
+    get_cache_dir().join(BUFFER_FILE_NAME)
 }
 
-pub fn output_path(path: &str) -> String {
-    auto_create_dir_path(vec![&output_dir(), path])
+pub fn output_path<P: AsRef<Path>>(path: P) -> PathBuf {
+    auto_create_dir_path(vec![&output_dir(), path.as_ref()])
 }
 
-pub fn hash_dir() -> String {
-    join_path(&get_cache_dir(), HASH_DIR_NAME)
+pub fn hash_dir() -> PathBuf {
+    get_cache_dir().join(HASH_DIR_NAME)
 }
 
-pub fn hash_path(path: &str) -> PathBuf {
-    auto_create_dir_path(vec![&hash_dir(), path]).into()
+/// Return the hash file path `hash_dir/<path>.hash` for the given file or directory.
+/// 
+/// If the directory does not exist, it will be created.
+pub fn hash_file_path<P: AsRef<Path>>(path: P) -> PathBuf {
+    let mut hash_path = hash_dir();
+    hash_path.push(path);
+    hash_path.set_extension(format!(
+        "{}.hash",
+        hash_path.extension().unwrap().to_str().unwrap()
+    ));
+
+    let parent_dir = hash_path.parent().unwrap();
+    if !parent_dir.exists() {
+        let _ = create_dir_all(&parent_dir);
+    }
+    hash_path
 }
 
-pub fn entry_dir() -> String {
-    join_path(&get_cache_dir(), ENTRY_DIR_NAME)
+pub fn entry_dir() -> PathBuf {
+    get_cache_dir().join(ENTRY_DIR_NAME)
 }
 
-pub fn entry_path(path: &str) -> PathBuf {
-    auto_create_dir_path(vec![&entry_dir(), path]).into()
+/// Return the entry path `entry_dir/<path>` for the given file or directory.
+///
+/// If the directory does not exist, it will be created.
+pub fn entry_path<P: AsRef<Path>>(path: P) -> PathBuf {
+    auto_create_dir_path(vec![&entry_dir(), path.as_ref()]).into()
+}
+
+pub fn entry_file_path<P: AsRef<Path>>(path: P) -> PathBuf {
+    let mut entry_path = entry_dir();
+    entry_path.push(path);
+    entry_path.set_extension(format!(
+        "{}.entry",
+        entry_path.extension().unwrap().to_str().unwrap()
+    ));
+    entry_path
 }
 
 /// Return is file modified i.e. is hash updated.
@@ -295,23 +333,25 @@ pub fn is_hash_updated<P: AsRef<Path>>(content: &str, hash_path: P) -> (bool, u6
 
 /// Checks whether the file has been modified by comparing its current hash with the stored hash.
 /// If the file is modified, updates the stored hash to reflect the latest state.
-pub fn verify_and_file_hash(relative_path: &str) -> Result<bool, std::io::Error> {
+pub fn verify_and_file_hash<P: AsRef<Path>>(relative_path: P) -> eyre::Result<bool> {
     let root_dir = root_dir();
-    let full_path = join_path(&root_dir, relative_path);
-    let hash_path = hash_path(&format!("{}.hash", relative_path));
+    let full_path = root_dir.join(&relative_path);
+    let hash_path = hash_file_path(&relative_path);
 
-    let content = std::fs::read_to_string(full_path)?;
+    let content = std::fs::read_to_string(&full_path)
+        .wrap_err_with(|| eyre::eyre!("Failed to read file `{}`", full_path.display()))?;
     let (is_modified, current_hash) = is_hash_updated(&content, &hash_path);
     if is_modified {
-        std::fs::write(&hash_path, current_hash.to_string())?;
+        std::fs::write(&hash_path, current_hash.to_string())
+            .wrap_err_with(|| eyre::eyre!("Failed to write file `{}`", hash_path.display()))?;
     }
     return Ok(is_modified);
 }
 
 /// Checks whether the content has been modified by comparing its current hash with the stored hash.
 /// If the content is modified, updates the stored hash to reflect the latest state.
-pub fn verify_update_hash(path: &str, content: &str) -> Result<bool, std::io::Error> {
-    let hash_path = hash_path(&format!("{}.hash", path));
+pub fn verify_update_hash<P: AsRef<Path>>(path: P, content: &str) -> Result<bool, std::io::Error> {
+    let hash_path = hash_file_path(path.as_ref());
     let (is_modified, current_hash) = is_hash_updated(&content, &hash_path);
     if is_modified {
         std::fs::write(&hash_path, current_hash.to_string())?;
@@ -321,7 +361,7 @@ pub fn verify_update_hash(path: &str, content: &str) -> Result<bool, std::io::Er
 }
 
 #[allow(dead_code)]
-pub fn delete_all_with<F>(dir: &str, predicate: &F) -> Result<(), std::io::Error>
+pub fn delete_all_with<P: AsRef<Path>, F>(dir: P, predicate: &F) -> Result<(), std::io::Error>
 where
     F: Fn(&Path) -> bool,
 {
@@ -331,13 +371,5 @@ where
             std::fs::remove_file(path)?;
         }
     }
-    Ok(())
-}
-
-#[allow(dead_code)]
-pub fn delete_all_built_files() -> Result<(), std::io::Error> {
-    let root_dir = root_dir();
-    std::fs::remove_dir_all(join_path(&root_dir, &get_cache_dir()))?;
-    std::fs::remove_dir_all(join_path(&root_dir, &output_dir()))?;
     Ok(())
 }

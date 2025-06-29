@@ -98,7 +98,7 @@ fn parse_typst_html(
 pub fn parse_typst(slug: Slug, root_dir: &str) -> eyre::Result<ShallowSection> {
     let relative_path = format!("{}.typst", slug);
     let html_str = typst_cli::file_to_html(&relative_path, root_dir)
-        .wrap_err_with(|| eyre!("failed to compile typst file `{relative_path}` to html"))?;
+        .wrap_err_with(|| eyre!("Failed to compile typst file `{relative_path}` to html"))?;
 
     let mut metadata: HashMap<String, HTMLContent> = HashMap::new();
     metadata.insert("slug".to_string(), HTMLContent::Plain(slug.to_string()));

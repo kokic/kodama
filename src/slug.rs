@@ -125,12 +125,3 @@ fn clean_path(path: &std::path::Path) -> std::path::PathBuf {
     }
     cleaned_path
 }
-
-pub fn adjust_name(path: &str, expect: &str, target: &str) -> String {
-    let prefix = if path.ends_with(expect) {
-        &path[0..path.len() - expect.len()]
-    } else {
-        path
-    };
-    format!("{}{}", prefix, target)
-}

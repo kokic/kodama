@@ -9,23 +9,23 @@ use crate::{
     html_flake,
 };
 
-pub fn source_to_inline_html(typst_path: &str, html_path: &str) -> Result<String, std::io::Error> {
-    if !verify_and_file_hash(typst_path)? && Path::new(html_path).exists() {
+pub fn source_to_inline_html<P: AsRef<Path>>(typst_path: P, html_path: P) -> eyre::Result<String> {
+    if !verify_and_file_hash(typst_path.as_ref())? && Path::new(html_path.as_ref()).exists() {
         let existed_html = fs::read_to_string(html_path)?;
         let existed_html = html_to_body_content(&existed_html);
-        println!("Skip: {}", crate::slug::pretty_path(Path::new(typst_path)));
+        println!("Skip: {}", crate::slug::pretty_path(typst_path.as_ref()));
         return Ok(existed_html);
     }
 
     let root_dir = config::root_dir();
-    let full_path = config::join_path(&root_dir, typst_path);
+    let full_path = root_dir.join(typst_path);
     let html = source_to_html(&full_path, &root_dir)?;
     let html_body = html_to_body_content(&html);
 
-    fs::write(html_path, html)?;
+    fs::write(&html_path, html)?;
     println!(
         "Compiled to HTML: {}",
-        crate::slug::pretty_path(Path::new(html_path))
+        crate::slug::pretty_path(&html_path.as_ref())
     );
 
     Ok(html_body)
@@ -41,7 +41,6 @@ pub fn html_to_body_content(html: &str) -> String {
 pub struct InlineConfig {
     pub margin_x: Option<String>,
     pub margin_y: Option<String>,
-    pub root_dir: String,
 }
 
 impl InlineConfig {
@@ -50,7 +49,6 @@ impl InlineConfig {
         InlineConfig {
             margin_x: None,
             margin_y: None,
-            root_dir: config::root_dir(),
         }
     }
 
@@ -68,16 +66,18 @@ pub fn source_to_inline_svg(src: &str, config: InlineConfig) -> Result<String, s
         config.margin_x.unwrap_or(InlineConfig::default_margin()),
         config.margin_y.unwrap_or(InlineConfig::default_margin())
     );
-    let svg = source_to_svg(format!("{}{}", styles, src).as_str(), &config.root_dir)?;
+    let svg = source_to_svg(format!("{}{}", styles, src).as_str())?;
 
     Ok(format!("\n{}\n", html_flake::html_inline_typst_span(&svg)))
 }
 
-pub fn source_to_html(full_path: &str, root_dir: &str) -> Result<String, std::io::Error> {
+pub fn source_to_html<P: AsRef<Path>>(full_path: P, root_dir: P) -> Result<String, std::io::Error> {
+
+    let full_path = full_path.as_ref();
     let output = Command::new("typst")
         .arg("c")
         .arg("-f=html")
-        .arg(format!("--root={}", root_dir))
+        .arg(format!("--root={}", root_dir.as_ref().display()))
         .arg("--features=html")
         .arg(&full_path)
         .arg("-")
@@ -89,19 +89,18 @@ pub fn source_to_html(full_path: &str, root_dir: &str) -> Result<String, std::io
         stdout.to_string()
     } else {
         let stderr = String::from_utf8_lossy(&output.stderr);
-        failed_in_file(concat!(file!(), '#', line!()), &full_path, stderr);
+        failed_in_file(concat!(file!(), '#', line!()), &full_path.to_str().unwrap(), stderr);
         String::new()
     })
 }
 
-pub fn source_to_svg(src: &str, root_dir: &str) -> Result<String, std::io::Error> {
-    compile_source(src, root_dir, "svg")
+pub fn source_to_svg(src: &str) -> Result<String, std::io::Error> {
+    compile_source(src, "svg")
 }
 
 /// inline typst to inline svg (deprecated)
 pub fn compile_source(
     src: &str,
-    root_dir: &str,
     output_format: &str,
 ) -> Result<String, std::io::Error> {
     let buffer_path = config::buffer_path();
@@ -110,7 +109,7 @@ pub fn compile_source(
     let output = Command::new("typst")
         .arg("c")
         .arg(format!("-f={}", output_format))
-        .arg(format!("--root={}", root_dir))
+        .arg(format!("--root={}", crate::config::root_dir().display()))
         .arg(&buffer_path)
         .arg("-")
         .stdout(std::process::Stdio::piped())
@@ -163,18 +162,22 @@ pub fn compile_file(
 }
 
 /// typst file to svg (`stdout -> disk`)
-pub fn write_svg(typst_path: &str, svg_path: &str) -> Result<(), std::io::Error> {
-    if !verify_and_file_hash(typst_path)? && Path::new(svg_path).exists() {
-        println!("Skip: {}", crate::slug::pretty_path(Path::new(typst_path)));
+pub fn write_svg<P: AsRef<Path>>(typst_path: P, svg_path: P) -> eyre::Result<()> {
+    
+    let typst_path = typst_path.as_ref();
+    let svg_path = svg_path.as_ref();
+
+    if !verify_and_file_hash(typst_path)? && svg_path.exists() {
+        println!("Skip: {}", crate::slug::pretty_path(typst_path));
         return Ok(());
     }
 
     let root_dir = config::root_dir();
-    let full_path = config::join_path(&root_dir, typst_path);
+    let full_path = root_dir.join(typst_path);
     let output = Command::new("typst")
         .arg("c")
         .arg("-f=svg")
-        .arg(format!("--root={}", root_dir))
+        .arg(format!("--root={}", root_dir.display()))
         .arg(&full_path)
         .arg("-")
         .stdout(std::process::Stdio::piped())
@@ -190,7 +193,7 @@ pub fn write_svg(typst_path: &str, svg_path: &str) -> Result<(), std::io::Error>
         );
     } else {
         let stderr = String::from_utf8_lossy(&output.stderr);
-        failed_in_file(concat!(file!(), '#', line!()), &full_path, stderr);
+        failed_in_file(concat!(file!(), '#', line!()), &full_path.to_str().unwrap(), stderr);
     }
     Ok(())
 }
