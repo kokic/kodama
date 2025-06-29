@@ -204,6 +204,10 @@ pub fn get_cache_dir() -> PathBuf {
     root_dir().join(CACHE_DIR_NAME)
 }
 
+pub fn assets_dir() -> PathBuf {
+    root_dir().join(lock_config().assets_dir.to_string())
+}
+
 pub fn full_url(path: &str) -> String {
     if path.starts_with("/") {
         return format!("{}{}", base_url(), path[1..].to_string());
@@ -246,7 +250,7 @@ pub fn input_path<P: AsRef<Path>>(path: P) -> String {
     filepath.to_str().unwrap().to_string()
 }
 
-pub fn auto_create_dir_path<P: AsRef<Path>>(paths: Vec<P>) -> String {
+pub fn auto_create_dir_path<P: AsRef<Path>>(paths: Vec<P>) -> PathBuf {
     let mut filepath: PathBuf = root_dir().into();
     for path in paths {
         filepath.push(path);
@@ -257,7 +261,7 @@ pub fn auto_create_dir_path<P: AsRef<Path>>(paths: Vec<P>) -> String {
         let _ = create_dir_all(&parent_dir);
     }
 
-    filepath.to_str().unwrap().to_string()
+    filepath
 }
 
 pub fn buffer_path() -> PathBuf {
@@ -265,7 +269,7 @@ pub fn buffer_path() -> PathBuf {
 }
 
 pub fn output_path<P: AsRef<Path>>(path: P) -> String {
-    auto_create_dir_path(vec![&output_dir(), path.as_ref()])
+    auto_create_dir_path(vec![&output_dir(), path.as_ref()]).to_str().unwrap().to_string()
 }
 
 pub fn hash_dir() -> PathBuf {
