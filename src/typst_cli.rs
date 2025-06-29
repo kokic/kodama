@@ -9,11 +9,11 @@ use crate::{
     html_flake,
 };
 
-pub fn source_to_inline_html(typst_path: &str, html_path: &str) -> Result<String, std::io::Error> {
-    if !verify_and_file_hash(typst_path)? && Path::new(html_path).exists() {
+pub fn source_to_inline_html<P: AsRef<Path>>(typst_path: P, html_path: P) -> eyre::Result<String> {
+    if !verify_and_file_hash(typst_path.as_ref())? && Path::new(html_path.as_ref()).exists() {
         let existed_html = fs::read_to_string(html_path)?;
         let existed_html = html_to_body_content(&existed_html);
-        println!("Skip: {}", crate::slug::pretty_path(Path::new(typst_path)));
+        println!("Skip: {}", crate::slug::pretty_path(typst_path.as_ref()));
         return Ok(existed_html);
     }
 
@@ -22,10 +22,10 @@ pub fn source_to_inline_html(typst_path: &str, html_path: &str) -> Result<String
     let html = source_to_html(&full_path, &root_dir)?;
     let html_body = html_to_body_content(&html);
 
-    fs::write(html_path, html)?;
+    fs::write(&html_path, html)?;
     println!(
         "Compiled to HTML: {}",
-        crate::slug::pretty_path(Path::new(html_path))
+        crate::slug::pretty_path(&html_path.as_ref())
     );
 
     Ok(html_body)
@@ -162,9 +162,13 @@ pub fn compile_file(
 }
 
 /// typst file to svg (`stdout -> disk`)
-pub fn write_svg(typst_path: &str, svg_path: &str) -> Result<(), std::io::Error> {
-    if !verify_and_file_hash(typst_path)? && Path::new(svg_path).exists() {
-        println!("Skip: {}", crate::slug::pretty_path(Path::new(typst_path)));
+pub fn write_svg<P: AsRef<Path>>(typst_path: P, svg_path: P) -> eyre::Result<()> {
+    
+    let typst_path = typst_path.as_ref();
+    let svg_path = svg_path.as_ref();
+
+    if !verify_and_file_hash(typst_path)? && svg_path.exists() {
+        println!("Skip: {}", crate::slug::pretty_path(typst_path));
         return Ok(());
     }
 

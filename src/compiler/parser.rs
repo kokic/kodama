@@ -36,7 +36,7 @@ pub fn initialize(
     let recorder = ParseRecorder::new(fullname);
     std::fs::read_to_string(&markdown_path)
         .map(|markdown_input| (markdown_input, metadata, recorder))
-        .wrap_err_with(|| eyre!("failed to read markdown file `{markdown_path}`"))
+        .wrap_err_with(|| eyre!("Failed to read markdown file `{:?}`", markdown_path))
 }
 
 pub fn parse_markdown(slug: Slug) -> eyre::Result<ShallowSection> {

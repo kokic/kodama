@@ -117,7 +117,7 @@ impl Processer for Embed {
         }
 
         if recorder.state == State::Metadata && s.trim().len() != 0 {
-            parse_metadata(s, metadata, recorder).wrap_err("failed to parse metadata")?;
+            parse_metadata(s, metadata, recorder).wrap_err("Failed to parse metadata")?;
         }
         Ok(())
     }
@@ -163,7 +163,7 @@ pub fn parse_metadata(
             let val = s[pos + 1..].trim();
 
             let res = parse_spanned_markdown(val, &recorder.current); 
-            let mut val = res.wrap_err("failed to parse metadata value")?;
+            let mut val = res.wrap_err("Failed to parse metadata value")?;
             
             if key == "taxon" {
                 if let HTMLContent::Plain(v) = val {

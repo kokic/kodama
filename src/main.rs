@@ -13,7 +13,7 @@ mod recorder;
 mod slug;
 mod typst_cli;
 
-use config::{join_path, output_path, CompileConfig, FooterMode};
+use config::{output_path, CompileConfig, FooterMode};
 
 use std::{
     fs,
@@ -134,11 +134,11 @@ fn main() -> eyre::Result<()> {
             }
 
             if !compile_command.disable_export_css {
-                export_css_files().wrap_err("failed to export CSS")?;
+                export_css_files().wrap_err("Failed to export CSS")?;
             }
 
             compiler::compile_all(root)
-                .wrap_err_with(|| eyre!("failed to compile project `{root}`"))?;
+                .wrap_err_with(|| eyre!("Failed to compile project `{root}`"))?;
 
             sync_assets_dir()?;
         }
@@ -188,8 +188,8 @@ fn export_css_file(css_content: &str, name: &str) -> eyre::Result<()> {
 }
 
 fn sync_assets_dir() -> eyre::Result<bool> {
-    let source = join_path(config::root_dir(), config::assets_dir());
-    let target = join_path(config::output_dir(), config::assets_dir());
+    let source = config::root_dir().join(config::assets_dir());
+    let target = config::output_dir().join(config::assets_dir());
     assets_sync::sync_assets(source, target)?;
     Ok(true)
 }

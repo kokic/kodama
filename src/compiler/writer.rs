@@ -99,6 +99,7 @@ impl Writer {
             .compiled()
             .get(&parent)
             .expect(&format!("missing slug `{:?}`", parent));
+        
         let href = config::full_html_url(parent);
         let title = section.metadata.title().map_or("", |s| s);
         let page_title = section.metadata.page_title().map_or("", |s| s);

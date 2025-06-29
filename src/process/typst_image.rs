@@ -2,14 +2,13 @@
 // Released under the GPL-3.0 license as described in the file LICENSE.
 // Authors: Kokic (@kokic), Spore (@s-cerevisiae)
 
-use std::fs;
+use std::{fs, path::PathBuf};
 
 use crate::{
     compiler::section::{HTMLContent, LazyContent},
-    config::{self, join_path, output_path, parent_dir},
+    config::{self, output_path, parent_dir},
     html_flake::{html_figure, html_figure_code},
     recorder::{ParseRecorder, State},
-    slug::adjust_name,
     typst_cli::{self, source_to_inline_html, write_svg, InlineConfig},
 };
 use pulldown_cmark::{Tag, TagEnd};
@@ -60,11 +59,11 @@ impl Processer for TypstImage {
                     let typst_url = config::relativize(typst_url);
                     let (parent_dir, filename) = parent_dir(&typst_url);
 
-                    let mut html_url = adjust_name(&filename, ".typ", ".html");
-                    let img_src = join_path(&parent_dir, &html_url);
+                    let mut html_url = filename.with_extension("html");
+                    let img_src = parent_dir.join(&html_url);
                     html_url = output_path(&img_src);
 
-                    let html = match source_to_inline_html(&typst_url, &html_url) {
+                    let html = match source_to_inline_html(PathBuf::from(typst_url), html_url) {
                         Ok(inline_html) => inline_html,
                         Err(err) => {
                             eprintln!("{:?} at {}", err, recorder.current);
@@ -116,11 +115,11 @@ impl Processer for TypstImage {
                     let typst_url = config::relativize(typst_url);
                     let (parent_dir, filename) = parent_dir(&typst_url);
 
-                    let mut svg_url = adjust_name(&filename, ".typ", ".svg");
-                    let img_src = join_path(&parent_dir, &svg_url);
+                    let mut svg_url = filename.with_extension("svg");
+                    let img_src = parent_dir.join(&svg_url);
                     svg_url = output_path(&img_src);
 
-                    match write_svg(&typst_url, &svg_url) {
+                    match write_svg(PathBuf::from(typst_url), svg_url) {
                         Err(err) => eprintln!("{:?} at {}", err, recorder.current),
                         Ok(_) => (),
                     }
@@ -138,11 +137,11 @@ impl Processer for TypstImage {
                     let typst_url = config::relativize(typst_url);
                     let (parent_dir, filename) = parent_dir(&typst_url);
 
-                    let mut svg_url = adjust_name(&filename, ".typ", ".svg");
-                    let img_src = join_path(&parent_dir, &svg_url);
+                    let mut svg_url = filename.with_extension("svg");
+                    let img_src = parent_dir.join(&svg_url);
                     svg_url = output_path(&img_src);
 
-                    match write_svg(&typst_url, &svg_url) {
+                    match write_svg(PathBuf::from(typst_url), svg_url) {
                         Err(err) => eprintln!("{:?} at {}", err, recorder.current),
                         Ok(_) => (),
                     }
@@ -160,11 +159,11 @@ impl Processer for TypstImage {
                     let typst_url = config::relativize(typst_url);
                     let (parent_dir, filename) = parent_dir(&typst_url);
 
-                    let mut svg_url = adjust_name(&filename, ".typ", ".svg");
-                    let img_src = join_path(&parent_dir, &svg_url);
+                    let mut svg_url = filename.with_extension("svg");
+                    let img_src = parent_dir.join(&svg_url);
                     svg_url = output_path(&img_src);
 
-                    match write_svg(&typst_url, &svg_url) {
+                    match write_svg(PathBuf::from(&typst_url), svg_url) {
                         Err(err) => eprintln!("{:?} at {}", err, recorder.current),
                         Ok(_) => (),
                     }
