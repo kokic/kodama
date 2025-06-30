@@ -158,13 +158,13 @@ pub fn parse_metadata(
         if s.trim().len() != 0 {
             let pos = s
                 .find(':')
-                .ok_or_else(|| eyre!("expected metadata format `name: value`, found `{s}`"))?;
+                .ok_or_else(|| eyre!("Expected metadata format `name: value`, found `{s}`"))?;
             let key = s[0..pos].trim();
             let val = s[pos + 1..].trim();
 
-            let res = parse_spanned_markdown(val, &recorder.current); 
+            let res = parse_spanned_markdown(val, &recorder.current);
             let mut val = res.wrap_err("Failed to parse metadata value")?;
-            
+
             if key == "taxon" {
                 if let HTMLContent::Plain(v) = val {
                     val = HTMLContent::Plain(display_taxon(&v));

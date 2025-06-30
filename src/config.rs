@@ -241,12 +241,6 @@ pub fn parent_dir<P: AsRef<Path>>(path: P) -> (PathBuf, PathBuf) {
     (parent.to_path_buf(), filename.into())
 }
 
-// pub fn join_path<P: AsRef<Path>>(dir: P, name: P) -> String {
-//     let mut input_dir: PathBuf = dir.as_ref().into();
-//     input_dir.push(name);
-//     input_dir.to_str().unwrap().to_string()
-// }
-
 pub fn input_path<P: AsRef<Path>>(path: P) -> PathBuf {
     let mut filepath: PathBuf = root_dir().into();
     filepath.push(path);
