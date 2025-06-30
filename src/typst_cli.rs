@@ -44,14 +44,6 @@ pub struct InlineConfig {
 }
 
 impl InlineConfig {
-    #[allow(dead_code)]
-    pub fn new() -> InlineConfig {
-        InlineConfig {
-            margin_x: None,
-            margin_y: None,
-        }
-    }
-
     pub fn default_margin() -> String {
         "0em".to_string()
     }

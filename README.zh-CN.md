@@ -37,11 +37,7 @@ Options:
 
 ## 名称由来
 
-- Kodama (こだま, Echo) 一词可指代日本民间传说中栖息在树木上的灵魂 (Spirit), 即木霊. 本程序希望捕获到 Forest 概念中的精神 (Spirit). 
-
-- 本程序许多关键的地方都使用了回声 `echo` 这个指令. 
-
-- 其他 neta, 此处略去.  
+Kodama (こだま, Echo) 一词可指代日本民间传说中栖息在树木上的灵魂 (Spirit), 即木霊. 本程序希望捕获到 Forest 概念中的精神 (Spirit). 
 
 [^markdown-syntax]: Kodama 使用一个名为 [Pulldown-cmark](https://github.com/pulldown-cmark/pulldown-cmark) 的 CommonMark 解析器, 目前开启了 `公式` 和 `Yaml 风格元数据块` 选项. 
 

@@ -37,11 +37,7 @@ Options:
 
 ## Name Origin
 
-- Kodama (こだま, Echo) can refer to the spirits inhabiting trees in Japanese folklore, known as 木霊. This program hopes to capture the spirit in the concept of Forest.
-
-- Many key parts of this program use the `echo` command.
-
-- Other neta, omitted here.
+Kodama (こだま, Echo) can refer to the spirits inhabiting trees in Japanese folklore, known as 木霊. This program hopes to capture the spirit in the concept of Forest.
 
 [^markdown-syntax]: Kodama uses a CommonMark parser called [Pulldown-cmark](https://github.com/pulldown-cmark/pulldown-cmark), currently with `formulas` and `Yaml-style metadata blocks` options enabled.
 
