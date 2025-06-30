@@ -36,6 +36,8 @@ struct Cli {
 #[derive(clap::Subcommand)]
 enum Command {
     /// Compile current workspace dir to HTMLs.
+    /// 
+    /// This is a config dependent command. 
     #[command(visible_alias = "c")]
     Compile(CompileCommand),
 
@@ -44,16 +46,21 @@ enum Command {
     Watch(WatchCommand),
 
     /// Remove associated files (hash, entry & HTML) for the given section paths.
+    /// 
+    /// This is a config dependent command. 
     #[command(visible_alias = "rm")]
     Remove {
         /// Section paths to remove.
         #[arg(required = true)]
         path: Vec<PathBuf>,
-    },
 
+        /// Path to output directory
+        #[arg(short, long, default_value_t = config::DEFAULT_CONFIG.output_dir.into())]
+        output: String,
+    },
     // TODO: Move.
-    // 
-    // We are temporarily putting this feature on hold because we have not yet exported the dependency information for the section. 
+    //
+    // We are temporarily putting this feature on hold because we have not yet exported the dependency information for the section.
 }
 
 #[derive(clap::Args)]
@@ -142,12 +149,27 @@ fn main() -> eyre::Result<()> {
 
             sync_assets_dir()?;
         }
-        Command::Remove { path } => {
+        Command::Remove { path, output } => {
+            config::mutex_set(
+                &config::CONFIG,
+                CompileConfig::new(
+                    config::DEFAULT_CONFIG.root_dir.to_string(),
+                    output.to_string(),
+                    config::DEFAULT_CONFIG.assets_dir.to_string(),
+                    config::DEFAULT_CONFIG.base_url.to_string(),
+                    false,
+                    config::DEFAULT_CONFIG.short_slug,
+                    config::DEFAULT_CONFIG.footer_mode.clone(),
+                    config::DEFAULT_CONFIG.disable_export_css,
+                    None,
+                ),
+            );
+
             for section_path in path {
                 remove_with_hint(section_path)?;
                 remove_with_hint(config::hash_file_path(section_path))?;
                 remove_with_hint(config::entry_file_path(section_path))?;
-                remove_with_hint(config::output_path(section_path))?;
+                remove_with_hint(config::output_html_path(section_path))?;
             }
         }
         Command::Watch(watch_command) => {

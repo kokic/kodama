@@ -36,21 +36,19 @@ pub fn compile_all(workspace_dir: &str) -> eyre::Result<()> {
         let is_modified = verify_and_file_hash(&relative_path)
             .wrap_err_with(|| eyre!("Failed to verify hash of `{relative_path}`"))?;
 
-        let entry_path_str = format!("{}.entry", relative_path);
-        let entry_path_buf = config::entry_path(&entry_path_str);
-
-        let shallow = if !is_modified && entry_path_buf.exists() {
-            let entry_file = BufReader::new(File::open(&entry_path_buf).wrap_err_with(|| {
+        let entry_path = config::entry_file_path(&relative_path);
+        let shallow = if !is_modified && entry_path.exists() {
+            let entry_file = BufReader::new(File::open(&entry_path).wrap_err_with(|| {
                 eyre!(
                     "Failed to open entry file at `{}`",
-                    entry_path_buf.display()
+                    entry_path.display()
                 )
             })?);
             let shallow: ShallowSection =
                 serde_json::from_reader(entry_file).wrap_err_with(|| {
                     eyre!(
                         "Failed to deserialize entry file at `{}`",
-                        entry_path_buf.display()
+                        entry_path.display()
                     )
                 })?;
             shallow
@@ -62,8 +60,8 @@ pub fn compile_all(workspace_dir: &str) -> eyre::Result<()> {
                     .wrap_err_with(|| eyre!("Failed to parse typst file `{slug}.{ext}`"))?,
             };
             let serialized = serde_json::to_string(&shallow).unwrap();
-            std::fs::write(&entry_path_buf, serialized).wrap_err_with(|| {
-                eyre!("Failed to write entry to `{}`", entry_path_buf.display())
+            std::fs::write(&entry_path, serialized).wrap_err_with(|| {
+                eyre!("Failed to write entry to `{}`", entry_path.display())
             })?;
 
             shallow

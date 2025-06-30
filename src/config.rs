@@ -247,17 +247,19 @@ pub fn input_path<P: AsRef<Path>>(path: P) -> PathBuf {
     filepath
 }
 
+pub fn create_parent_dirs<P: AsRef<Path>>(path: P)  {
+    let parent_dir = path.as_ref().parent().unwrap();
+    if !parent_dir.exists() {
+        let _ = create_dir_all(&parent_dir);
+    }
+}
+
 pub fn auto_create_dir_path<P: AsRef<Path>>(paths: Vec<P>) -> PathBuf {
     let mut filepath: PathBuf = root_dir().into();
     for path in paths {
         filepath.push(path);
     }
-
-    let parent_dir = filepath.parent().unwrap();
-    if !parent_dir.exists() {
-        let _ = create_dir_all(&parent_dir);
-    }
-
+    create_parent_dirs(&filepath);
     filepath
 }
 
@@ -269,11 +271,30 @@ pub fn output_path<P: AsRef<Path>>(path: P) -> PathBuf {
     auto_create_dir_path(vec![&output_dir(), path.as_ref()])
 }
 
+#[allow(dead_code)]
+pub fn trim_divide_prefix<P: AsRef<Path>>(path: P) -> PathBuf {
+    let path = path.as_ref();
+    path.strip_prefix("/").unwrap_or(&path).to_path_buf()
+}
+
+/// Return the output HTML path `<output_dir>/<path>.html` for the given section.
+/// e.g. `/path/to/index.md` will return `<output_dir>/path/to/index.html`.
+/// 
+/// If the directory does not exist, it will be created.
+pub fn output_html_path<P: AsRef<Path>>(path: P) -> PathBuf {
+    let mut output_path = output_dir();
+    output_path.push(path);
+    output_path.set_extension("html");
+    create_parent_dirs(&output_path);
+    output_path
+}
+
 pub fn hash_dir() -> PathBuf {
     get_cache_dir().join(HASH_DIR_NAME)
 }
 
-/// Return the hash file path `hash_dir/<path>.hash` for the given file or directory.
+/// Return the hash file path `<hash_dir>/<path>.hash` for the given file or directory.
+/// e.g. `/path/to/index.md` will return `<hash_dir>/path/to/index.md.hash`.
 /// 
 /// If the directory does not exist, it will be created.
 pub fn hash_file_path<P: AsRef<Path>>(path: P) -> PathBuf {
@@ -283,11 +304,7 @@ pub fn hash_file_path<P: AsRef<Path>>(path: P) -> PathBuf {
         "{}.hash",
         hash_path.extension().unwrap().to_str().unwrap()
     ));
-
-    let parent_dir = hash_path.parent().unwrap();
-    if !parent_dir.exists() {
-        let _ = create_dir_all(&parent_dir);
-    }
+    create_parent_dirs(&hash_path);
     hash_path
 }
 
@@ -295,13 +312,10 @@ pub fn entry_dir() -> PathBuf {
     get_cache_dir().join(ENTRY_DIR_NAME)
 }
 
-/// Return the entry path `entry_dir/<path>` for the given file or directory.
-///
+/// Return the hash file path `<hash_dir>/<path>.hash` for the given file or directory.
+/// e.g. `/path/to/index.md` will return `<entry_dir>/path/to/index.md.entry`.
+/// 
 /// If the directory does not exist, it will be created.
-pub fn entry_path<P: AsRef<Path>>(path: P) -> PathBuf {
-    auto_create_dir_path(vec![&entry_dir(), path.as_ref()]).into()
-}
-
 pub fn entry_file_path<P: AsRef<Path>>(path: P) -> PathBuf {
     let mut entry_path = entry_dir();
     entry_path.push(path);
@@ -309,6 +323,7 @@ pub fn entry_file_path<P: AsRef<Path>>(path: P) -> PathBuf {
         "{}.entry",
         entry_path.extension().unwrap().to_str().unwrap()
     ));
+    create_parent_dirs(&entry_path);
     entry_path
 }
 
