@@ -4,10 +4,9 @@
 
 use std::{
     fs::{self, create_dir_all},
-    hash::Hash,
     path::{Path, PathBuf},
     str::FromStr,
-    sync::{LazyLock, Mutex},
+    sync::{LazyLock, OnceLock},
 };
 
 use eyre::Context;
@@ -15,8 +14,9 @@ use walkdir::WalkDir;
 
 use crate::slug::Slug;
 
-#[derive(Debug, Clone, clap::ValueEnum)]
+#[derive(Debug, Clone, clap::ValueEnum, Default)]
 pub enum FooterMode {
+    #[default]
     Link,
     Embed,
 }
@@ -45,11 +45,52 @@ impl ToString for FooterMode {
     }
 }
 
+pub struct BaseUrl(pub String);
+
+impl Default for BaseUrl {
+    fn default() -> Self {
+        BaseUrl("/".into())
+    }
+}
+
+impl BaseUrl {
+    pub fn normalize_base_url(self) -> Self {
+        match self.0.ends_with("/") {
+            true => self,
+            false => BaseUrl(format!("{}/", self.0)),
+        }
+    }
+}
+
+pub struct OutputDir(pub String);
+
+impl Default for OutputDir {
+    fn default() -> Self {
+        OutputDir("./publish".into())
+    }
+}
+
+pub struct AssetsDir(pub String);
+
+impl Default for AssetsDir {
+    fn default() -> Self {
+        AssetsDir("./assets".into())
+    }
+}
+
+pub struct RootDir(pub String);
+
+impl Default for RootDir {
+    fn default() -> Self {
+        RootDir("./".into())
+    }
+}
+
 pub struct CompileConfig<S> {
-    pub root_dir: S,
-    pub output_dir: S,
-    pub assets_dir: S,
-    pub base_url: S,
+    pub root_dir: RootDir,
+    pub output_dir: OutputDir,
+    pub assets_dir: AssetsDir,
+    pub base_url: BaseUrl,
     pub page_suffix: S,
     pub short_slug: bool,
     pub footer_mode: FooterMode,
@@ -61,42 +102,26 @@ pub struct CompileConfig<S> {
     pub edit: Option<S>,
 }
 
-impl CompileConfig<&'static str> {
-    pub const fn default() -> CompileConfig<&'static str> {
-        CompileConfig {
-            root_dir: "./",
-            output_dir: "./publish",
-            assets_dir: "./assets",
-            base_url: "/",
-            page_suffix: "",
-            short_slug: true,
-            footer_mode: FooterMode::Link,
-            disable_export_css: true,
-            edit: None,
-        }
-    }
-}
-
 impl CompileConfig<String> {
-    const fn empty() -> CompileConfig<String> {
-        CompileConfig {
-            root_dir: String::new(),
-            output_dir: String::new(),
-            assets_dir: String::new(),
-            base_url: String::new(),
-            page_suffix: String::new(),
-            short_slug: true,
-            footer_mode: FooterMode::Link,
-            disable_export_css: true,
-            edit: None,
-        }
-    }
+    // pub fn default() -> CompileConfig<String> {
+    //     CompileConfig::new(
+    //         RootDir::default(),
+    //         OutputDir::default(),
+    //         AssetsDir::default(),
+    //         BaseUrl::default(),
+    //         false,
+    //         false,
+    //         FooterMode::Link,
+    //         false,
+    //         None,
+    //     )
+    // }
 
     pub fn new<'a>(
-        root_dir: String,
-        output_dir: String,
-        assets_dir: String,
-        base_url: String,
+        root_dir: RootDir,
+        output_dir: OutputDir,
+        assets_dir: AssetsDir,
+        base_url: BaseUrl,
         disable_pretty_urls: bool,
         short_slug: bool,
         footer_mode: FooterMode,
@@ -107,7 +132,7 @@ impl CompileConfig<String> {
             root_dir,
             output_dir,
             assets_dir,
-            base_url: normalize_base_url(&base_url),
+            base_url: base_url.normalize_base_url(),
             page_suffix: to_page_suffix(disable_pretty_urls),
             short_slug,
             footer_mode,
@@ -117,8 +142,13 @@ impl CompileConfig<String> {
     }
 }
 
-pub static DEFAULT_CONFIG: CompileConfig<&'static str> = CompileConfig::default();
-pub static CONFIG: Mutex<CompileConfig<String>> = Mutex::new(CompileConfig::empty());
+
+// pub fn mutex_set<T>(source: &Mutex<T>, target: T) {
+//     let mut guard = source.lock().unwrap();
+//     *guard = target;
+// }
+
+pub static CONFIG: OnceLock<CompileConfig<String>> = OnceLock::new();
 
 pub static CUSTOM_META_HTML: LazyLock<String> = LazyLock::new(|| {
     std::fs::read_to_string(root_dir().join("import-meta.html")).unwrap_or_default()
@@ -138,25 +168,10 @@ pub static CUSTOM_MATH_HTML: LazyLock<String> = LazyLock::new(|| {
         .unwrap_or(include_str!("include/import-math.html").to_string())
 });
 
-pub fn lock_config() -> std::sync::MutexGuard<'static, CompileConfig<std::string::String>> {
-    CONFIG.lock().unwrap()
-}
-
-#[derive(Clone, Hash, PartialEq, Eq)]
-pub struct Blink {
-    pub source: String,
-    pub target: String,
-}
-
 pub const CACHE_DIR_NAME: &str = ".cache";
 pub const BUFFER_FILE_NAME: &str = "buffer";
 pub const HASH_DIR_NAME: &str = "hash";
 pub const ENTRY_DIR_NAME: &str = "entry";
-
-pub fn mutex_set<T>(source: &Mutex<T>, target: T) {
-    let mut guard = source.lock().unwrap();
-    *guard = target;
-}
 
 pub fn to_page_suffix(disable_pretty_urls: bool) -> String {
     let page_suffix = match disable_pretty_urls {
@@ -166,39 +181,32 @@ pub fn to_page_suffix(disable_pretty_urls: bool) -> String {
     page_suffix.into()
 }
 
-pub fn normalize_base_url(base_url: &str) -> String {
-    match base_url.ends_with("/") {
-        true => base_url.to_string(),
-        false => format!("{}/", base_url),
-    }
-}
-
 pub fn is_short_slug() -> bool {
-    lock_config().short_slug
+    CONFIG.get().unwrap().short_slug
 }
 
 pub fn root_dir() -> PathBuf {
-    lock_config().root_dir.to_string().into()
+    CONFIG.get().unwrap().root_dir.0.clone().into()
 }
 
 pub fn output_dir() -> PathBuf {
-    lock_config().output_dir.to_string().into()
+    CONFIG.get().unwrap().output_dir.0.clone().into()
 }
 
 pub fn base_url() -> String {
-    lock_config().base_url.to_string()
+    CONFIG.get().unwrap().base_url.0.clone()
 }
 
 pub fn footer_mode() -> FooterMode {
-    lock_config().footer_mode.clone()
+    CONFIG.get().unwrap().footer_mode.clone()
 }
 
 pub fn disable_export_css() -> bool {
-    lock_config().disable_export_css
+    CONFIG.get().unwrap().disable_export_css
 }
 
 pub fn editor_url() -> Option<String> {
-    lock_config().edit.clone()
+    CONFIG.get().unwrap().edit.clone()
 }
 
 pub fn get_cache_dir() -> PathBuf {
@@ -206,7 +214,7 @@ pub fn get_cache_dir() -> PathBuf {
 }
 
 pub fn assets_dir() -> PathBuf {
-    root_dir().join(lock_config().assets_dir.to_string())
+    root_dir().join(CONFIG.get().unwrap().assets_dir.0.clone())
 }
 
 /// URL keep posix style, so the type of return value is [`String`].
@@ -221,7 +229,7 @@ pub fn full_url<P: AsRef<Path>>(path: P) -> String {
 }
 
 pub fn full_html_url(slug: Slug) -> String {
-    full_url(&format!("{}{}", slug, lock_config().page_suffix))
+    full_url(&format!("{}{}", slug, CONFIG.get().unwrap().page_suffix))
 }
 
 /// Convert `path` to `./{path}` or `path`.
@@ -247,7 +255,7 @@ pub fn input_path<P: AsRef<Path>>(path: P) -> PathBuf {
     filepath
 }
 
-pub fn create_parent_dirs<P: AsRef<Path>>(path: P)  {
+pub fn create_parent_dirs<P: AsRef<Path>>(path: P) {
     let parent_dir = path.as_ref().parent().unwrap();
     if !parent_dir.exists() {
         let _ = create_dir_all(&parent_dir);
@@ -279,7 +287,7 @@ pub fn trim_divide_prefix<P: AsRef<Path>>(path: P) -> PathBuf {
 
 /// Return the output HTML path `<output_dir>/<path>.html` for the given section.
 /// e.g. `/path/to/index.md` will return `<output_dir>/path/to/index.html`.
-/// 
+///
 /// If the directory does not exist, it will be created.
 pub fn output_html_path<P: AsRef<Path>>(path: P) -> PathBuf {
     let mut output_path = output_dir();
@@ -295,7 +303,7 @@ pub fn hash_dir() -> PathBuf {
 
 /// Return the hash file path `<hash_dir>/<path>.hash` for the given file or directory.
 /// e.g. `/path/to/index.md` will return `<hash_dir>/path/to/index.md.hash`.
-/// 
+///
 /// If the directory does not exist, it will be created.
 pub fn hash_file_path<P: AsRef<Path>>(path: P) -> PathBuf {
     let mut hash_path = hash_dir();
@@ -314,7 +322,7 @@ pub fn entry_dir() -> PathBuf {
 
 /// Return the hash file path `<hash_dir>/<path>.hash` for the given file or directory.
 /// e.g. `/path/to/index.md` will return `<entry_dir>/path/to/index.md.entry`.
-/// 
+///
 /// If the directory does not exist, it will be created.
 pub fn entry_file_path<P: AsRef<Path>>(path: P) -> PathBuf {
     let mut entry_path = entry_dir();

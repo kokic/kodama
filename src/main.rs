@@ -26,6 +26,8 @@ use eyre::{eyre, WrapErr};
 
 use notify::{event::ModifyKind, Config, EventKind, RecommendedWatcher, RecursiveMode, Watcher};
 
+use crate::config::{AssetsDir, BaseUrl, OutputDir, RootDir};
+
 #[derive(Parser)]
 #[command(version, about, long_about = None)]
 struct Cli {
@@ -36,18 +38,20 @@ struct Cli {
 #[derive(clap::Subcommand)]
 enum Command {
     /// Compile current workspace dir to HTMLs.
-    /// 
-    /// This is a config dependent command. 
+    ///
+    /// This is a config dependent command.
     #[command(visible_alias = "c")]
     Compile(CompileCommand),
 
     /// Watch files and run build script on changes.
+    ///
+    /// This is a config dependent command.
     #[command(visible_alias = "w")]
     Watch(WatchCommand),
 
     /// Remove associated files (hash, entry & HTML) for the given section paths.
-    /// 
-    /// This is a config dependent command. 
+    ///
+    /// This is a config dependent command.
     #[command(visible_alias = "rm")]
     Remove {
         /// Section paths to remove.
@@ -55,7 +59,7 @@ enum Command {
         path: Vec<PathBuf>,
 
         /// Path to output directory
-        #[arg(short, long, default_value_t = config::DEFAULT_CONFIG.output_dir.into())]
+        #[arg(short, long, default_value_t)]
         output: String,
     },
     // TODO: Move.
@@ -66,19 +70,19 @@ enum Command {
 #[derive(clap::Args)]
 struct CompileCommand {
     /// Base URL or publish URL (e.g. https://www.example.com/)
-    #[arg(short, long, default_value_t = config::DEFAULT_CONFIG.base_url.into())]
+    #[arg(short, long, default_value_t = BaseUrl::default().0)]
     base: String,
 
     /// Path to output directory
-    #[arg(short, long, default_value_t = config::DEFAULT_CONFIG.output_dir.into())]
+    #[arg(short, long, default_value_t = OutputDir::default().0)]
     output: String,
 
     /// Path to assets directory relative to the output directory
-    #[arg(long, default_value_t = config::DEFAULT_CONFIG.assets_dir.into())]
+    #[arg(long, default_value_t = AssetsDir::default().0)]
     assets: String,
 
     /// Configures the project root (for absolute paths)
-    #[arg(short, long, default_value_t = config::DEFAULT_CONFIG.root_dir.into())]
+    #[arg(short, long, default_value_t = RootDir::default().0)]
     root: String,
 
     /// Disable pretty urls (`/page` to `/page.html`)
@@ -90,7 +94,7 @@ struct CompileCommand {
     short_slug: bool,
 
     /// Specify the inline mode for the footer sections
-    #[arg(short, long, default_value_t = FooterMode::Link)]
+    #[arg(short, long, default_value_t)]
     footer_mode: FooterMode,
 
     /// Disable exporting the `*.css` file to the output directory
@@ -104,6 +108,10 @@ struct CompileCommand {
 
 #[derive(clap::Args)]
 struct WatchCommand {
+    /// Path to output directory
+    #[arg(short, long, default_value_t = OutputDir::default().0)]
+    output: String,
+
     /// Configures watched files.
     #[arg(long)]
     dirs: Vec<String>,
@@ -120,21 +128,18 @@ fn main() -> eyre::Result<()> {
             let root = &compile_command.root;
             let output = &compile_command.output;
 
-            config::mutex_set(
-                &config::CONFIG,
-                CompileConfig::new(
-                    root.to_string(),
-                    output.to_string(),
-                    compile_command.assets.to_string(),
-                    compile_command.base.to_string(),
-                    compile_command.disable_pretty_urls,
-                    compile_command.short_slug,
-                    compile_command.footer_mode.clone(),
-                    compile_command.disable_export_css,
-                    compile_command.edit.clone(),
-                ),
-            );
-
+            let _ = config::CONFIG.set(CompileConfig::new(
+                config::RootDir(root.to_string()),
+                config::OutputDir(output.to_string()),
+                config::AssetsDir(compile_command.assets.to_string()),
+                config::BaseUrl(compile_command.base.to_string()),
+                compile_command.disable_pretty_urls,
+                compile_command.short_slug,
+                compile_command.footer_mode.clone(),
+                compile_command.disable_export_css,
+                compile_command.edit.clone(),
+            ));
+            
             match &compile_command.edit {
                 Some(s) => println!("[{}] EDIT MODE IS ENABLE. Please note that your disk file path information will be included in the pages!", s),
                 None => (),
@@ -150,20 +155,17 @@ fn main() -> eyre::Result<()> {
             sync_assets_dir()?;
         }
         Command::Remove { path, output } => {
-            config::mutex_set(
-                &config::CONFIG,
-                CompileConfig::new(
-                    config::DEFAULT_CONFIG.root_dir.to_string(),
-                    output.to_string(),
-                    config::DEFAULT_CONFIG.assets_dir.to_string(),
-                    config::DEFAULT_CONFIG.base_url.to_string(),
-                    false,
-                    config::DEFAULT_CONFIG.short_slug,
-                    config::DEFAULT_CONFIG.footer_mode.clone(),
-                    config::DEFAULT_CONFIG.disable_export_css,
-                    None,
-                ),
-            );
+            let _ = config::CONFIG.set(CompileConfig::new(
+                config::RootDir::default(),
+                config::OutputDir(output.to_string()),
+                config::AssetsDir::default(),
+                config::BaseUrl::default(),
+                false,
+                false, 
+                FooterMode::default(),
+                false,
+                None,
+            ));
 
             for section_path in path {
                 remove_with_hint(section_path)?;
@@ -172,8 +174,24 @@ fn main() -> eyre::Result<()> {
                 remove_with_hint(config::output_html_path(section_path))?;
             }
         }
-        Command::Watch(watch_command) => {
-            if let Err(error) = watch(&watch_command.dirs, &watch_command.script) {
+        Command::Watch(WatchCommand {
+            output,
+            dirs,
+            script,
+        }) => {
+            let _ = config::CONFIG.set(CompileConfig::new(
+                config::RootDir::default(),
+                config::OutputDir(output.to_string()),
+                config::AssetsDir::default(),
+                config::BaseUrl::default(),
+                false,
+                false, 
+                FooterMode::default(),
+                false,
+                None,
+            ));
+
+            if let Err(error) = watch(dirs, script) {
                 eprintln!("Error: {error:?}");
             }
         }
