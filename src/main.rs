@@ -27,6 +27,10 @@ struct Cli {
 
 #[derive(clap::Subcommand)]
 enum Command {
+    /// Create a new section.
+    #[command(visible_alias = "new")]
+    New(crate::cli::new::NewCommand),
+
     /// Compile current workspace dir to HTMLs.
     ///
     /// This is a config dependent command.
@@ -52,6 +56,7 @@ enum Command {
 fn main() -> eyre::Result<()> {
     let cli = Cli::parse();
     match &cli.command {
+        Command::New(command) => crate::cli::new::new(command)?,
         Command::Compile(command) => crate::cli::compile::compile(command)?,
         Command::Remove(command) => crate::cli::remove::remove(command)?,
         Command::Watch(command) => crate::cli::watch::watch(command)?,
