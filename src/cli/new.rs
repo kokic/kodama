@@ -24,7 +24,7 @@ pub fn new(command: &NewCommand) -> eyre::Result<()> {
             .map_err(|e| eyre::eyre!("Failed to read template file: {}", e))?
             .replace(
                 "<FILE_NAME>",
-                &command.path.file_name().unwrap().to_str().unwrap(),
+                &command.path.file_stem().unwrap().to_str().unwrap(),
             )
     };
 
