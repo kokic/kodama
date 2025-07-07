@@ -2,6 +2,7 @@
 // Released under the GPL-3.0 license as described in the file LICENSE.
 // Authors: Kokic (@kokic)
 
+pub mod new;
 pub mod compile;
 pub mod remove;
 pub mod watch;

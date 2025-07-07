@@ -21,7 +21,6 @@ pub struct RemoveCommand {
     #[arg(short, long, default_value_t)]
     pub output: String,
 }
-/// Section paths to remove.
 
 pub fn remove(command: &RemoveCommand) -> eyre::Result<()> {
     let path = &command.path;
