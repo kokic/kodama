@@ -22,6 +22,10 @@ pub fn new(command: &NewCommand) -> eyre::Result<()> {
     } else {
         std::fs::read_to_string(&template)
             .map_err(|e| eyre::eyre!("Failed to read template file: {}", e))?
+            .replace(
+                "<FILE_NAME>",
+                &command.path.file_name().unwrap().to_str().unwrap(),
+            )
     };
 
     std::fs::write(&command.path, template)
