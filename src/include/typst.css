@@ -29,7 +29,7 @@
 /* For external SVG files. */
 
 @media (prefers-color-scheme: dark) {
-  figure img {
+  .color-invert {
     filter: invert(1) hue-rotate(180deg);
   }
 }

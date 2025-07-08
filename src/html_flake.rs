@@ -155,19 +155,23 @@ pub fn footnote_reference(s: &str, back_id: &str, number: usize) -> String {
     })
 }
 
-pub fn html_image(image_src: &str) -> String {
-    format!(r#"<img src = "{image_src}" />"#)
+pub fn html_image(image_src: &str, class_name: &str) -> String {
+    format!(r#"<img src="{image_src}" class="{class_name}"/>"#)
+}
+
+pub fn html_image_color_invert(image_src: &str) -> String {
+    html_image(image_src, "color-invert")
 }
 
 pub fn html_figure(image_src: &str, center: bool, caption: String) -> String {
     if !center {
-        return html_image(image_src);
+        return html_image_color_invert(image_src);
     }
     let mut caption = caption;
     if !caption.is_empty() {
         caption = html!(figcaption { (caption) })
     }
-    html!(figure { (html_image(image_src)) (caption) })
+    html!(figure { (html_image_color_invert(image_src)) (caption) })
 }
 
 pub fn html_figure_code(image_src: &str, caption: String, code: String) -> String {
@@ -175,7 +179,7 @@ pub fn html_figure_code(image_src: &str, caption: String, code: String) -> Strin
     if !caption.is_empty() {
         caption = html!(figcaption { (caption) })
     }
-    let figure = html!(figure { (html_image(image_src)) (caption) });
+    let figure = html!(figure { (html_image_color_invert(image_src)) (caption) });
     let pre = html!(pre { (code) });
     html!(details { summary { (figure) } (pre) })
 }
