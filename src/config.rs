@@ -10,11 +10,12 @@ use std::{
 };
 
 use eyre::Context;
+use serde::Deserialize;
 use walkdir::WalkDir;
 
-use crate::slug::Slug;
+use crate::{config_toml::Config, slug::Slug};
 
-#[derive(Debug, Clone, clap::ValueEnum, Default)]
+#[derive(Debug, Clone, clap::ValueEnum, Default, Deserialize)]
 pub enum FooterMode {
     #[default]
     Link,
@@ -62,6 +63,14 @@ impl BaseUrl {
     }
 }
 
+pub struct TreesDir(pub String);
+
+impl Default for TreesDir {
+    fn default() -> Self {
+        TreesDir("./trees".into())
+    }
+}
+
 pub struct OutputDir(pub String);
 
 impl Default for OutputDir {
@@ -88,6 +97,7 @@ impl Default for RootDir {
 
 pub struct CompileConfig<S> {
     pub root_dir: RootDir,
+    pub trees_dir: TreesDir,
     pub output_dir: OutputDir,
     pub assets_dir: AssetsDir,
     pub base_url: BaseUrl,
@@ -103,22 +113,9 @@ pub struct CompileConfig<S> {
 }
 
 impl CompileConfig<String> {
-    // pub fn default() -> CompileConfig<String> {
-    //     CompileConfig::new(
-    //         RootDir::default(),
-    //         OutputDir::default(),
-    //         AssetsDir::default(),
-    //         BaseUrl::default(),
-    //         false,
-    //         false,
-    //         FooterMode::Link,
-    //         false,
-    //         None,
-    //     )
-    // }
-
     pub fn new<'a>(
         root_dir: RootDir,
+        trees_dir: TreesDir,
         output_dir: OutputDir,
         assets_dir: AssetsDir,
         base_url: BaseUrl,
@@ -130,6 +127,7 @@ impl CompileConfig<String> {
     ) -> CompileConfig<String> {
         CompileConfig {
             root_dir,
+            trees_dir,
             output_dir,
             assets_dir,
             base_url: base_url.normalize_base_url(),
@@ -142,11 +140,16 @@ impl CompileConfig<String> {
     }
 }
 
+/// Specifies the filename of the TOML configuration file (e.g., "kodama.toml").
+pub static TOML: OnceLock<String> = OnceLock::new();
 
-// pub fn mutex_set<T>(source: &Mutex<T>, target: T) {
-//     let mut guard = source.lock().unwrap();
-//     *guard = target;
-// }
+/// Specifies the project root path. 
+/// 
+/// Please note that this value should always be automatically derived from 
+/// the location of the toml configuration file.
+pub static ROOT: OnceLock<PathBuf> = OnceLock::new();
+
+pub static CONFIG_TOML: OnceLock<Config> = OnceLock::new();
 
 pub static CONFIG: OnceLock<CompileConfig<String>> = OnceLock::new();
 
@@ -186,7 +189,11 @@ pub fn is_short_slug() -> bool {
 }
 
 pub fn root_dir() -> PathBuf {
-    CONFIG.get().unwrap().root_dir.0.clone().into()
+    ROOT.get().unwrap().clone()
+}
+
+pub fn trees_dir() -> PathBuf {
+    CONFIG.get().unwrap().trees_dir.0.clone().into()
 }
 
 pub fn output_dir() -> PathBuf {

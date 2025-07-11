@@ -28,6 +28,7 @@ pub fn remove(command: &RemoveCommand) -> eyre::Result<()> {
 
     let _ = config::CONFIG.set(CompileConfig::new(
         config::RootDir::default(),
+        config::TreesDir::default(),
         config::OutputDir(output.to_string()),
         config::AssetsDir::default(),
         config::BaseUrl::default(),

@@ -6,6 +6,7 @@ mod assets_sync;
 mod cli;
 mod compiler;
 mod config;
+mod config_toml;
 mod entry;
 mod html_flake;
 mod html_macro;
@@ -16,7 +17,7 @@ mod typst_cli;
 
 use clap::Parser;
 
-use crate::cli::{compile::CompileCommand, remove::RemoveCommand, watch::WatchCommand};
+use crate::cli::{build::BuildCommand, remove::RemoveCommand, watch::WatchCommand};
 
 #[derive(Parser)]
 #[command(version, about, long_about = None)]
@@ -34,8 +35,8 @@ enum Command {
     /// Compile current workspace dir to HTMLs.
     ///
     /// This is a config dependent command.
-    #[command(visible_alias = "c")]
-    Compile(CompileCommand),
+    #[command(visible_alias = "b")]
+    Build(BuildCommand),
 
     /// Watch files and run build script on changes.
     ///
@@ -57,7 +58,7 @@ fn main() -> eyre::Result<()> {
     let cli = Cli::parse();
     match &cli.command {
         Command::New(command) => crate::cli::new::new(command)?,
-        Command::Compile(command) => crate::cli::compile::compile(command)?,
+        Command::Build(command) => crate::cli::build::compile(command)?,
         Command::Remove(command) => crate::cli::remove::remove(command)?,
         Command::Watch(command) => crate::cli::watch::watch(command)?,
     };
