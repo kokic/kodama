@@ -2,7 +2,7 @@
 // Released under the GPL-3.0 license as described in the file LICENSE.
 // Authors: Kokic (@kokic), Spore (@s-cerevisiae)
 
-use std::{collections::HashSet, ops::Not, path::Path};
+use std::{collections::HashSet, ops::Not};
 
 use crate::{
     compiler::counter::Counter,
@@ -28,12 +28,9 @@ impl Writer {
         let filepath = crate::config::output_path(&html_url);
 
         let relative_path = config::output_dir().join(&html_url);
-        if verify_update_hash(&relative_path, &html).expect("Writer::write@hash") {
+        if verify_update_hash(&relative_path, &html).expect("Failed to verify update hash") {
             match std::fs::write(&filepath, html) {
-                Ok(()) => {
-                    let output_path = crate::slug::pretty_path(Path::new(&html_url));
-                    println!("Output: {:?} {}", page_title, output_path);
-                }
+                Ok(()) => println!("Output: {:?} {}", page_title, filepath.display()), 
                 Err(err) => eprintln!("{:?}", err),
             }
         }

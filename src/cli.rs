@@ -3,6 +3,6 @@
 // Authors: Kokic (@kokic)
 
 pub mod new;
-pub mod compile;
+pub mod build;
 pub mod remove;
 pub mod watch;

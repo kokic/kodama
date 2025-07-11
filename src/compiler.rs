@@ -91,10 +91,10 @@ pub fn should_ignored_dir(path: &Path) -> bool {
 /**
  * collect all source file paths in workspace dir
  */
-pub fn all_source_files(root_dir: &Path) -> eyre::Result<Workspace> {
+pub fn all_source_files(trees_dir: &Path) -> eyre::Result<Workspace> {
     let mut slug_exts = HashMap::new();
     let to_slug_ext = |p: &Path| {
-        let p = p.strip_prefix(root_dir).unwrap_or(p);
+        let p = p.strip_prefix(trees_dir).unwrap_or(p);
         let ext = p.extension()?.to_str()?.parse().ok()?;
         let slug = Slug::new(slug::pretty_path(&p.with_extension("")));
         Some((slug, ext))
@@ -108,8 +108,8 @@ pub fn all_source_files(root_dir: &Path) -> eyre::Result<Workspace> {
             p.with_extension(e.to_string()).display(),
         )
     };
-    for entry in std::fs::read_dir(root_dir).wrap_err_with(|| failed_to_read_dir(root_dir))? {
-        let path = entry.wrap_err_with(|| failed_to_read_dir(root_dir))?.path();
+    for entry in std::fs::read_dir(trees_dir).wrap_err_with(|| failed_to_read_dir(trees_dir))? {
+        let path = entry.wrap_err_with(|| failed_to_read_dir(trees_dir))?.path();
         if path.is_file() && !should_ignored_file(&path) {
             let Some((slug, ext)) = to_slug_ext(&path) else {
                 continue;
