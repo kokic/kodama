@@ -7,7 +7,7 @@ use std::{fs, path::PathBuf};
 
 use crate::{
     assets_sync,
-    compiler::{self, all_source_files},
+    compiler::{self, all_trees_source},
     config::{self, output_path},
     config_toml, html_flake,
 };
@@ -19,6 +19,7 @@ pub struct BuildCommand {
     config: String,
 }
 
+/// This function invoked the [`config_toml::apply_config`] function to apply the configuration.
 pub fn compile(command: &BuildCommand) -> eyre::Result<()> {
     config_toml::apply_config(PathBuf::from(command.config.clone()))?;
 
@@ -27,14 +28,19 @@ pub fn compile(command: &BuildCommand) -> eyre::Result<()> {
     //     None => (),
     // }
 
-    if config::inline_css() {
+    if !config::inline_css() {
         export_css_files().wrap_err("Failed to export CSS")?;
     }
 
     let root = config::root_dir();
-    let workspace = all_source_files(&config::trees_dir())?;
-    compiler::compile(workspace)
-        .wrap_err_with(|| eyre!("Failed to compile `{}`", root.display()))?;
+    let workspace = all_trees_source(&root, &config::trees_dir())?;
+    compiler::compile(workspace).wrap_err_with(|| {
+        eyre!(
+            "Failed to compile site `{}`",
+            root.canonicalize().unwrap().display()
+        )
+    })?;
+    
     sync_assets_dir()?;
 
     Ok(())

@@ -49,55 +49,6 @@ impl ToString for FooterMode {
     }
 }
 
-pub struct BaseUrl(pub String);
-
-impl Default for BaseUrl {
-    fn default() -> Self {
-        BaseUrl("/".into())
-    }
-}
-
-impl BaseUrl {
-    pub fn normalize_base_url(self) -> Self {
-        match self.0.ends_with("/") {
-            true => self,
-            false => BaseUrl(format!("{}/", self.0)),
-        }
-    }
-}
-
-pub struct TreesDir(pub String);
-
-impl Default for TreesDir {
-    fn default() -> Self {
-        TreesDir("./trees".into())
-    }
-}
-
-pub struct OutputDir(pub String);
-
-impl Default for OutputDir {
-    fn default() -> Self {
-        OutputDir("./publish".into())
-    }
-}
-
-pub struct AssetsDir(pub String);
-
-impl Default for AssetsDir {
-    fn default() -> Self {
-        AssetsDir("./assets".into())
-    }
-}
-
-pub struct RootDir(pub String);
-
-impl Default for RootDir {
-    fn default() -> Self {
-        RootDir("./".into())
-    }
-}
-
 /// Specifies the filename of the TOML configuration file (e.g., "kodama.toml").
 pub static TOML: OnceLock<String> = OnceLock::new();
 

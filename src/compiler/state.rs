@@ -37,7 +37,7 @@ pub fn compile_all(mut shallows: Shallows) -> eyre::Result<CompileState> {
     let mut state = CompileState::new(residued);
     state
         .compile(&shallows, Slug::new("index"))
-        .ok_or_eyre("missing `index` section, please provide `index.md` or `index.typst`")?;
+        .ok_or_eyre("Missing `index` section, please provide `index.md` or `index.typst`")?;
 
     /*
      * Unlinked or unembedded pages.
