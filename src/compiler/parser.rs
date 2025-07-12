@@ -2,20 +2,15 @@
 // Released under the GPL-3.0 license as described in the file LICENSE.
 // Authors: Kokic (@kokic), Spore (@s-cerevisiae)
 
-use std::{collections::HashMap, mem};
+use std::vec;
 
 use eyre::{eyre, WrapErr};
 use itertools::Itertools;
 use pulldown_cmark::Options;
 
 use crate::{
-    config::input_path,
-    entry::HTMLMetaData,
-    process::{
-        content::to_contents, embed_markdown::Embed, figure::Figure, footnote::Footnote,
-        ignore_paragraph, metadata::Metadata, typst_image::TypstImage,
-    },
-    slug::Slug,
+    config::input_path, entry::HTMLMetaData, ordered_map::OrderedMap,
+    process::processer::Processer, recorder::ParseRecorder, slug::Slug,
 };
 
 use super::{section::LazyContent, HTMLContent, ShallowSection};
@@ -26,9 +21,9 @@ pub const OPTIONS: Options = Options::ENABLE_MATH
     .union(Options::ENABLE_SMART_PUNCTUATION)
     .union(Options::ENABLE_FOOTNOTES);
 
-pub fn initialize(slug: Slug) -> eyre::Result<(String, HashMap<String, HTMLContent>)> {
+pub fn initialize(slug: Slug) -> eyre::Result<(String, OrderedMap<String, HTMLContent>)> {
     // global data store
-    let mut metadata: HashMap<String, HTMLContent> = HashMap::new();
+    let mut metadata: OrderedMap<String, HTMLContent> = OrderedMap::new();
     let fullname = format!("{}.md", slug);
     metadata.insert("slug".to_string(), HTMLContent::Plain(slug.to_string()));
 
@@ -79,17 +74,31 @@ mod tests {
 
     #[test]
     fn test_table_td() {
+        use crate::ordered_map::OrderedMap;
+        use crate::{
+            compiler::section::HTMLContent, process::processer::Processer, recorder::ParseRecorder,
+        };
+
+        let mut processers: Vec<Box<dyn Processer>> = vec![
+            Box::new(crate::process::footnote::Footnote),
+            Box::new(crate::process::figure::Figure),
+            Box::new(crate::process::typst_image::TypstImage),
+            Box::new(crate::process::katex_compat::KatexCompact),
+            Box::new(crate::process::embed_markdown::Embed),
+        ];
+
         let source = "| a | b |\n| - | - |\n| c | d |";
+        let mut metadata: OrderedMap<String, HTMLContent> = OrderedMap::new();
+        let mut recorder = ParseRecorder::new("test".to_owned());
 
-        let events = pulldown_cmark::Parser::new_ext(source, OPTIONS);
+        let contents = super::parse_content(
+            &source,
+            &mut recorder,
+            &mut metadata,
+            &mut processers,
+            false,
+        );
 
-        let events = Footnote::process(events);
-        let events = Figure::process(events);
-        let events = TypstImage::process(events, Slug::new("-"));
-        let events = Embed::process(events);
-
-        let content = normalize_html_content(to_contents(events));
-
-        assert_eq!(content.as_str().unwrap(), "<table><thead><tr><th>a</th><th>b</th></tr></thead><tbody>\n<tr><td>c</td><td>d</td></tr>\n</tbody></table>\n");
+        assert_eq!(contents.unwrap().as_str().unwrap(), "<table><thead><tr><th>a</th><th>b</th></tr></thead><tbody>\n<tr><td>c</td><td>d</td></tr>\n</tbody></table>\n");
     }
 }

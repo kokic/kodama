@@ -10,6 +10,7 @@ mod config_toml;
 mod entry;
 mod html_flake;
 mod html_macro;
+mod ordered_map;
 mod process;
 mod recorder;
 mod slug;
