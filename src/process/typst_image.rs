@@ -50,9 +50,9 @@ impl<'e, E: Iterator<Item = Event<'e>>> Iterator for TypstImage2<E> {
     fn next(&mut self) -> Option<Self::Item> {
         for e in self.events.by_ref() {
             match e {
-                Event::Start(Tag::Link { dest_url, .. }) => {
-                    let (url, action) = url_action(&dest_url);
-                    if is_inline_typst(&dest_url) {
+                Event::Start(Tag::Link { ref dest_url, .. }) => {
+                    let (url, action) = url_action(dest_url);
+                    if is_inline_typst(dest_url) {
                         self.state = State::InlineTypst;
                         self.url = Some(dest_url.to_string()); // [0]
                     } else if action == State::ImageCode.strify() {
@@ -70,6 +70,8 @@ impl<'e, E: Iterator<Item = Event<'e>>> Iterator for TypstImage2<E> {
                     } else if action == State::ImageSpan.strify() {
                         self.state = State::ImageSpan;
                         self.url = Some(url.to_string());
+                    } else {
+                        return Some(e);
                     }
                 }
                 Event::Text(ref content)
@@ -209,8 +211,7 @@ impl<'e, E: Iterator<Item = Event<'e>>> Iterator for TypstImage2<E> {
 
                         self.state = State::None;
                     }
-
-                    _ => (),
+                    _ => return Some(e),
                 },
                 _ => return Some(e),
             }

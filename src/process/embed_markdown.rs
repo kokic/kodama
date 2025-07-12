@@ -15,7 +15,7 @@ use crate::{
     },
     html_flake::html_link,
     recorder::{ParseRecorder, State},
-    slug::{to_slug, Slug},
+    slug::to_slug,
 };
 use eyre::{eyre, WrapErr};
 use pulldown_cmark::{html, Event, Tag, TagEnd};
@@ -56,21 +56,23 @@ impl<'e, 'm, E: Iterator<Item = Event<'e>>> Iterator for Embed2<'e, 'm, E> {
     fn next(&mut self) -> Option<Self::Item> {
         for e in self.events.by_ref() {
             match e {
-                Event::Start(Tag::Link { dest_url, .. }) => {
-                    let (mut url, action) = url_action(&dest_url);
+                Event::Start(Tag::Link { ref dest_url, .. }) => {
+                    let (mut url, action) = url_action(dest_url);
                     if action == State::Embed.strify() {
                         self.state = State::Embed;
                         self.url = Some(url); // [0]
                     } else if is_external_link(&url) {
                         self.state = State::ExternalLink;
                         self.url = Some(url);
-                    } else if is_local_link(&dest_url) {
+                    } else if is_local_link(dest_url) {
                         self.state = State::LocalLink;
 
                         if url.ends_with(".md") {
                             url.truncate(url.len() - 3);
                         }
                         self.url = Some(url);
+                    } else {
+                        return Some(Ok(e.into()));
                     }
                 }
                 Event::Start(Tag::MetadataBlock(_)) => {
@@ -94,6 +96,7 @@ impl<'e, 'm, E: Iterator<Item = Event<'e>>> Iterator for Embed2<'e, 'm, E> {
                         } else {
                             None
                         };
+                        let title = title.filter(|t| !t.is_empty());
                         return Some(Ok(EmbedContent { title, url, option }.into()));
                     }
                     State::LocalLink => {
@@ -134,6 +137,7 @@ impl<'e, 'm, E: Iterator<Item = Event<'e>>> Iterator for Embed2<'e, 'm, E> {
                         if let Err(e) = parse_metadata2(text, self.metadata) {
                             return Some(Err(e.wrap_err("failed to parse metadata")));
                         }
+                        self.state = State::None;
                     } else {
                         return Some(Ok(e.into()));
                     }
