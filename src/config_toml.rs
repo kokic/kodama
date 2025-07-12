@@ -5,6 +5,7 @@ use serde::{Deserialize, Serialize};
 use crate::config::{self, FooterMode};
 
 pub const DEFAULT_CONFIG_PATH: &'static str = "./config.toml";
+pub const DEFAULT_SOURCE_DIR: &'static str = "trees";
 
 #[derive(Deserialize, Debug, Default, Serialize)]
 pub struct Config {
@@ -29,7 +30,7 @@ pub struct Kodama {
 impl Default for Kodama {
     fn default() -> Self {
         Self {
-            trees: vec!["trees".to_string()],
+            trees: vec![DEFAULT_SOURCE_DIR.to_string()],
             assets: vec!["assets".to_string()],
             url: "/".to_string(),
         }

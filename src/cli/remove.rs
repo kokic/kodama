@@ -25,6 +25,7 @@ pub struct RemoveCommand {
     config: String,
 }
 
+/// This function invoked the [`config_toml::apply_config`] function to apply the configuration.
 pub fn remove(command: &RemoveCommand) -> eyre::Result<()> {
     config_toml::apply_config(PathBuf::from(command.config.clone()))?;
 
