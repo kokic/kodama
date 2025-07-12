@@ -12,7 +12,7 @@ pub mod taxon;
 pub mod typst;
 pub mod writer;
 
-use std::{collections::HashMap, fs::File, io::BufReader, path::Path};
+use std::{collections::HashMap, fs::File, io::BufReader, path::{Path, PathBuf}};
 
 use eyre::{bail, eyre, WrapErr};
 use parser::parse_markdown;
@@ -26,8 +26,7 @@ use crate::{
     slug::{self, Ext, Slug},
 };
 
-pub fn compile_all(workspace_dir: &str) -> eyre::Result<()> {
-    let workspace = all_source_files(Path::new(workspace_dir))?;
+pub fn compile(workspace: Workspace) -> eyre::Result<()> {
     let mut shallows = HashMap::new();
 
     for (&slug, &ext) in &workspace.slug_exts {
@@ -39,10 +38,7 @@ pub fn compile_all(workspace_dir: &str) -> eyre::Result<()> {
         let entry_path = config::entry_file_path(&relative_path);
         let shallow = if !is_modified && entry_path.exists() {
             let entry_file = BufReader::new(File::open(&entry_path).wrap_err_with(|| {
-                eyre!(
-                    "Failed to open entry file at `{}`",
-                    entry_path.display()
-                )
+                eyre!("Failed to open entry file at `{}`", entry_path.display())
             })?);
             let shallow: ShallowSection =
                 serde_json::from_reader(entry_file).wrap_err_with(|| {
@@ -56,13 +52,12 @@ pub fn compile_all(workspace_dir: &str) -> eyre::Result<()> {
             let shallow = match ext {
                 Ext::Markdown => parse_markdown(slug)
                     .wrap_err_with(|| eyre!("Failed to parse markdown file `{slug}.{ext}`"))?,
-                Ext::Typst => parse_typst(slug, workspace_dir)
+                Ext::Typst => parse_typst(slug, config::typst_root_dir())
                     .wrap_err_with(|| eyre!("Failed to parse typst file `{slug}.{ext}`"))?,
             };
             let serialized = serde_json::to_string(&shallow).unwrap();
-            std::fs::write(&entry_path, serialized).wrap_err_with(|| {
-                eyre!("Failed to write entry to `{}`", entry_path.display())
-            })?;
+            std::fs::write(&entry_path, serialized)
+                .wrap_err_with(|| eyre!("Failed to write entry to `{}`", entry_path.display()))?;
 
             shallow
         };
@@ -91,14 +86,8 @@ pub fn should_ignored_dir(path: &Path) -> bool {
 /**
  * collect all source file paths in workspace dir
  */
-pub fn all_source_files(trees_dir: &Path) -> eyre::Result<Workspace> {
+pub fn all_source_files(trees_dir: &Vec<PathBuf>) -> eyre::Result<Workspace> {
     let mut slug_exts = HashMap::new();
-    let to_slug_ext = |p: &Path| {
-        let p = p.strip_prefix(trees_dir).unwrap_or(p);
-        let ext = p.extension()?.to_str()?.parse().ok()?;
-        let slug = Slug::new(slug::pretty_path(&p.with_extension("")));
-        Some((slug, ext))
-    };
 
     let failed_to_read_dir = |dir: &Path| eyre!("Failed to read directory `{}`", dir.display());
     let file_collide = |p: &Path, e: Ext| {
@@ -108,37 +97,61 @@ pub fn all_source_files(trees_dir: &Path) -> eyre::Result<Workspace> {
             p.with_extension(e.to_string()).display(),
         )
     };
-    for entry in std::fs::read_dir(trees_dir).wrap_err_with(|| failed_to_read_dir(trees_dir))? {
-        let path = entry.wrap_err_with(|| failed_to_read_dir(trees_dir))?.path();
-        if path.is_file() && !should_ignored_file(&path) {
-            let Some((slug, ext)) = to_slug_ext(&path) else {
-                continue;
-            };
-            if let Some(ext) = slug_exts.insert(slug, ext) {
-                bail!(file_collide(&path, ext));
-            };
-        } else if path.is_dir() && !should_ignored_dir(&path) {
-            for entry in WalkDir::new(&path)
-                .follow_links(true)
-                .into_iter()
-                .filter_entry(|e| {
-                    let path = e.path();
-                    path.is_file() || !should_ignored_dir(path)
-                })
+
+    let mut collect_files = |source_dir: &Path| {
+
+        let to_slug_ext = |p: &Path| {
+            let p = p.strip_prefix(source_dir).unwrap_or(p);
+            let ext = p.extension()?.to_str()?.parse().ok()?;
+            let slug = Slug::new(slug::pretty_path(&p.with_extension("")));
+            Some((slug, ext))
+        };
+
+        Ok(
+            for entry in
+                std::fs::read_dir(source_dir).wrap_err_with(|| failed_to_read_dir(source_dir))?
             {
                 let path = entry
-                    .wrap_err_with(|| failed_to_read_dir(&path))?
-                    .into_path();
-                if path.is_file() {
+                    .wrap_err_with(|| failed_to_read_dir(source_dir))?
+                    .path();
+                if path.is_file() && !should_ignored_file(&path) {
                     let Some((slug, ext)) = to_slug_ext(&path) else {
                         continue;
                     };
                     if let Some(ext) = slug_exts.insert(slug, ext) {
                         bail!(file_collide(&path, ext));
+                    };
+                } else if path.is_dir() && !should_ignored_dir(&path) {
+                    for entry in WalkDir::new(&path)
+                        .follow_links(true)
+                        .into_iter()
+                        .filter_entry(|e| {
+                            let path = e.path();
+                            path.is_file() || !should_ignored_dir(path)
+                        })
+                    {
+                        let path = entry
+                            .wrap_err_with(|| failed_to_read_dir(&path))?
+                            .into_path();
+                        if path.is_file() {
+                            let Some((slug, ext)) = to_slug_ext(&path) else {
+                                continue;
+                            };
+                            if let Some(ext) = slug_exts.insert(slug, ext) {
+                                bail!(file_collide(&path, ext));
+                            }
+                        }
                     }
                 }
-            }
+            },
+        )
+    };
+
+    for source_dir in trees_dir {
+        if !source_dir.exists() {
+            continue;
         }
+        collect_files(source_dir)?;
     }
 
     Ok(Workspace { slug_exts })

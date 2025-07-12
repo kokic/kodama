@@ -2,48 +2,31 @@
 // Released under the GPL-3.0 license as described in the file LICENSE.
 // Authors: Kokic (@kokic)
 
-use std::{io::Write, path::Path};
+use std::{
+    io::Write,
+    path::{Path, PathBuf},
+};
 
 use notify::{event::ModifyKind, Config, EventKind, RecommendedWatcher, RecursiveMode, Watcher};
 
-use crate::config::{self, CompileConfig, FooterMode, OutputDir};
+use crate::{
+    config::{self},
+    config_toml,
+};
 
 #[derive(clap::Args)]
-pub struct WatchCommand {
-    /// Path to output directory
-    #[arg(short, long, default_value_t = OutputDir::default().0)]
-    output: String,
-
-    /// Configures watched files.
-    #[arg(long)]
-    dirs: Vec<String>,
-
-    /// Configures the build script path.
-    #[arg(short, long, default_value_t = ("./build.sh").to_string())]
-    script: String,
+pub struct ServeCommand {
+    /// Path to the configuration file (e.g., "kodama.toml").
+    #[arg(short, long, default_value_t = config_toml::DEFAULT_CONFIG_PATH.into())]
+    config: String,
 }
 
-pub fn watch(command: &WatchCommand) -> eyre::Result<()> {
-    let output = &command.output;
-    let dirs = &command.dirs;
-    let script = &command.script;
+// TODO: serve
+pub fn serve(command: &ServeCommand) -> eyre::Result<()> {
+    config_toml::apply_config(PathBuf::from(command.config.clone()))?;
 
-    let _ = config::CONFIG.set(CompileConfig::new(
-        config::RootDir::default(),
-        config::TreesDir::default(), 
-        config::OutputDir(output.to_string()),
-        config::AssetsDir::default(),
-        config::BaseUrl::default(),
-        false,
-        false,
-        FooterMode::default(),
-        false,
-        None,
-    ));
+    let dirs = config::trees_dir();
 
-    if let Err(error) = watch_paths(dirs, script) {
-        eprintln!("Error: {error:?}");
-    }
     Ok(())
 }
 

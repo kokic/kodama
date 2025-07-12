@@ -1,6 +1,6 @@
 // Copyright (c) 2025 Kodama Project. All rights reserved.
 // Released under the GPL-3.0 license as described in the file LICENSE.
-// Authors: Alias Qli (@AliasQli), Spore (@s-cerevisiae)
+// Authors: Alias Qli (@AliasQli), Spore (@s-cerevisiae), Kokic (@kokic)
 
 use eyre::{eyre, WrapErr};
 
@@ -14,6 +14,7 @@ use crate::slug::{to_slug, Slug};
 use crate::typst_cli;
 use std::borrow::Cow;
 use std::collections::HashMap;
+use std::path::Path;
 use std::str;
 
 fn parse_bool(m: Option<&Cow<'_, str>>, def: bool) -> bool {
@@ -95,10 +96,12 @@ fn parse_typst_html(
     Ok(builder.build())
 }
 
-pub fn parse_typst(slug: Slug, root_dir: &str) -> eyre::Result<ShallowSection> {
+pub fn parse_typst<P: AsRef<Path>>(slug: Slug, root_dir: P) -> eyre::Result<ShallowSection> {
+    let typst_root_dir = root_dir.as_ref().to_string_lossy();
     let relative_path = format!("{}.typst", slug);
-    let html_str = typst_cli::file_to_html(&relative_path, root_dir)
-        .wrap_err_with(|| eyre!("Failed to compile typst file `{relative_path}` to html"))?;
+    let html_str =
+        typst_cli::file_to_html(&relative_path, typst_root_dir.as_ref())
+            .wrap_err_with(|| eyre!("Failed to compile typst file `{relative_path}` to html"))?;
 
     let mut metadata: HashMap<String, HTMLContent> = HashMap::new();
     metadata.insert("slug".to_string(), HTMLContent::Plain(slug.to_string()));
