@@ -14,6 +14,24 @@ pub enum EventExtended<'e> {
     Local(LocalLink),
 }
 
+impl<'e> From<LocalLink> for EventExtended<'e> {
+    fn from(v: LocalLink) -> Self {
+        Self::Local(v)
+    }
+}
+
+impl<'e> From<EmbedContent> for EventExtended<'e> {
+    fn from(v: EmbedContent) -> Self {
+        Self::Embed(v)
+    }
+}
+
+impl<'e> From<Event<'e>> for EventExtended<'e> {
+    fn from(v: Event<'e>) -> Self {
+        Self::CMark(v)
+    }
+}
+
 pub fn to_contents<'e, I: Iterator<Item = EventExtended<'e>>>(iter: I) -> LazyContents {
     HtmlWriter::new(iter, Vec::new()).run()
 }

@@ -10,7 +10,7 @@ use std::{collections::HashMap, mem};
 
 use crate::{
     compiler::{
-        parser::parse_spanned_markdown,
+        parser::{parse_spanned_markdown, parse_spanned_markdown2},
         section::{EmbedContent, HTMLContent, LazyContent, LocalLink, SectionOption},
     },
     html_flake::html_link,
@@ -51,7 +51,7 @@ impl<'e, 'm, E> Embed2<'e, 'm, E> {
 }
 
 impl<'e, 'm, E: Iterator<Item = Event<'e>>> Iterator for Embed2<'e, 'm, E> {
-    type Item = EventExtended<'e>;
+    type Item = eyre::Result<EventExtended<'e>>;
 
     fn next(&mut self) -> Option<Self::Item> {
         for e in self.events.by_ref() {
@@ -94,7 +94,7 @@ impl<'e, 'm, E: Iterator<Item = Event<'e>>> Iterator for Embed2<'e, 'm, E> {
                         } else {
                             None
                         };
-                        return Some(EventExtended::Embed(EmbedContent { title, url, option }));
+                        return Some(Ok(EmbedContent { title, url, option }.into()));
                     }
                     State::LocalLink => {
                         let (url, content) = self.exit();
@@ -105,10 +105,11 @@ impl<'e, 'm, E: Iterator<Item = Event<'e>>> Iterator for Embed2<'e, 'm, E> {
                             html::push_html(&mut text, content.into_iter());
                             Some(text)
                         };
-                        return Some(EventExtended::Local(LocalLink {
+                        return Some(Ok(LocalLink {
                             slug: to_slug(&url),
                             text,
-                        }));
+                        }
+                        .into()));
                     }
                     State::ExternalLink => {
                         let (url, content) = self.exit();
@@ -122,46 +123,44 @@ impl<'e, 'm, E: Iterator<Item = Event<'e>>> Iterator for Embed2<'e, 'm, E> {
                             &formatted_title
                         };
                         let html = html_link(&url, title, &text, State::ExternalLink.strify());
-                        return Some(EventExtended::CMark(Event::Html(html.into())));
+                        return Some(Ok(Event::Html(html.into()).into()));
                     }
-                    _ => return Some(EventExtended::CMark(e)),
+                    _ => return Some(Ok(e.into())),
                 },
                 Event::Text(ref text) => {
                     if allow_inline(&self.state) {
                         self.content.push(e);
                     } else if self.state == State::Metadata && !text.trim().is_empty() {
-                        // TODO Correct current slug
-                        parse_metadata2(text, self.metadata, Slug::new("-")).expect("TODO");
+                        if let Err(e) = parse_metadata2(text, self.metadata) {
+                            return Some(Err(e.wrap_err("failed to parse metadata")));
+                        }
                     } else {
-                        return Some(EventExtended::CMark(e));
+                        return Some(Ok(e.into()));
                     }
                 }
                 Event::InlineMath(ref math) => {
+                    let replaced = Event::Text(format!("${math}$").into());
                     if allow_inline(&self.state) {
-                        self.content.push(Event::Text(format!("${math}$").into()));
+                        self.content.push(replaced);
                     } else {
-                        return Some(EventExtended::CMark(e));
+                        return Some(Ok(replaced.into()));
                     }
                 }
-                Event::Code(_) => {
-                    if allow_inline(&self.state) {
-                        self.content.push(e);
-                    } else {
-                        return Some(EventExtended::CMark(e));
-                    }
+                // TODO: move away from mangling math manually
+                Event::DisplayMath(ref math) => {
+                    return Some(Ok(Event::Text(format!("$${math}$$").into()).into()))
                 }
-                _ => return Some(EventExtended::CMark(e)),
+                Event::Code(_) if allow_inline(&self.state) => {
+                    self.content.push(e);
+                }
+                _ => return Some(Ok(e.into())),
             }
         }
         None
     }
 }
 
-pub fn parse_metadata2(
-    s: &str,
-    metadata: &mut HashMap<String, HTMLContent>,
-    current_slug: Slug,
-) -> eyre::Result<()> {
+pub fn parse_metadata2(s: &str, metadata: &mut HashMap<String, HTMLContent>) -> eyre::Result<()> {
     let lines: Vec<&str> = s.split("\n").collect();
     for s in lines {
         if !s.trim().is_empty() {
@@ -171,7 +170,7 @@ pub fn parse_metadata2(
             let key = s[0..pos].trim();
             let val = s[pos + 1..].trim();
 
-            let res = parse_spanned_markdown(val, current_slug.as_str());
+            let res = parse_spanned_markdown2(val);
             let mut val = res.wrap_err("failed to parse metadata value")?;
 
             if key == "taxon" {
