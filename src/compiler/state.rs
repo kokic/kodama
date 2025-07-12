@@ -7,9 +7,7 @@ use std::collections::{BTreeSet, HashMap, HashSet};
 use eyre::OptionExt;
 
 use crate::{
-    config,
-    entry::{EntryMetaData, HTMLMetaData, MetaData, KEY_SLUG, KEY_TITLE},
-    slug::{self, Slug},
+    config, entry::{EntryMetaData, HTMLMetaData, MetaData, KEY_SLUG, KEY_TITLE}, ordered_map::OrderedMap, slug::{self, Slug}
 };
 
 use super::{
@@ -156,7 +154,7 @@ impl CompileState {
         };
 
         // compile metadata
-        let mut metadata = EntryMetaData(HashMap::new());
+        let mut metadata = EntryMetaData(OrderedMap::new());
         metadata.update(KEY_SLUG.to_string(), slug.to_string());
         spanned.metadata.keys().for_each(|key| {
             // Obviously, the slug must be a pure string, so we do not perform compilation.
@@ -179,7 +177,7 @@ impl CompileState {
     }
 
     fn metadata_to_section(content: &HTMLContent, current_slug: Slug) -> ShallowSection {
-        let mut metadata = HashMap::new();
+        let mut metadata = OrderedMap::new();
         metadata.insert(
             KEY_SLUG.to_string(),
             HTMLContent::Plain(current_slug.to_string()),

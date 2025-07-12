@@ -6,19 +6,17 @@ use crate::{
     compiler::{section::HTMLContent, taxon::Taxon},
     config::{self, FooterMode},
     html_flake,
+    ordered_map::OrderedMap,
     slug::Slug,
 };
 use serde::{Deserialize, Serialize};
-use std::{
-    collections::{hash_map::Keys, HashMap},
-    str::FromStr,
-};
+use std::str::FromStr;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct HTMLMetaData(pub HashMap<String, HTMLContent>);
+pub struct HTMLMetaData(pub OrderedMap<String, HTMLContent>);
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct EntryMetaData(pub HashMap<String, String>);
+pub struct EntryMetaData(pub OrderedMap<String, String>);
 
 pub const KEY_TITLE: &'static str = "title";
 pub const KEY_SLUG: &'static str = "slug";
@@ -66,7 +64,7 @@ where
 {
     fn get(&self, key: &str) -> Option<&V>;
     fn get_str(&self, key: &str) -> Option<&String>;
-    fn keys<'a>(&'a self) -> Keys<'a, String, V>;
+    fn keys<'a>(&'a self) -> impl Iterator<Item = &'a String>;
 
     fn is_custom_metadata(s: &str) -> bool {
         !PRESET_METADATA.contains(&s)
@@ -82,9 +80,7 @@ where
 
     /// Return all custom metadata values without [`PRESET_METADATA`].
     fn etc(&self) -> Vec<V> {
-        let mut etc_keys = self.etc_keys();
-        etc_keys.sort();
-        etc_keys
+        self.etc_keys()
             .into_iter()
             .map(|s| self.get(&s).unwrap().clone())
             .collect()
@@ -141,7 +137,7 @@ impl MetaData<HTMLContent> for HTMLMetaData {
         return self.0.get(key).and_then(HTMLContent::as_string);
     }
 
-    fn keys<'a>(&'a self) -> Keys<'a, String, HTMLContent> {
+    fn keys<'a>(&'a self) -> impl Iterator<Item = &'a String> {
         return self.0.keys();
     }
 }
@@ -155,7 +151,7 @@ impl MetaData<String> for EntryMetaData {
         return self.0.get(key);
     }
 
-    fn keys<'a>(&'a self) -> Keys<'a, String, String> {
+    fn keys<'a>(&'a self) -> impl Iterator<Item = &'a String> {
         return self.0.keys();
     }
 }
@@ -191,13 +187,7 @@ impl EntryMetaData {
         let slug = Slug::new(self.get("slug").unwrap());
         let span_class: Vec<String> = vec!["taxon".to_string()];
 
-        html_flake::html_header(
-            title,
-            taxon,
-            &slug, 
-            span_class.join(" "),
-            self.etc(),
-        )
+        html_flake::html_header(title, taxon, &slug, span_class.join(" "), self.etc())
     }
 
     /// hidden suffix `/index` in slug text.

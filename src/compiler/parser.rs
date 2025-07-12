@@ -2,14 +2,14 @@
 // Released under the GPL-3.0 license as described in the file LICENSE.
 // Authors: Kokic (@kokic), Spore (@s-cerevisiae)
 
-use std::{collections::HashMap, vec};
+use std::vec;
 
 use eyre::{eyre, WrapErr};
 use pulldown_cmark::{html, CowStr, Event, Options, Tag, TagEnd};
 
 use crate::{
-    config::input_path, entry::HTMLMetaData, process::processer::Processer,
-    recorder::ParseRecorder, slug::Slug,
+    config::input_path, entry::HTMLMetaData, ordered_map::OrderedMap,
+    process::processer::Processer, recorder::ParseRecorder, slug::Slug,
 };
 
 use super::{
@@ -25,9 +25,9 @@ pub const OPTIONS: Options = Options::ENABLE_MATH
 
 pub fn initialize(
     slug: Slug,
-) -> eyre::Result<(String, HashMap<String, HTMLContent>, ParseRecorder)> {
+) -> eyre::Result<(String, OrderedMap<String, HTMLContent>, ParseRecorder)> {
     // global data store
-    let mut metadata: HashMap<String, HTMLContent> = HashMap::new();
+    let mut metadata: OrderedMap<String, HTMLContent> = OrderedMap::new();
     let fullname = format!("{}.md", slug);
     metadata.insert("slug".to_string(), HTMLContent::Plain(slug.to_string()));
 
@@ -79,7 +79,7 @@ pub fn parse_spanned_markdown(
     parse_content(
         &markdown_input,
         &mut recorder,
-        &mut HashMap::new(),
+        &mut OrderedMap::new(),
         &mut processers,
         true,
     )
@@ -88,7 +88,7 @@ pub fn parse_spanned_markdown(
 pub fn parse_content(
     markdown_input: &str,
     recorder: &mut ParseRecorder,
-    metadata: &mut HashMap<String, HTMLContent>,
+    metadata: &mut OrderedMap<String, HTMLContent>,
     processers: &mut Vec<Box<dyn Processer>>,
     ignore_paragraph: bool,
 ) -> eyre::Result<HTMLContent> {
@@ -229,7 +229,7 @@ mod test {
 
     #[test]
     fn test_table_td() {
-        use std::collections::HashMap;
+        use crate::ordered_map::OrderedMap;
         use crate::{
             compiler::section::HTMLContent, process::processer::Processer, recorder::ParseRecorder,
         };
@@ -243,7 +243,7 @@ mod test {
         ];
 
         let source = "| a | b |\n| - | - |\n| c | d |";
-        let mut metadata: HashMap<String, HTMLContent> = HashMap::new();
+        let mut metadata: OrderedMap<String, HTMLContent> = OrderedMap::new();
         let mut recorder = ParseRecorder::new("test".to_owned());
 
         let contents = super::parse_content(
@@ -253,7 +253,7 @@ mod test {
             &mut processers,
             false,
         );
-        
+
         assert_eq!(contents.unwrap().as_str().unwrap(), "<table><thead><tr><th>a</th><th>b</th></tr></thead><tbody>\n<tr><td>c</td><td>d</td></tr>\n</tbody></table>\n");
     }
 }

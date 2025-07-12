@@ -3,16 +3,12 @@
 // Authors: Kokic (@kokic), Spore (@s-cerevisiae)
 
 use super::processer::{url_action, Processer};
-use std::collections::HashMap;
 
 use crate::{
     compiler::{
         parser::parse_spanned_markdown,
         section::{EmbedContent, HTMLContent, LazyContent, LocalLink, SectionOption},
-    },
-    html_flake::html_link,
-    recorder::{ParseRecorder, State},
-    slug::to_slug,
+    }, html_flake::html_link, ordered_map::OrderedMap, recorder::{ParseRecorder, State}, slug::to_slug
 };
 use eyre::{eyre, WrapErr};
 use pulldown_cmark::{Tag, TagEnd};
@@ -109,7 +105,7 @@ impl Processer for Embed {
         &self,
         s: &pulldown_cmark::CowStr<'_>,
         recorder: &mut ParseRecorder,
-        metadata: &mut HashMap<String, HTMLContent>,
+        metadata: &mut OrderedMap<String, HTMLContent>,
     ) -> eyre::Result<()> {
         if allow_inline(&recorder.state) {
             recorder.push(s.to_string()); // [1, 2, ...]: Text
@@ -150,7 +146,7 @@ fn allow_inline(state: &State) -> bool {
 /// while `(II)` receives the entire multi-line string as a whole.
 pub fn parse_metadata(
     s: &str,
-    metadata: &mut HashMap<String, HTMLContent>,
+    metadata: &mut OrderedMap<String, HTMLContent>,
     recorder: &mut ParseRecorder,
 ) -> eyre::Result<()> {
     let lines: Vec<&str> = s.split("\n").collect();

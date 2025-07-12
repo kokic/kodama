@@ -5,8 +5,7 @@
 use std::collections::HashMap;
 
 use crate::{
-    compiler::section::{HTMLContent, LazyContent},
-    recorder::ParseRecorder,
+    compiler::section::{HTMLContent, LazyContent}, ordered_map::OrderedMap, recorder::ParseRecorder
 };
 use pulldown_cmark::{CowStr, Tag, TagEnd};
 
@@ -24,7 +23,7 @@ pub trait Processer {
         &self,
         s: &CowStr<'_>,
         recorder: &mut ParseRecorder,
-        metadata: &mut HashMap<String, HTMLContent>,
+        metadata: &mut OrderedMap<String, HTMLContent>,
     ) -> eyre::Result<()> {
         Ok(())
     }
