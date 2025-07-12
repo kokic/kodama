@@ -367,6 +367,7 @@ dependencies = [
  "internment",
  "notify",
  "pulldown-cmark",
+ "pulldown-cmark-escape",
  "regex-lite",
  "serde",
  "serde_json",
