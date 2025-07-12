@@ -1,27 +1,29 @@
 use std::path::PathBuf;
 
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
-use crate::config::{self, CompileConfig, FooterMode};
+use crate::config::{self, FooterMode};
 
-#[derive(Deserialize, Debug)]
+pub const DEFAULT_CONFIG_PATH: &'static str = "./config.toml";
+
+#[derive(Deserialize, Debug, Default, Serialize)]
 pub struct Config {
     #[serde(default)]
-    kodama: Kodama,
+    pub kodama: Kodama,
 
     #[serde(default)]
-    build: Build,
+    pub build: Build,
 
     #[serde(default)]
-    serve: Serve,
+    pub serve: Serve,
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Debug, Serialize)]
 #[serde(default)]
-struct Kodama {
-    trees: Vec<String>,
-    assets: Vec<String>,
-    url: Option<String>,
+pub struct Kodama {
+    pub trees: Vec<String>,
+    pub assets: Vec<String>,
+    pub url: String,
 }
 
 impl Default for Kodama {
@@ -29,20 +31,20 @@ impl Default for Kodama {
         Self {
             trees: vec!["trees".to_string()],
             assets: vec!["assets".to_string()],
-            url: None,
+            url: "/".to_string(),
         }
     }
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Debug, Serialize)]
 #[serde(default, rename_all = "kebab-case")]
-struct Build {
-    typst_root: String,
-    short_slug: bool,
-    pretty_urls: bool,
-    footer_mode: FooterMode,
-    inline_css: bool,
-    output: String,
+pub struct Build {
+    pub typst_root: String,
+    pub short_slug: bool,
+    pub pretty_urls: bool,
+    pub footer_mode: FooterMode,
+    pub inline_css: bool,
+    pub output: String,
 }
 
 impl Default for Build {
@@ -53,19 +55,23 @@ impl Default for Build {
             pretty_urls: false,
             footer_mode: FooterMode::default(),
             inline_css: false,
-            output: ".cache/publish".to_string(),
+            output: "./publish".to_string(),
         }
     }
 }
 
-#[derive(Deserialize, Debug)]
-struct Serve {
-    edit: Option<String>,
+#[derive(Deserialize, Debug, Serialize)]
+pub struct Serve {
+    pub edit: Option<String>,
+    pub output: String,
 }
 
 impl Default for Serve {
     fn default() -> Self {
-        Self { edit: None }
+        Self {
+            edit: Some("vscode://file:".to_string()),
+            output: "./.cache/publish".to_string(),
+        }
     }
 }
 
@@ -94,7 +100,7 @@ mod test {
         let config = crate::config_toml::parse_config("").unwrap();
         assert_eq!(config.kodama.trees, vec!["trees".to_string()]);
         assert_eq!(config.kodama.assets, vec!["assets".to_string()]);
-        assert_eq!(config.kodama.url, None);
+        assert_eq!(config.kodama.url, "/");
         assert_eq!(config.build.short_slug, false);
         assert_eq!(config.build.pretty_urls, false);
         assert_eq!(config.build.inline_css, false);

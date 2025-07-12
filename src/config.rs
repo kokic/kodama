@@ -10,15 +10,18 @@ use std::{
 };
 
 use eyre::Context;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use walkdir::WalkDir;
 
 use crate::{config_toml::Config, slug::Slug};
 
-#[derive(Debug, Clone, clap::ValueEnum, Default, Deserialize)]
+#[derive(Debug, Clone, clap::ValueEnum, Default, Deserialize, Serialize)]
 pub enum FooterMode {
     #[default]
+    #[serde(rename = "link")]
     Link,
+
+    #[serde(rename = "embed")]
     Embed,
 }
 
@@ -95,63 +98,18 @@ impl Default for RootDir {
     }
 }
 
-pub struct CompileConfig<S> {
-    pub root_dir: RootDir,
-    pub trees_dir: TreesDir,
-    pub output_dir: OutputDir,
-    pub assets_dir: AssetsDir,
-    pub base_url: BaseUrl,
-    pub page_suffix: S,
-    pub short_slug: bool,
-    pub footer_mode: FooterMode,
-
-    /// `false`: This is very useful for users who want to modify existing styles or configure other themes.
-    pub disable_export_css: bool,
-
-    /// URL prefix for opening files in the editor.
-    pub edit: Option<S>,
-}
-
-impl CompileConfig<String> {
-    pub fn new<'a>(
-        root_dir: RootDir,
-        trees_dir: TreesDir,
-        output_dir: OutputDir,
-        assets_dir: AssetsDir,
-        base_url: BaseUrl,
-        disable_pretty_urls: bool,
-        short_slug: bool,
-        footer_mode: FooterMode,
-        disable_export_css: bool,
-        edit: Option<String>,
-    ) -> CompileConfig<String> {
-        CompileConfig {
-            root_dir,
-            trees_dir,
-            output_dir,
-            assets_dir,
-            base_url: base_url.normalize_base_url(),
-            page_suffix: to_page_suffix(disable_pretty_urls),
-            short_slug,
-            footer_mode,
-            disable_export_css,
-            edit,
-        }
-    }
-}
-
 /// Specifies the filename of the TOML configuration file (e.g., "kodama.toml").
 pub static TOML: OnceLock<String> = OnceLock::new();
 
-/// Specifies the project root path. 
-/// 
-/// Please note that this value should always be automatically derived from 
+/// Specifies the project root path.
+///
+/// Please note that this value should always be automatically derived from
 /// the location of the toml configuration file.
 pub static ROOT: OnceLock<PathBuf> = OnceLock::new();
 
 pub static CONFIG_TOML: OnceLock<Config> = OnceLock::new();
 
-pub static CONFIG: OnceLock<CompileConfig<String>> = OnceLock::new();
+// pub static CONFIG: OnceLock<CompileConfig<String>> = OnceLock::new();
 
 pub static CUSTOM_META_HTML: LazyLock<String> = LazyLock::new(|| {
     std::fs::read_to_string(root_dir().join("import-meta.html")).unwrap_or_default()
@@ -176,52 +134,67 @@ pub const BUFFER_FILE_NAME: &str = "buffer";
 pub const HASH_DIR_NAME: &str = "hash";
 pub const ENTRY_DIR_NAME: &str = "entry";
 
-pub fn to_page_suffix(disable_pretty_urls: bool) -> String {
-    let page_suffix = match disable_pretty_urls {
-        true => ".html",
-        false => "",
+pub fn to_page_suffix(pretty_urls: bool) -> String {
+    let page_suffix = match pretty_urls {
+        true => "",
+        false => ".html",
     };
     page_suffix.into()
 }
 
 pub fn is_short_slug() -> bool {
-    CONFIG.get().unwrap().short_slug
+    CONFIG_TOML.get().unwrap().build.short_slug
 }
 
 pub fn root_dir() -> PathBuf {
     ROOT.get().unwrap().clone()
 }
 
-pub fn trees_dir() -> PathBuf {
-    CONFIG.get().unwrap().trees_dir.0.clone().into()
+pub fn typst_root_dir() -> PathBuf {
+    CONFIG_TOML.get().unwrap().build.typst_root.clone().into()
+}
+
+pub fn trees_dir() -> Vec<PathBuf> {
+    CONFIG_TOML
+        .get()
+        .unwrap()
+        .kodama
+        .trees
+        .iter()
+        .map(|s| root_dir().join(s))
+        .collect()
 }
 
 pub fn output_dir() -> PathBuf {
-    CONFIG.get().unwrap().output_dir.0.clone().into()
+    CONFIG_TOML.get().unwrap().build.output.clone().into()
 }
 
 pub fn base_url() -> String {
-    CONFIG.get().unwrap().base_url.0.clone()
+    CONFIG_TOML.get().unwrap().kodama.url.clone()
 }
 
 pub fn footer_mode() -> FooterMode {
-    CONFIG.get().unwrap().footer_mode.clone()
+    CONFIG_TOML.get().unwrap().build.footer_mode.clone()
 }
 
-pub fn disable_export_css() -> bool {
-    CONFIG.get().unwrap().disable_export_css
+pub fn inline_css() -> bool {
+    CONFIG_TOML.get().unwrap().build.inline_css
 }
 
 pub fn editor_url() -> Option<String> {
-    CONFIG.get().unwrap().edit.clone()
+    CONFIG_TOML.get().unwrap().serve.edit.clone()
 }
 
 pub fn get_cache_dir() -> PathBuf {
     root_dir().join(CACHE_DIR_NAME)
 }
 
-pub fn assets_dir() -> PathBuf {
-    root_dir().join(CONFIG.get().unwrap().assets_dir.0.clone())
+pub fn assets_dir() -> Vec<PathBuf> {
+    let assets = CONFIG_TOML.get().unwrap().kodama.assets.clone();
+    assets
+        .iter()
+        .map(|s| root_dir().join(s))
+        .collect::<Vec<_>>()
 }
 
 /// URL keep posix style, so the type of return value is [`String`].
@@ -236,7 +209,9 @@ pub fn full_url<P: AsRef<Path>>(path: P) -> String {
 }
 
 pub fn full_html_url(slug: Slug) -> String {
-    full_url(&format!("{}{}", slug, CONFIG.get().unwrap().page_suffix))
+    let pretty_urls = CONFIG_TOML.get().unwrap().build.pretty_urls;
+    let page_suffix = to_page_suffix(!pretty_urls);
+    full_url(&format!("{}{}", slug, page_suffix))
 }
 
 /// Convert `path` to `./{path}` or `path`.

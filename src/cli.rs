@@ -5,4 +5,4 @@
 pub mod new;
 pub mod build;
 pub mod remove;
-pub mod watch;
+pub mod serve;

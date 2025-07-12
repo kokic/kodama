@@ -241,7 +241,7 @@ pub fn html_doc(
 }
 
 pub fn html_css() -> String {
-    match config::disable_export_css() {
+    match config::inline_css() {
         true => html!(style { (html_main_style()) (html_typst_style()) }),
         false => {
             let base_url = config::base_url();
