@@ -6,7 +6,7 @@ use super::{
     content::EventExtended,
     processer::{url_action, Processer},
 };
-use std::collections::HashMap;
+use std::{collections::HashMap, mem};
 
 use crate::{
     compiler::{
@@ -18,37 +18,39 @@ use crate::{
     slug::{to_slug, Slug},
 };
 use eyre::{eyre, WrapErr};
-use pulldown_cmark::{Event, Tag, TagEnd};
+use pulldown_cmark::{html, Event, Tag, TagEnd};
 
 pub struct Embed;
 
-pub struct Embed2<'m, E> {
+pub struct Embed2<'e, 'm, E> {
     events: E,
     state: State,
     url: Option<String>,
-    content: Option<String>,
+    content: Vec<Event<'e>>,
     metadata: &'m mut HashMap<String, HTMLContent>,
 }
 
-impl<'m, E> Embed2<'m, E> {
+impl<'e, 'm, E> Embed2<'e, 'm, E> {
     pub fn new(events: E, metadata: &'m mut HashMap<String, HTMLContent>) -> Self {
         Self {
             events,
             state: State::None,
             url: None,
-            content: None,
+            content: Vec::new(),
             metadata,
         }
     }
 
-    fn exit(&mut self) {
+    fn exit(&mut self) -> (String, Vec<Event<'e>>) {
         self.state = State::None;
-        self.url = None;
-        self.content = None;
+        (
+            self.url.take().unwrap_or_default(),
+            mem::take(&mut self.content),
+        )
     }
 }
 
-impl<'m, 'e, E: Iterator<Item = Event<'e>>> Iterator for Embed2<'m, E> {
+impl<'e, 'm, E: Iterator<Item = Event<'e>>> Iterator for Embed2<'e, 'm, E> {
     type Item = EventExtended<'e>;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -74,54 +76,59 @@ impl<'m, 'e, E: Iterator<Item = Event<'e>>> Iterator for Embed2<'m, E> {
                 Event::Start(Tag::MetadataBlock(_)) => {
                     self.state = State::Metadata;
                 }
-                Event::End(tag) => {
-                    if tag == TagEnd::Link && self.state == State::Embed {
-                        let entry_url = self.url.as_ref().map_or("", |s| s);
-                        let entry_url = crate::config::relativize(entry_url);
-
-                        let embed_text = self.content.as_ref();
-                        let (section_option, inline_title) = parse_embed_text(embed_text);
-
-                        self.exit();
-                        return Some(EventExtended::Embed(EmbedContent {
-                            url: entry_url,
-                            title: inline_title,
-                            option: section_option,
-                        }));
+                Event::End(TagEnd::Link) => match self.state {
+                    State::Embed => {
+                        let (url, mut content) = self.exit();
+                        let url = crate::config::relativize(&url);
+                        let mut option = SectionOption::default();
+                        let title = if let Some(e) = content.first_mut() {
+                            // parse options, then strip /[-+.]/ from beginning of the title
+                            if let Event::Text(t) = e {
+                                let (opt, rest) = parse_embed_text2(t);
+                                option = opt;
+                                *t = rest.into();
+                            }
+                            let mut title = String::new();
+                            html::push_html(&mut title, content.into_iter());
+                            Some(title)
+                        } else {
+                            None
+                        };
+                        return Some(EventExtended::Embed(EmbedContent { title, url, option }));
                     }
-
-                    if tag == TagEnd::Link && self.state == State::LocalLink {
-                        let url = self.url.as_ref().map_or(String::new(), |s| s.to_string());
-                        let text = self.content.take();
-                        self.exit();
-
+                    State::LocalLink => {
+                        let (url, content) = self.exit();
+                        let text = if content.is_empty() {
+                            None
+                        } else {
+                            let mut text = String::new();
+                            html::push_html(&mut text, content.into_iter());
+                            Some(text)
+                        };
                         return Some(EventExtended::Local(LocalLink {
                             slug: to_slug(&url),
                             text,
                         }));
                     }
-
-                    if tag == TagEnd::Link && self.state == State::ExternalLink {
-                        let url = self.url.as_ref().map_or(String::new(), |s| s.to_string());
-                        let text = self.content.take().unwrap_or_default();
-                        let title = (url == text)
-                            .then(|| url.to_string())
-                            .unwrap_or_else(|| format!("{} [{}]", text, url));
-                        self.exit();
-
-                        let html = html_link(&url, &title, &text, State::ExternalLink.strify());
+                    State::ExternalLink => {
+                        let (url, content) = self.exit();
+                        let mut text = String::new();
+                        html::push_html(&mut text, content.into_iter());
+                        let formatted_title;
+                        let title = if url == text {
+                            &url
+                        } else {
+                            formatted_title = format!("{text} [{url}]");
+                            &formatted_title
+                        };
+                        let html = html_link(&url, title, &text, State::ExternalLink.strify());
                         return Some(EventExtended::CMark(Event::Html(html.into())));
                     }
-
-                    self.state = State::None;
-                    self.url = None;
-                    self.content = None;
-
-                    return Some(EventExtended::CMark(e));
-                }
+                    _ => return Some(EventExtended::CMark(e)),
+                },
                 Event::Text(ref text) => {
                     if allow_inline(&self.state) {
-                        self.content.get_or_insert_default().push_str(text);
+                        self.content.push(e);
                     } else if self.state == State::Metadata && !text.trim().is_empty() {
                         // TODO Correct current slug
                         parse_metadata2(text, self.metadata, Slug::new("-")).expect("TODO");
@@ -131,14 +138,14 @@ impl<'m, 'e, E: Iterator<Item = Event<'e>>> Iterator for Embed2<'m, E> {
                 }
                 Event::InlineMath(ref math) => {
                     if allow_inline(&self.state) {
-                        self.content = Some(format!("${}$", math)); // [1, 2, ...]: Text
+                        self.content.push(Event::Text(format!("${math}$").into()));
                     } else {
                         return Some(EventExtended::CMark(e));
                     }
                 }
-                Event::Code(ref code) => {
+                Event::Code(_) => {
                     if allow_inline(&self.state) {
-                        self.content = Some(format!("<code>{}</code>", code));
+                        self.content.push(e);
                     } else {
                         return Some(EventExtended::CMark(e));
                     }
@@ -157,14 +164,14 @@ pub fn parse_metadata2(
 ) -> eyre::Result<()> {
     let lines: Vec<&str> = s.split("\n").collect();
     for s in lines {
-        if s.trim().len() != 0 {
+        if !s.trim().is_empty() {
             let pos = s
                 .find(':')
                 .ok_or_else(|| eyre!("expected metadata format `name: value`, found `{s}`"))?;
             let key = s[0..pos].trim();
             let val = s[pos + 1..].trim();
 
-            let res = parse_spanned_markdown(val, &current_slug.as_str());
+            let res = parse_spanned_markdown(val, current_slug.as_str());
             let mut val = res.wrap_err("failed to parse metadata value")?;
 
             if key == "taxon" {
@@ -176,6 +183,28 @@ pub fn parse_metadata2(
         }
     }
     Ok(())
+}
+
+pub fn parse_embed_text2(embed_text: &str) -> (SectionOption, String) {
+    let mut numbering = false;
+    let mut details_open = true;
+    let mut catalog = true;
+
+    let mut index = 0;
+    let chars = embed_text.chars();
+    for curr in chars {
+        match curr {
+            '+' => numbering = true,
+            '-' => details_open = false,
+            '.' => catalog = false,
+            _ => break,
+        }
+        index += 1;
+    }
+
+    let option = SectionOption::new(numbering, details_open, catalog);
+    let inline_title = &embed_text[index..];
+    (option, inline_title.to_owned())
 }
 
 impl Processer for Embed {
