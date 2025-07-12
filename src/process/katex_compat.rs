@@ -28,6 +28,7 @@ impl<'e, E: Iterator<Item = Event<'e>>> Iterator for KatexCompat2<E> {
         self.events.next().map(|e| {
             match e {
                 Event::DisplayMath(math) => Event::DisplayMath(formula_disambiguate(&math).into()),
+                Event::InlineMath(math) => Event::InlineMath(formula_disambiguate(&math).into()),
                 _ => e,
             }
         })
