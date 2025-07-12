@@ -5,14 +5,16 @@
 use std::{collections::HashMap, vec};
 
 use eyre::{eyre, WrapErr};
+use itertools::Itertools;
 use pulldown_cmark::{html, CowStr, Event, Options, Tag, TagEnd};
 
 use crate::{
     config::input_path,
     entry::HTMLMetaData,
     process::{
-        content::to_contents, embed_markdown::Embed2, katex_compat::KatexCompat2,
-        processer::Processer, typst_image::TypstImage2,
+        content::to_contents, embed_markdown::Embed2, figure::Figure2, footnote::Footnote2,
+        ignore_paragraph, katex_compat::KatexCompat2, processer::Processer,
+        typst_image::TypstImage2,
     },
     recorder::ParseRecorder,
     slug::Slug,
@@ -91,19 +93,40 @@ pub fn parse_spanned_markdown(
     )
 }
 
-pub fn parse_spanned_markdown2(markdown_input: &str) -> eyre::Result<HTMLContent> {
-    parse_content2(markdown_input, &mut HashMap::new())
+pub fn initialize2(slug: Slug) -> eyre::Result<(String, HashMap<String, HTMLContent>)> {
+    // global data store
+    let mut metadata: HashMap<String, HTMLContent> = HashMap::new();
+    let fullname = format!("{}.md", slug);
+    metadata.insert("slug".to_string(), HTMLContent::Plain(slug.to_string()));
+
+    // local contents recorder
+    let markdown_path = input_path(&fullname);
+    std::fs::read_to_string(&markdown_path)
+        .map(|markdown_input| (markdown_input, metadata))
+        .wrap_err_with(|| eyre!("failed to read markdown file `{markdown_path}`"))
 }
 
-pub fn parse_content2(
-    markdown_input: &str,
-    metadata: &mut HashMap<String, HTMLContent>,
-) -> eyre::Result<HTMLContent> {
-    let parser = pulldown_cmark::Parser::new_ext(markdown_input, OPTIONS);
+pub fn parse_markdown2(slug: Slug) -> eyre::Result<ShallowSection> {
+    let (source, mut metadata) = initialize2(slug)?;
+    let events = pulldown_cmark::Parser::new_ext(&source, OPTIONS);
 
-    let iter = Embed2::new(KatexCompat2::new(TypstImage2::new(parser)), metadata);
+    let iter = Embed2::new(
+        KatexCompat2::new(TypstImage2::new(Figure2::new(Footnote2::new(events)))),
+        &mut metadata,
+    );
 
-    Ok(HTMLContent::Lazy(to_contents(iter)))
+    let content = iter.process_results(|i| HTMLContent::Lazy(to_contents(i)))?;
+    let metadata = HTMLMetaData(metadata);
+
+    Ok(ShallowSection { metadata, content })
+}
+
+pub fn parse_spanned_markdown2(markdown_input: &str) -> eyre::Result<HTMLContent> {
+    let events = pulldown_cmark::Parser::new_ext(markdown_input, OPTIONS);
+    let events = ignore_paragraph(events);
+    let mut metadata = HashMap::new();
+    let iter = Embed2::new(KatexCompat2::new(TypstImage2::new(events)), &mut metadata);
+    iter.process_results(|i| HTMLContent::Lazy(to_contents(i)))
 }
 
 #[cfg(test)]
@@ -111,7 +134,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_parse_content2() {
+    fn test_parse_markdown2() -> eyre::Result<()> {
         let input = r#"有两个正方体, 一个边长为 $1$, 另一个边长为 $2$. 请找到另外两个边长为有理数的正方体使它们的体积总和相同. 换言之, 求下述方程的一组 (正) 有理解: 
 
 $$ x^3 + y^3 \eqq 9 \quad \color{gray}{(= \quad 1^3+2^3)} $$
@@ -123,8 +146,17 @@ $$ x^3 + y^3 \eqq 9 \quad \color{gray}{(= \quad 1^3+2^3)} $$
 如图, 随后注意到 $8P$ 恰好位于 $x > 0,y > 0$ 的区域, 现在写出其坐标
 
 $$ 8P = \left(\frac{1243617733990094836481}{609623835676137297449}, \frac{487267171714352336560}{609623835676137297449}\right) $$"#;
-        let contents = parse_content2(input, &mut HashMap::new());
-        println!("{contents:?}");
+        let events = pulldown_cmark::Parser::new_ext(input, OPTIONS);
+
+        let mut metadata = HashMap::new();
+        let iter = Embed2::new(
+            KatexCompat2::new(TypstImage2::new(Figure2::new(Footnote2::new(events)))),
+            &mut metadata,
+        );
+
+        let content = iter.process_results(|i| HTMLContent::Lazy(to_contents(i)))?;
+        println!("{content:?}");
+        Ok(())
     }
 }
 
