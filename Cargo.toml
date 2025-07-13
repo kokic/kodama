@@ -6,14 +6,18 @@ edition = "2021"
 [dependencies]
 clap = { version = "4.5.23", features = ["derive"] }
 eyre = "0.6.12"
+fastrand = "2.3.0"
 htmlize = { version = "1.0.5", features = ["unescape"]}
 internment = { version = "0.8.6", features = ["serde"] }
 pulldown-cmark = { version = "0.12.2", default-features = false, features = ["html"] }
+pulldown-cmark-escape = "0.11.0"
 regex-lite = "0.1.6"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
+sha256 = "1.6.0"
 walkdir = "2.5.0"
 notify = "8.0.0"
+itertools = "0.14.0"
 
 [profile.release]
 strip = true
