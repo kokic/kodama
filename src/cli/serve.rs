@@ -55,9 +55,6 @@ fn watch_paths<P: AsRef<Path>>(watched_paths: &Vec<P>, script_path: &str) -> not
     println!("\n\nPress Ctrl+C to stop watching.\n");
 
     let row = watched_paths.len() + 1;
-    let output_dir = config::output_dir();
-    let output_dir_name = output_dir.file_name().unwrap();
-
     for res in rx {
         match res {
             Ok(event) => {
@@ -67,20 +64,18 @@ fn watch_paths<P: AsRef<Path>>(watched_paths: &Vec<P>, script_path: &str) -> not
                 }
 
                 for path in event.paths {
-                    if path.components().any(|c| c.as_os_str() == output_dir_name) {
-                        print!("\x1B[{};0H\x1B[2K", row);
-                        print!("Change: {path:?}");
-                        std::io::stdout().flush()?;
+                    print!("\x1B[{};0H\x1B[2K", row);
+                    print!("Change: {path:?}");
+                    std::io::stdout().flush()?;
 
-                        let output = std::process::Command::new(script_path)
-                            .stdout(std::process::Stdio::piped())
-                            .output()
-                            .expect("Build command failed to start");
+                    let output = std::process::Command::new(script_path)
+                        .stdout(std::process::Stdio::piped())
+                        .output()
+                        .expect("Build command failed to start");
 
-                        if !output.status.success() {
-                            let stderr = String::from_utf8_lossy(&output.stderr);
-                            eprintln!("{}", stderr);
-                        }
+                    if !output.status.success() {
+                        let stderr = String::from_utf8_lossy(&output.stderr);
+                        eprintln!("{}", stderr);
                     }
                 }
             }

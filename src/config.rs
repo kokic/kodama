@@ -105,15 +105,9 @@ pub fn typst_root_dir() -> PathBuf {
     CONFIG_TOML.get().unwrap().build.typst_root.clone().into()
 }
 
-pub fn trees_dir() -> Vec<PathBuf> {
-    CONFIG_TOML
-        .get()
-        .unwrap()
-        .kodama
-        .trees
-        .iter()
-        .map(|s| root_dir().join(s))
-        .collect()
+pub fn trees_dir() -> PathBuf {
+    let trees = &CONFIG_TOML.get().unwrap().kodama.trees;
+    root_dir().join(trees)
 }
 
 pub fn output_dir() -> PathBuf {
@@ -140,12 +134,9 @@ pub fn get_cache_dir() -> PathBuf {
     root_dir().join(CACHE_DIR_NAME)
 }
 
-pub fn assets_dir() -> Vec<PathBuf> {
-    let assets = CONFIG_TOML.get().unwrap().kodama.assets.clone();
-    assets
-        .iter()
-        .map(|s| root_dir().join(s))
-        .collect::<Vec<_>>()
+pub fn assets_dir() -> PathBuf {
+    let assets = &CONFIG_TOML.get().unwrap().kodama.assets;
+    root_dir().join(assets)
 }
 
 /// URL keep posix style, so the type of return value is [`String`].

@@ -88,26 +88,6 @@ pub fn should_ignored_dir(path: &Path) -> bool {
         .map_or(false, |s| s.starts_with('.') || s.starts_with('_'))
 }
 
-fn find_index_file(root_dir: &PathBuf) -> eyre::Result<PathBuf> {
-    let markdown_file = root_dir.join(new::DEFAULT_SECTION_PATH);
-    let typst_file = root_dir.join(new::DEFAULT_SECTION_PATH_TYPST);
-
-    let index_file = if markdown_file.exists() {
-        markdown_file
-    } else if typst_file.exists() {
-        typst_file
-    } else {
-        bail!(format!(
-            "Entry file not found in `{}`. Please create an entry file at `{}` or `{}`.",
-            root_dir.canonicalize().unwrap().display(),
-            markdown_file.display(),
-            typst_file.display()
-        ));
-    };
-
-    Ok(index_file)
-}
-
 fn to_slug_ext(source_dir: &Path, p: &Path) -> Option<(Slug, Ext)> {
     let p = p.strip_prefix(source_dir).unwrap_or(p);
     let ext = p.extension()?.to_str()?.parse().ok()?;
@@ -115,25 +95,11 @@ fn to_slug_ext(source_dir: &Path, p: &Path) -> Option<(Slug, Ext)> {
     Some((slug, ext))
 }
 
-/// Collect all source file paths in workspace dir. It includes:
-///
-/// - `index.md` or `index.typ` as the main entry point.
-/// - all `.md` and `.typ` files in the trees directory.
-pub fn all_trees_source(root_dir: &PathBuf, trees_dir: &Vec<PathBuf>) -> eyre::Result<Workspace> {
+/// Collect all source file paths in workspace dir. 
+/// 
+/// It includes all `.md` and `.typ` files in the `trees_dir`.
+pub fn all_trees_source(trees_dir: &PathBuf) -> eyre::Result<Workspace> {
     let mut slug_exts = HashMap::new();
-
-    // TODO: Improve code in future.
-    let stub_dir = Path::new("");
-
-    // Add entry file to `slug_exts`
-    let index_file = find_index_file(root_dir)?;
-    let Some((slug, ext)) = to_slug_ext(&stub_dir, &index_file) else {
-        bail!(eyre!(
-            "Failed to parse entry file `{}`",
-            index_file.display()
-        ));
-    };
-    slug_exts.insert(slug, ext);
 
     let failed_to_read_dir = |dir: &Path| eyre!("Failed to read directory `{}`", dir.display());
     let file_collide = |p: &Path, e: Ext| {
@@ -185,16 +151,14 @@ pub fn all_trees_source(root_dir: &PathBuf, trees_dir: &Vec<PathBuf>) -> eyre::R
         )
     };
 
-    for source_dir in trees_dir {
-        if !source_dir.exists() {
-            eprintln!(
-                "Warning: Source directory `{}` does not exist, skipping.",
-                source_dir.display()
-            );
-            continue;
-        }
-        collect_files(source_dir)?;
+    if !trees_dir.exists() {
+        eprintln!(
+            "Warning: Source directory `{}` does not exist, skipping.",
+            trees_dir.display()
+        );
     }
+
+    collect_files(trees_dir)?;
 
     Ok(Workspace { slug_exts })
 }

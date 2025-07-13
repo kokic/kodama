@@ -33,14 +33,14 @@ pub fn compile(command: &BuildCommand) -> eyre::Result<()> {
     }
 
     let root = config::root_dir();
-    let workspace = all_trees_source(&root, &config::trees_dir())?;
+    let workspace = all_trees_source(&config::trees_dir())?;
     compiler::compile(workspace).wrap_err_with(|| {
         eyre!(
             "Failed to compile site `{}`",
             root.canonicalize().unwrap().display()
         )
     })?;
-    
+
     sync_assets_dir()?;
 
     Ok(())
@@ -62,15 +62,11 @@ fn export_css_file(css_content: &str, name: &str) -> eyre::Result<()> {
     Ok(())
 }
 
-/// Synchronize all assets directory [`config::assets_dir`] with the
+/// Synchronize the assets directory [`config::assets_dir`] with the
 /// output directory [`config::output_dir()`].
 fn sync_assets_dir() -> eyre::Result<bool> {
-    let assets: Vec<PathBuf> = config::assets_dir();
-
-    for asset_dir in assets {
-        let target = config::output_dir().join(&asset_dir);
-        assets_sync::sync_assets(asset_dir, target)?;
-    }
-
+    let asset_dir = config::assets_dir();
+    let target = config::output_dir().join(&asset_dir.file_name().unwrap());
+    assets_sync::sync_assets(asset_dir, target)?;
     Ok(true)
 }

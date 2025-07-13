@@ -49,6 +49,10 @@ pub fn new_site(command: &NewSiteCommand) -> eyre::Result<()> {
 
     // Create default config file in the new site directory
     new_config_inner(&default_config_path)?;
+    
+    // Create the default source directory `trees`
+    std::fs::create_dir(default_source_dir)
+        .wrap_err("Failed to create default source directory")?;
 
     // Create the `index.md` section in the new site directory
     new_section_inner(
@@ -56,10 +60,6 @@ pub fn new_site(command: &NewSiteCommand) -> eyre::Result<()> {
         DEFAULT_TEMPLATE,
         &default_config_path,
     )?;
-
-    // Create the default source directory `trees`
-    std::fs::create_dir(default_source_dir)
-        .wrap_err("Failed to create default source directory")?;
 
     Ok(())
 }
@@ -85,7 +85,6 @@ fn new_config_inner(config_path: &PathBuf) -> Result<(), eyre::Error> {
 }
 
 pub const DEFAULT_SECTION_PATH: &str = "./index.md";
-pub const DEFAULT_SECTION_PATH_TYPST: &str = "./index.typ";
 
 pub const DEFAULT_TEMPLATE: &str = "./template";
 pub const DEFAULT_TEMPLATE_CONTENT: &str = r#"

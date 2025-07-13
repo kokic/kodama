@@ -22,16 +22,16 @@ pub struct Config {
 #[derive(Deserialize, Debug, Serialize)]
 #[serde(default)]
 pub struct Kodama {
-    pub trees: Vec<String>,
-    pub assets: Vec<String>,
+    pub trees: String,
+    pub assets: String,
     pub url: String,
 }
 
 impl Default for Kodama {
     fn default() -> Self {
         Self {
-            trees: vec![DEFAULT_SOURCE_DIR.to_string()],
-            assets: vec!["assets".to_string()],
+            trees: DEFAULT_SOURCE_DIR.to_string(),
+            assets: "assets".to_string(),
             url: "/".to_string(),
         }
     }
@@ -99,8 +99,8 @@ mod test {
     #[test]
     fn test_empty_toml() {
         let config = crate::config_toml::parse_config("").unwrap();
-        assert_eq!(config.kodama.trees, vec!["trees".to_string()]);
-        assert_eq!(config.kodama.assets, vec!["assets".to_string()]);
+        assert_eq!(config.kodama.trees, "trees");
+        assert_eq!(config.kodama.assets, "assets");
         assert_eq!(config.kodama.url, "/");
         assert_eq!(config.build.short_slug, false);
         assert_eq!(config.build.pretty_urls, false);
