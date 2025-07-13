@@ -2,232 +2,219 @@
 // Released under the GPL-3.0 license as described in the file LICENSE.
 // Authors: Kokic (@kokic), Spore (@s-cerevisiae)
 
-use std::{fs, path::PathBuf};
+use std::{fmt::Write, fs, path::PathBuf};
 
 use crate::{
-    compiler::section::{HTMLContent, LazyContent},
     config::{self, output_path, parent_dir},
     html_flake::{html_figure, html_figure_code},
-    recorder::{ParseRecorder, State},
+    recorder::State,
+    slug::Slug,
     typst_cli::{self, source_to_inline_html, write_svg, InlineConfig},
 };
-use pulldown_cmark::{Tag, TagEnd};
+use pulldown_cmark::{Event, Tag, TagEnd};
 
-use super::processer::{url_action, Processer};
+use super::processer::url_action;
 
-pub struct TypstImage;
+pub struct TypstImage<E> {
+    events: E,
+    state: State,
+    shareds: Vec<String>,
+    url: Option<String>,
+    content: Option<String>,
+    current_slug: Slug,
+}
 
-impl Processer for TypstImage {
-    fn start(&mut self, tag: &Tag<'_>, recorder: &mut ParseRecorder) {
-        match tag {
-            Tag::Link {
-                link_type: _,
-                dest_url,
-                title: _,
-                id: _,
-            } => {
-                let (url, action) = url_action(dest_url);
-                if is_inline_typst(dest_url) {
-                    recorder.enter(State::InlineTypst);
-                    recorder.push(dest_url.to_string()); // [0]
-                } else if action == State::ImageCode.strify() {
-                    recorder.enter(State::ImageCode);
-                    recorder.push(url.to_string());
-                } else if action == State::Html.strify() {
-                    recorder.enter(State::Html);
-                    recorder.push(url.to_string());
-                } else if action == State::Shared.strify() {
-                    recorder.enter(State::Shared);
-                    recorder.push(url.to_string());
-                } else if action == State::ImageBlock.strify() {
-                    recorder.enter(State::ImageBlock);
-                    recorder.push(url.to_string());
-                } else if action == State::ImageSpan.strify() {
-                    recorder.enter(State::ImageSpan);
-                    recorder.push(url.to_string());
-                }
-            }
-            _ => (),
+impl<E> TypstImage<E> {
+    pub fn process(events: E, current_slug: Slug) -> Self {
+        Self {
+            events,
+            state: State::None,
+            shareds: Vec::new(),
+            url: None,
+            content: None,
+            current_slug,
         }
     }
 
-    fn end(&mut self, tag: &TagEnd, recorder: &mut ParseRecorder) -> Option<LazyContent> {
-        if tag == &TagEnd::Link {
-            match recorder.state {
-                State::Html => {
-                    let typst_url = recorder.data.get(0).unwrap().as_str();
-                    let typst_url = config::relativize(typst_url);
-                    let (parent_dir, filename) = parent_dir(&typst_url);
+    fn exit(&mut self) {
+        self.state = State::None;
+        self.url = None;
+        self.content = None;
+    }
+}
 
-                    let mut html_url = filename.with_extension("html");
-                    let img_src = parent_dir.join(&html_url);
-                    html_url = output_path(&img_src);
+impl<'e, E: Iterator<Item = Event<'e>>> Iterator for TypstImage<E> {
+    type Item = Event<'e>;
 
-                    let html = match source_to_inline_html(PathBuf::from(typst_url), html_url) {
-                        Ok(inline_html) => inline_html,
-                        Err(err) => {
-                            eprintln!("{:?} at {}", err, recorder.current);
-                            String::new()
+    fn next(&mut self) -> Option<Self::Item> {
+        for e in self.events.by_ref() {
+            match e {
+                Event::Start(Tag::Link { ref dest_url, .. }) => {
+                    let (url, action) = url_action(dest_url);
+                    if is_inline_typst(dest_url) {
+                        self.state = State::InlineTypst;
+                        self.url = Some(dest_url.to_string()); // [0]
+                    } else if action == State::ImageCode.strify() {
+                        self.state = State::ImageCode;
+                        self.url = Some(url.to_string());
+                    } else if action == State::Html.strify() {
+                        self.state = State::Html;
+                        self.url = Some(url.to_string());
+                    } else if action == State::Shared.strify() {
+                        self.state = State::Shared;
+                        self.url = Some(url.to_string());
+                    } else if action == State::ImageBlock.strify() {
+                        self.state = State::ImageBlock;
+                        self.url = Some(url.to_string());
+                    } else if action == State::ImageSpan.strify() {
+                        self.state = State::ImageSpan;
+                        self.url = Some(url.to_string());
+                    } else {
+                        return Some(e);
+                    }
+                }
+                Event::Text(ref content) if allow_inline(&self.state) => {
+                    self.content.get_or_insert_default().push_str(content);
+                }
+                Event::InlineMath(ref content) if allow_inline(&self.state) => {
+                    let c = self.content.get_or_insert_default();
+                    write!(c, "${content}$").unwrap();
+                }
+                Event::Code(ref content) if allow_inline(&self.state) => {
+                    let c = self.content.get_or_insert_default();
+                    write!(c, "<code>{content}</code>").unwrap();
+                }
+                Event::End(TagEnd::Link) => match self.state {
+                    State::Html => {
+                        let typst_url = config::relativize(&self.url.take().unwrap());
+                        let (parent_dir, filename) = parent_dir(&typst_url);
+
+                        let mut html_url = filename.with_extension("html");
+                        let img_src = parent_dir.join(&html_url);
+                        html_url = output_path(&img_src);
+
+                        let html = match source_to_inline_html(PathBuf::from(typst_url), html_url) {
+                            Ok(inline_html) => inline_html,
+                            Err(err) => {
+                                eprintln!("{:?} at {}", err, self.current_slug);
+                                String::new()
+                            }
+                        };
+
+                        self.exit();
+                        return Some(Event::Html(html.into()));
+                    }
+                    State::InlineTypst => {
+                        let shareds = self.shareds.join("\n");
+                        let args: Vec<&str> = self.url.as_ref().unwrap().split("-").collect();
+                        let mut args = &args[1..];
+                        let mut auto_math_mode: bool = false;
+                        if args.contains(&"math") {
+                            auto_math_mode = true;
+                            args = &args[1..];
                         }
-                    };
 
-                    recorder.exit();
-                    return Some(LazyContent::Plain(html));
-                }
-                State::InlineTypst => {
-                    let shareds = recorder.shareds.join("\n");
-                    let args: Vec<&str> = recorder.data.get(0).unwrap().split("-").collect();
-                    let mut args = &args[1..];
-                    let mut auto_math_mode: bool = false;
-                    if args.contains(&"math") {
-                        auto_math_mode = true;
-                        args = &args[1..];
-                    }
-
-                    let mut inline_typst = recorder.data.get(1).unwrap().to_string();
-                    if auto_math_mode {
-                        inline_typst = format!("${}$", inline_typst);
-                    }
-
-                    let inline_typst = format!("{}\n{}", shareds, inline_typst);
-                    let x = args.get(0);
-                    let config = InlineConfig {
-                        margin_x: x.map(|s| s.to_string()),
-                        margin_y: args.get(1).or(x).map(|s| s.to_string()),
-                    };
-                    let html = match typst_cli::source_to_inline_svg(&inline_typst, config) {
-                        Ok(svg) => svg,
-                        Err(err) => {
-                            eprintln!("{:?} at {}", err, recorder.current);
-                            String::new()
+                        let mut inline_typst = self.content.take().unwrap();
+                        if auto_math_mode {
+                            inline_typst = format!("${inline_typst}$");
                         }
-                    };
 
-                    recorder.exit();
-                    return Some(LazyContent::Plain(html));
-                }
-                State::ImageSpan => {
-                    let typst_url = recorder.data.get(0).unwrap().as_str();
-                    let caption = match recorder.data.len() > 1 {
-                        true => recorder.data[1..].join(""),
-                        false => String::new(),
-                    };
-                    let typst_url = config::relativize(typst_url);
-                    let (parent_dir, filename) = parent_dir(&typst_url);
+                        let inline_typst = format!("{shareds}\n{inline_typst}");
+                        let x = args.get(0);
+                        let config = InlineConfig {
+                            margin_x: x.map(|s| s.to_string()),
+                            margin_y: args.get(1).or(x).map(|s| s.to_string()),
+                        };
+                        let html = match typst_cli::source_to_inline_svg(&inline_typst, config) {
+                            Ok(svg) => svg,
+                            Err(err) => {
+                                eprintln!("{:?} at {}", err, self.current_slug);
+                                String::new()
+                            }
+                        };
 
-                    let mut svg_url = filename.with_extension("svg");
-                    let img_src = parent_dir.join(&svg_url);
-                    svg_url = output_path(&img_src);
-
-                    match write_svg(PathBuf::from(typst_url), svg_url) {
-                        Err(err) => eprintln!("{:?} at {}", err, recorder.current),
-                        Ok(_) => (),
+                        self.exit();
+                        return Some(Event::Html(html.into()));
                     }
-                    recorder.exit();
+                    State::ImageSpan => {
+                        let typst_url = self.url.as_ref().unwrap();
+                        let caption = self.content.take().unwrap_or_default();
+                        let typst_url = config::relativize(typst_url);
+                        let (parent_dir, filename) = parent_dir(&typst_url);
 
-                    let html = html_figure(&config::full_url(&img_src), false, caption);
-                    return Some(LazyContent::Plain(html));
-                }
-                State::ImageBlock => {
-                    let typst_url = recorder.data.get(0).unwrap().as_str();
-                    let caption = match recorder.data.len() > 1 {
-                        true => recorder.data[1..].join(""),
-                        false => String::new(),
-                    };
-                    let typst_url = config::relativize(typst_url);
-                    let (parent_dir, filename) = parent_dir(&typst_url);
+                        let mut svg_url = filename.with_extension("svg");
+                        let img_src = parent_dir.join(&svg_url);
+                        svg_url = output_path(&img_src);
 
-                    let mut svg_url = filename.with_extension("svg");
-                    let img_src = parent_dir.join(&svg_url);
-                    svg_url = output_path(&img_src);
+                        if let Err(err) = write_svg(PathBuf::from(typst_url), svg_url) {
+                            eprintln!("{:?} at {}", err, self.current_slug)
+                        }
+                        self.exit();
 
-                    match write_svg(PathBuf::from(typst_url), svg_url) {
-                        Err(err) => eprintln!("{:?} at {}", err, recorder.current),
-                        Ok(_) => (),
+                        let html = html_figure(&config::full_url(&img_src), false, caption);
+                        return Some(Event::Html(html.into()));
                     }
-                    recorder.exit();
+                    State::ImageBlock => {
+                        let typst_url = self.url.as_ref().unwrap();
+                        let caption = self.content.take().unwrap_or_default();
+                        let typst_url = config::relativize(typst_url);
+                        let (parent_dir, filename) = parent_dir(&typst_url);
 
-                    let html = html_figure(&config::full_url(&img_src), true, caption);
-                    return Some(LazyContent::Plain(html));
-                }
-                State::ImageCode => {
-                    let typst_url = recorder.data.get(0).unwrap().as_str();
-                    let caption = match recorder.data.len() > 1 {
-                        true => recorder.data[1..].join(""),
-                        false => String::new(),
-                    };
-                    let typst_url = config::relativize(typst_url);
-                    let (parent_dir, filename) = parent_dir(&typst_url);
+                        let mut svg_url = filename.with_extension("svg");
+                        let img_src = parent_dir.join(&svg_url);
+                        svg_url = output_path(&img_src);
 
-                    let mut svg_url = filename.with_extension("svg");
-                    let img_src = parent_dir.join(&svg_url);
-                    svg_url = output_path(&img_src);
+                        if let Err(err) = write_svg(PathBuf::from(typst_url), svg_url) {
+                            eprintln!("{:?} at {}", err, self.current_slug)
+                        }
+                        self.exit();
 
-                    match write_svg(PathBuf::from(&typst_url), svg_url) {
-                        Err(err) => eprintln!("{:?} at {}", err, recorder.current),
-                        Ok(_) => (),
+                        let html = html_figure(&config::full_url(&img_src), true, caption);
+                        return Some(Event::Html(html.into()));
                     }
-                    recorder.exit();
+                    State::ImageCode => {
+                        let typst_url = self.url.as_ref().unwrap();
+                        let caption = self.content.take().unwrap_or_default();
+                        let typst_url = config::relativize(typst_url);
+                        let (parent_dir, filename) = parent_dir(&typst_url);
 
-                    let root_dir = config::root_dir();
-                    let full_path = root_dir.join(typst_url);
-                    let code = fs::read_to_string(format!("{}.code", full_path.display()))
-                        .unwrap_or_else(|_| fs::read_to_string(full_path).unwrap());
+                        let mut svg_url = filename.with_extension("svg");
+                        let img_src = parent_dir.join(&svg_url);
+                        svg_url = output_path(&img_src);
 
-                    let html = html_figure_code(&config::full_url(&img_src), caption, code);
-                    return Some(LazyContent::Plain(html));
-                }
-                State::Shared => {
-                    let typst_url = recorder.data.get(0).unwrap().as_str();
-                    let imported = recorder.data.get(1);
-                    let imported = match imported {
-                        Some(s) => s,
+                        if let Err(err) = write_svg(PathBuf::from(&typst_url), svg_url) {
+                            eprintln!("{:?} at {}", err, self.current_slug)
+                        }
+                        self.exit();
+
+                        let root_dir = config::root_dir();
+                        let full_path = root_dir.join(typst_url);
+                        let code = fs::read_to_string(format!("{}.code", full_path.display()))
+                            .unwrap_or_else(|_| fs::read_to_string(full_path).unwrap());
+
+                        let html = html_figure_code(&config::full_url(&img_src), caption, code);
+                        return Some(Event::Html(html.into()));
+                    }
+                    State::Shared => {
+                        let typst_url = self.url.take().unwrap();
+                        let imported = self.content.take();
                         /*
                          * Unspecified import items will default to all (*),
                          * but we recommend users to manually enter "*" to avoid ambiguity.
                          */
-                        None => "*",
-                    };
-                    recorder
-                        .shareds
-                        .push(format!(r#"#import "{}": {}"#, typst_url, imported));
-                    recorder.exit();
-                }
+                        let imported = imported.as_ref().map_or("*", |s| s);
+                        self.shareds
+                            .push(format!(r#"#import "{typst_url}": {imported}"#));
 
-                _ => (),
+                        self.state = State::None;
+                    }
+                    _ => return Some(e),
+                },
+                _ => return Some(e),
             }
         }
+
         None
-    }
-
-    fn text(
-        &self,
-        s: &pulldown_cmark::CowStr<'_>,
-        recorder: &mut ParseRecorder,
-        _metadata: &mut std::collections::HashMap<String, HTMLContent>,
-    ) -> eyre::Result<()> {
-        if allow_inline(&recorder.state) {
-            // [1]: imported / inline typst / span / block
-            recorder.push(s.to_string());
-        }
-        Ok(())
-    }
-
-    fn inline_math(
-        &self,
-        s: &pulldown_cmark::CowStr<'_>,
-        recorder: &mut ParseRecorder,
-    ) -> Option<std::string::String> {
-        if allow_inline(&recorder.state) {
-            recorder.push(format!("${}$", s)); // [1, 2, ...]: Text
-        }
-        None
-    }
-
-    fn code(&self, s: &pulldown_cmark::CowStr<'_>, recorder: &mut ParseRecorder) {
-        if allow_inline(&recorder.state) {
-            recorder.push(format!("<code>{}</code>", s));
-        }
     }
 }
 
