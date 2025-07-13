@@ -2,7 +2,7 @@
 // Released under the GPL-3.0 license as described in the file LICENSE.
 // Authors: Kokic (@kokic), Spore (@s-cerevisiae)
 
-use std::{collections::HashMap, vec};
+use std::{collections::HashMap, mem, vec};
 
 use eyre::{eyre, WrapErr};
 use itertools::Itertools;
@@ -115,7 +115,9 @@ pub fn parse_markdown2(slug: Slug) -> eyre::Result<ShallowSection> {
         &mut metadata,
     );
 
-    let content = iter.process_results(|i| HTMLContent::Lazy(to_contents(i)))?;
+    let content = iter
+        .process_results(|i| HTMLContent::Lazy(to_contents(i)))
+        .map(normalize_html_content)?;
     let metadata = HTMLMetaData(metadata);
 
     Ok(ShallowSection { metadata, content })
@@ -127,6 +129,20 @@ pub fn parse_spanned_markdown2(markdown_input: &str) -> eyre::Result<HTMLContent
     let mut metadata = HashMap::new();
     let iter = Embed2::new(KatexCompat2::new(TypstImage2::new(events)), &mut metadata);
     iter.process_results(|i| HTMLContent::Lazy(to_contents(i)))
+        .map(normalize_html_content)
+}
+
+fn normalize_html_content(mut content: HTMLContent) -> HTMLContent {
+    match &mut content {
+        HTMLContent::Lazy(lazy_contents) => {
+            if let [LazyContent::Plain(html)] = lazy_contents.as_mut_slice() {
+                HTMLContent::Plain(mem::take(html))
+            } else {
+                content
+            }
+        }
+        _ => content,
+    }
 }
 
 #[cfg(test)]
