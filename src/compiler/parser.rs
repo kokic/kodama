@@ -49,7 +49,7 @@ pub fn parse_markdown(slug: Slug) -> eyre::Result<ShallowSection> {
     );
 
     let content = iter
-        .process_results(|i| HTMLContent::Lazy(to_contents(i)))
+        .process_results(|i| to_contents(i))
         .map(normalize_html_content)?;
     let metadata = HTMLMetaData(metadata);
 
@@ -61,20 +61,15 @@ pub fn parse_spanned_markdown(markdown_input: &str, slug: Slug) -> eyre::Result<
     let events = ignore_paragraph(events);
     let mut metadata = HashMap::new();
     let iter = Embed::new(TypstImage::new(events, slug), &mut metadata);
-    iter.process_results(|i| HTMLContent::Lazy(to_contents(i)))
+    iter.process_results(|i| to_contents(i))
         .map(normalize_html_content)
 }
 
-fn normalize_html_content(mut content: HTMLContent) -> HTMLContent {
-    match &mut content {
-        HTMLContent::Lazy(lazy_contents) => {
-            if let [LazyContent::Plain(html)] = lazy_contents.as_mut_slice() {
-                HTMLContent::Plain(mem::take(html))
-            } else {
-                content
-            }
-        }
-        _ => content,
+fn normalize_html_content(mut content: Vec<LazyContent>) -> HTMLContent {
+    if let [LazyContent::Plain(html)] = content.as_mut_slice() {
+        HTMLContent::Plain(mem::take(html))
+    } else {
+        HTMLContent::Lazy(content)
     }
 }
 
@@ -98,7 +93,7 @@ mod tests {
         );
 
         let content = iter
-            .process_results(|i| HTMLContent::Lazy(to_contents(i)))
+            .process_results(|i| to_contents(i))
             .map(normalize_html_content);
 
         assert_eq!(content.unwrap().as_str().unwrap(), "<table><thead><tr><th>a</th><th>b</th></tr></thead><tbody>\n<tr><td>c</td><td>d</td></tr>\n</tbody></table>\n");
