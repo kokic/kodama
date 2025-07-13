@@ -13,7 +13,7 @@ use crate::{
     entry::HTMLMetaData,
     process::{
         content::to_contents, embed_markdown::Embed, figure::Figure, footnote::Footnote,
-        ignore_paragraph, typst_image::TypstImage,
+        ignore_paragraph, metadata::Metadata, typst_image::TypstImage,
     },
     slug::Slug,
 };
@@ -43,26 +43,26 @@ pub fn parse_markdown(slug: Slug) -> eyre::Result<ShallowSection> {
     let (source, mut metadata) = initialize(slug)?;
     let events = pulldown_cmark::Parser::new_ext(&source, OPTIONS);
 
-    let iter = Embed::new(
-        TypstImage::new(Figure::new(Footnote::new(events)), slug),
-        &mut metadata,
-    );
+    let content = Metadata::new(events, &mut metadata)
+        .process_results(|events| {
+            let events = Footnote::new(events);
+            let events = Figure::new(events);
+            let events = TypstImage::new(events, slug);
+            let events = Embed::new(events);
+            normalize_html_content(to_contents(events))
+        })
+        .wrap_err("failed to parse metadata")?;
 
-    let content = iter
-        .process_results(|i| to_contents(i))
-        .map(normalize_html_content)?;
     let metadata = HTMLMetaData(metadata);
 
     Ok(ShallowSection { metadata, content })
 }
 
-pub fn parse_spanned_markdown(markdown_input: &str, slug: Slug) -> eyre::Result<HTMLContent> {
+pub fn parse_spanned_markdown(markdown_input: &str, slug: Slug) -> HTMLContent {
     let events = pulldown_cmark::Parser::new_ext(markdown_input, OPTIONS);
     let events = ignore_paragraph(events);
-    let mut metadata = HashMap::new();
-    let iter = Embed::new(TypstImage::new(events, slug), &mut metadata);
-    iter.process_results(|i| to_contents(i))
-        .map(normalize_html_content)
+    let iter = Embed::new(TypstImage::new(events, slug));
+    normalize_html_content(to_contents(iter))
 }
 
 fn normalize_html_content(mut content: Vec<LazyContent>) -> HTMLContent {
@@ -79,23 +79,17 @@ mod tests {
 
     #[test]
     fn test_table_td() {
-        use crate::compiler::section::HTMLContent;
-        use std::collections::HashMap;
-
         let source = "| a | b |\n| - | - |\n| c | d |";
-        let mut metadata: HashMap<String, HTMLContent> = HashMap::new();
 
         let events = pulldown_cmark::Parser::new_ext(source, OPTIONS);
 
-        let iter = Embed::new(
-            TypstImage::new(Figure::new(Footnote::new(events)), Slug::new("-")),
-            &mut metadata,
-        );
+        let iter = Embed::new(TypstImage::new(
+            Figure::new(Footnote::new(events)),
+            Slug::new("-"),
+        ));
 
-        let content = iter
-            .process_results(|i| to_contents(i))
-            .map(normalize_html_content);
+        let content = normalize_html_content(to_contents(iter));
 
-        assert_eq!(content.unwrap().as_str().unwrap(), "<table><thead><tr><th>a</th><th>b</th></tr></thead><tbody>\n<tr><td>c</td><td>d</td></tr>\n</tbody></table>\n");
+        assert_eq!(content.as_str().unwrap(), "<table><thead><tr><th>a</th><th>b</th></tr></thead><tbody>\n<tr><td>c</td><td>d</td></tr>\n</tbody></table>\n");
     }
 }

@@ -28,7 +28,6 @@ pub enum State {
     /// `ImageBlock` with `<details>` code
     ImageCode,
 
-    Metadata,
     LocalLink,
     ExternalLink,
 }
@@ -44,7 +43,6 @@ impl State {
             State::ImageSpan => "span",
             State::ImageBlock => "block",
             State::ImageCode => "code",
-            State::Metadata => "metadata",
             State::LocalLink => "local",       // style class name
             State::ExternalLink => "external", // style class name
         }

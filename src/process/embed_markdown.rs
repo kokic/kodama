@@ -3,36 +3,30 @@
 // Authors: Kokic (@kokic), Spore (@s-cerevisiae)
 
 use super::{content::EventExtended, processer::url_action};
-use std::{collections::HashMap, mem};
+use std::mem;
 
 use crate::{
-    compiler::{
-        parser::parse_spanned_markdown,
-        section::{EmbedContent, HTMLContent, LocalLink, SectionOption},
-    },
+    compiler::section::{EmbedContent, LocalLink, SectionOption},
     html_flake::html_link,
     recorder::State,
-    slug::{to_slug, Slug},
+    slug::to_slug,
 };
-use eyre::{eyre, WrapErr};
 use pulldown_cmark::{html, Event, Tag, TagEnd};
 
-pub struct Embed<'e, 'm, E> {
+pub struct Embed<'e, E> {
     events: E,
     state: State,
     url: Option<String>,
     content: Vec<Event<'e>>,
-    metadata: &'m mut HashMap<String, HTMLContent>,
 }
 
-impl<'e, 'm, E> Embed<'e, 'm, E> {
-    pub fn new(events: E, metadata: &'m mut HashMap<String, HTMLContent>) -> Self {
+impl<'e, E> Embed<'e, E> {
+    pub fn new(events: E) -> Self {
         Self {
             events,
             state: State::None,
             url: None,
             content: Vec::new(),
-            metadata,
         }
     }
 
@@ -45,8 +39,8 @@ impl<'e, 'm, E> Embed<'e, 'm, E> {
     }
 }
 
-impl<'e, 'm, E: Iterator<Item = Event<'e>>> Iterator for Embed<'e, 'm, E> {
-    type Item = eyre::Result<EventExtended<'e>>;
+impl<'e, E: Iterator<Item = Event<'e>>> Iterator for Embed<'e, E> {
+    type Item = EventExtended<'e>;
 
     fn next(&mut self) -> Option<Self::Item> {
         for e in self.events.by_ref() {
@@ -67,14 +61,8 @@ impl<'e, 'm, E: Iterator<Item = Event<'e>>> Iterator for Embed<'e, 'm, E> {
                         }
                         self.url = Some(url);
                     } else {
-                        return Some(Ok(e.into()));
+                        return Some(e.into());
                     }
-                }
-                Event::Start(Tag::MetadataBlock(_)) => {
-                    self.state = State::Metadata;
-                }
-                Event::End(TagEnd::MetadataBlock(_)) => {
-                    self.state = State::None;
                 }
                 Event::End(TagEnd::Link) => match self.state {
                     State::Embed => {
@@ -95,7 +83,7 @@ impl<'e, 'm, E: Iterator<Item = Event<'e>>> Iterator for Embed<'e, 'm, E> {
                             None
                         };
                         let title = title.filter(|t| !t.is_empty());
-                        return Some(Ok(EmbedContent { title, url, option }.into()));
+                        return Some(EmbedContent { title, url, option }.into());
                     }
                     State::LocalLink => {
                         let (url, content) = self.exit();
@@ -106,11 +94,13 @@ impl<'e, 'm, E: Iterator<Item = Event<'e>>> Iterator for Embed<'e, 'm, E> {
                             html::push_html(&mut text, content.into_iter());
                             Some(text)
                         };
-                        return Some(Ok(LocalLink {
-                            slug: to_slug(&url),
-                            text,
-                        }
-                        .into()));
+                        return Some(
+                            LocalLink {
+                                slug: to_slug(&url),
+                                text,
+                            }
+                            .into(),
+                        );
                     }
                     State::ExternalLink => {
                         let (url, content) = self.exit();
@@ -124,72 +114,34 @@ impl<'e, 'm, E: Iterator<Item = Event<'e>>> Iterator for Embed<'e, 'm, E> {
                             &formatted_title
                         };
                         let html = html_link(&url, title, &text, State::ExternalLink.strify());
-                        return Some(Ok(Event::Html(html.into()).into()));
+                        return Some(Event::Html(html.into()).into());
                     }
-                    _ => return Some(Ok(e.into())),
+                    _ => return Some(e.into()),
                 },
-                Event::Text(ref text) => {
-                    if allow_inline(&self.state) {
-                        self.content.push(e);
-                    } else if self.state == State::Metadata && !text.trim().is_empty() {
-                        if let Err(e) = parse_metadata(text, self.metadata) {
-                            return Some(Err(e.wrap_err("failed to parse metadata")));
-                        }
-                    } else {
-                        return Some(Ok(e.into()));
-                    }
-                }
+                Event::Text(_) if allow_inline(&self.state) => self.content.push(e),
                 Event::InlineMath(ref math) => {
                     let replaced = Event::Text(format!("${math}$").into());
                     if allow_inline(&self.state) {
                         self.content.push(replaced);
                     } else {
-                        return Some(Ok(replaced.into()));
+                        return Some(replaced.into());
                     }
                 }
                 // TODO: move away from mangling math manually
                 Event::DisplayMath(ref math) => {
-                    return Some(Ok(Event::Text(format!("$${math}$$").into()).into()))
+                    return Some(Event::Text(format!("$${math}$$").into()).into())
                 }
                 Event::Code(_) if allow_inline(&self.state) => {
                     self.content.push(e);
                 }
-                _ => return Some(Ok(e.into())),
+                _ => return Some(e.into()),
             }
         }
         None
     }
 }
 
-/// It is known that the behavior differs between the two architectures
-/// `(I)` `x86_64-pc-windows-msvc` and `(II)` `aarch64-unknown-linux-musl`.
-/// `(I)` automatically splits the input by lines,
-/// while `(II)` receives the entire multi-line string as a whole.
-pub fn parse_metadata(s: &str, metadata: &mut HashMap<String, HTMLContent>) -> eyre::Result<()> {
-    let lines: Vec<&str> = s.split("\n").collect();
-    for s in lines {
-        if !s.trim().is_empty() {
-            let pos = s
-                .find(':')
-                .ok_or_else(|| eyre!("expected metadata format `name: value`, found `{s}`"))?;
-            let key = s[0..pos].trim();
-            let val = s[pos + 1..].trim();
-
-            let res = parse_spanned_markdown(val, Slug::new(metadata["slug"].as_str().unwrap()));
-            let mut val = res.wrap_err("failed to parse metadata value")?;
-
-            if key == "taxon" {
-                if let HTMLContent::Plain(v) = val {
-                    val = HTMLContent::Plain(display_taxon(&v));
-                }
-            }
-            metadata.insert(key.to_string(), val);
-        }
-    }
-    Ok(())
-}
-
-pub fn parse_embed_text(embed_text: &str) -> (SectionOption, String) {
+fn parse_embed_text(embed_text: &str) -> (SectionOption, String) {
     let mut numbering = false;
     let mut details_open = true;
     let mut catalog = true;
