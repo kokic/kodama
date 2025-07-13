@@ -15,7 +15,7 @@ use pulldown_cmark::{Event, Tag, TagEnd};
 
 use super::processer::url_action;
 
-pub struct TypstImage2<E> {
+pub struct TypstImage<E> {
     events: E,
     state: State,
     shareds: Vec<String>,
@@ -24,7 +24,7 @@ pub struct TypstImage2<E> {
     current_slug: Slug,
 }
 
-impl<E> TypstImage2<E> {
+impl<E> TypstImage<E> {
     pub fn new(events: E, current_slug: Slug) -> Self {
         Self {
             events,
@@ -43,7 +43,7 @@ impl<E> TypstImage2<E> {
     }
 }
 
-impl<'e, E: Iterator<Item = Event<'e>>> Iterator for TypstImage2<E> {
+impl<'e, E: Iterator<Item = Event<'e>>> Iterator for TypstImage<E> {
     type Item = Event<'e>;
 
     fn next(&mut self) -> Option<Self::Item> {

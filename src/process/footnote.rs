@@ -8,12 +8,12 @@ use pulldown_cmark::{CowStr, Event, Tag};
 
 use crate::html_flake;
 
-pub struct Footnote2<E> {
+pub struct Footnote<E> {
     events: E,
     entries: HashMap<String, usize>,
 }
 
-impl<E> Footnote2<E> {
+impl<E> Footnote<E> {
     pub fn new(events: E) -> Self {
         Self {
             events,
@@ -22,7 +22,7 @@ impl<E> Footnote2<E> {
     }
 }
 
-impl<'e, E: Iterator<Item = Event<'e>>> Iterator for Footnote2<E> {
+impl<'e, E: Iterator<Item = Event<'e>>> Iterator for Footnote<E> {
     type Item = Event<'e>;
 
     fn next(&mut self) -> Option<Self::Item> {

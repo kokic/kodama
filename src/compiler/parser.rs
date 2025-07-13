@@ -12,8 +12,8 @@ use crate::{
     config::input_path,
     entry::HTMLMetaData,
     process::{
-        content::to_contents, embed_markdown::Embed2, figure::Figure2, footnote::Footnote2,
-        ignore_paragraph, typst_image::TypstImage2,
+        content::to_contents, embed_markdown::Embed, figure::Figure, footnote::Footnote,
+        ignore_paragraph, typst_image::TypstImage,
     },
     slug::Slug,
 };
@@ -26,7 +26,7 @@ pub const OPTIONS: Options = Options::ENABLE_MATH
     .union(Options::ENABLE_SMART_PUNCTUATION)
     .union(Options::ENABLE_FOOTNOTES);
 
-pub fn initialize2(slug: Slug) -> eyre::Result<(String, HashMap<String, HTMLContent>)> {
+pub fn initialize(slug: Slug) -> eyre::Result<(String, HashMap<String, HTMLContent>)> {
     // global data store
     let mut metadata: HashMap<String, HTMLContent> = HashMap::new();
     let fullname = format!("{}.md", slug);
@@ -39,12 +39,12 @@ pub fn initialize2(slug: Slug) -> eyre::Result<(String, HashMap<String, HTMLCont
         .wrap_err_with(|| eyre!("failed to read markdown file `{markdown_path}`"))
 }
 
-pub fn parse_markdown2(slug: Slug) -> eyre::Result<ShallowSection> {
-    let (source, mut metadata) = initialize2(slug)?;
+pub fn parse_markdown(slug: Slug) -> eyre::Result<ShallowSection> {
+    let (source, mut metadata) = initialize(slug)?;
     let events = pulldown_cmark::Parser::new_ext(&source, OPTIONS);
 
-    let iter = Embed2::new(
-        TypstImage2::new(Figure2::new(Footnote2::new(events)), slug),
+    let iter = Embed::new(
+        TypstImage::new(Figure::new(Footnote::new(events)), slug),
         &mut metadata,
     );
 
@@ -56,11 +56,11 @@ pub fn parse_markdown2(slug: Slug) -> eyre::Result<ShallowSection> {
     Ok(ShallowSection { metadata, content })
 }
 
-pub fn parse_spanned_markdown2(markdown_input: &str, slug: Slug) -> eyre::Result<HTMLContent> {
+pub fn parse_spanned_markdown(markdown_input: &str, slug: Slug) -> eyre::Result<HTMLContent> {
     let events = pulldown_cmark::Parser::new_ext(markdown_input, OPTIONS);
     let events = ignore_paragraph(events);
     let mut metadata = HashMap::new();
-    let iter = Embed2::new(TypstImage2::new(events, slug), &mut metadata);
+    let iter = Embed::new(TypstImage::new(events, slug), &mut metadata);
     iter.process_results(|i| HTMLContent::Lazy(to_contents(i)))
         .map(normalize_html_content)
 }
@@ -92,8 +92,8 @@ mod tests {
 
         let events = pulldown_cmark::Parser::new_ext(source, OPTIONS);
 
-        let iter = Embed2::new(
-            TypstImage2::new(Figure2::new(Footnote2::new(events)), Slug::new("-")),
+        let iter = Embed::new(
+            TypstImage::new(Figure::new(Footnote::new(events)), Slug::new("-")),
             &mut metadata,
         );
 

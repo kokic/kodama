@@ -7,7 +7,7 @@ use std::{collections::HashMap, mem};
 
 use crate::{
     compiler::{
-        parser::parse_spanned_markdown2,
+        parser::parse_spanned_markdown,
         section::{EmbedContent, HTMLContent, LocalLink, SectionOption},
     },
     html_flake::html_link,
@@ -17,7 +17,7 @@ use crate::{
 use eyre::{eyre, WrapErr};
 use pulldown_cmark::{html, Event, Tag, TagEnd};
 
-pub struct Embed2<'e, 'm, E> {
+pub struct Embed<'e, 'm, E> {
     events: E,
     state: State,
     url: Option<String>,
@@ -25,7 +25,7 @@ pub struct Embed2<'e, 'm, E> {
     metadata: &'m mut HashMap<String, HTMLContent>,
 }
 
-impl<'e, 'm, E> Embed2<'e, 'm, E> {
+impl<'e, 'm, E> Embed<'e, 'm, E> {
     pub fn new(events: E, metadata: &'m mut HashMap<String, HTMLContent>) -> Self {
         Self {
             events,
@@ -45,7 +45,7 @@ impl<'e, 'm, E> Embed2<'e, 'm, E> {
     }
 }
 
-impl<'e, 'm, E: Iterator<Item = Event<'e>>> Iterator for Embed2<'e, 'm, E> {
+impl<'e, 'm, E: Iterator<Item = Event<'e>>> Iterator for Embed<'e, 'm, E> {
     type Item = eyre::Result<EventExtended<'e>>;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -84,7 +84,7 @@ impl<'e, 'm, E: Iterator<Item = Event<'e>>> Iterator for Embed2<'e, 'm, E> {
                         let title = if let Some(e) = content.first_mut() {
                             // parse options, then strip /[-+.]/ from beginning of the title
                             if let Event::Text(t) = e {
-                                let (opt, rest) = parse_embed_text2(t);
+                                let (opt, rest) = parse_embed_text(t);
                                 option = opt;
                                 *t = rest.into();
                             }
@@ -132,7 +132,7 @@ impl<'e, 'm, E: Iterator<Item = Event<'e>>> Iterator for Embed2<'e, 'm, E> {
                     if allow_inline(&self.state) {
                         self.content.push(e);
                     } else if self.state == State::Metadata && !text.trim().is_empty() {
-                        if let Err(e) = parse_metadata2(text, self.metadata) {
+                        if let Err(e) = parse_metadata(text, self.metadata) {
                             return Some(Err(e.wrap_err("failed to parse metadata")));
                         }
                     } else {
@@ -165,7 +165,7 @@ impl<'e, 'm, E: Iterator<Item = Event<'e>>> Iterator for Embed2<'e, 'm, E> {
 /// `(I)` `x86_64-pc-windows-msvc` and `(II)` `aarch64-unknown-linux-musl`.
 /// `(I)` automatically splits the input by lines,
 /// while `(II)` receives the entire multi-line string as a whole.
-pub fn parse_metadata2(s: &str, metadata: &mut HashMap<String, HTMLContent>) -> eyre::Result<()> {
+pub fn parse_metadata(s: &str, metadata: &mut HashMap<String, HTMLContent>) -> eyre::Result<()> {
     let lines: Vec<&str> = s.split("\n").collect();
     for s in lines {
         if !s.trim().is_empty() {
@@ -175,7 +175,7 @@ pub fn parse_metadata2(s: &str, metadata: &mut HashMap<String, HTMLContent>) -> 
             let key = s[0..pos].trim();
             let val = s[pos + 1..].trim();
 
-            let res = parse_spanned_markdown2(val, Slug::new(metadata["slug"].as_str().unwrap()));
+            let res = parse_spanned_markdown(val, Slug::new(metadata["slug"].as_str().unwrap()));
             let mut val = res.wrap_err("failed to parse metadata value")?;
 
             if key == "taxon" {
@@ -189,7 +189,7 @@ pub fn parse_metadata2(s: &str, metadata: &mut HashMap<String, HTMLContent>) -> 
     Ok(())
 }
 
-pub fn parse_embed_text2(embed_text: &str) -> (SectionOption, String) {
+pub fn parse_embed_text(embed_text: &str) -> (SectionOption, String) {
     let mut numbering = false;
     let mut details_open = true;
     let mut catalog = true;

@@ -15,7 +15,7 @@ pub mod writer;
 use std::{collections::HashMap, fs::File, io::BufReader, path::Path};
 
 use eyre::{bail, eyre, WrapErr};
-use parser::parse_markdown2;
+use parser::parse_markdown;
 use section::{HTMLContent, ShallowSection};
 use typst::parse_typst;
 use walkdir::WalkDir;
@@ -56,7 +56,7 @@ pub fn compile_all(workspace_dir: &str) -> eyre::Result<()> {
             shallow
         } else {
             let shallow = match ext {
-                Ext::Markdown => parse_markdown2(slug)
+                Ext::Markdown => parse_markdown(slug)
                     .wrap_err_with(|| eyre!("failed to parse markdown file `{slug}.{ext}`"))?,
                 Ext::Typst => parse_typst(slug, workspace_dir)
                     .wrap_err_with(|| eyre!("failed to parse typst file `{slug}.{ext}`"))?,

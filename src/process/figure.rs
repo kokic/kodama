@@ -4,13 +4,13 @@
 
 use pulldown_cmark::{Event, Tag, TagEnd};
 
-pub struct Figure2<E> {
+pub struct Figure<E> {
     events: E,
     title: String,
     dest_url: Option<String>,
 }
 
-impl<E> Figure2<E> {
+impl<E> Figure<E> {
     pub fn new(events: E) -> Self {
         Self {
             events,
@@ -20,7 +20,7 @@ impl<E> Figure2<E> {
     }
 }
 
-impl<'e, E: Iterator<Item = Event<'e>>> Iterator for Figure2<E> {
+impl<'e, E: Iterator<Item = Event<'e>>> Iterator for Figure<E> {
     type Item = Event<'e>;
 
     fn next(&mut self) -> Option<Self::Item> {
