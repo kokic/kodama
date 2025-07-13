@@ -43,12 +43,12 @@ pub fn parse_markdown(slug: Slug) -> eyre::Result<ShallowSection> {
     let (source, mut metadata) = initialize(slug)?;
     let events = pulldown_cmark::Parser::new_ext(&source, OPTIONS);
 
-    let content = Metadata::new(events, &mut metadata)
+    let content = Metadata::process(events, &mut metadata)
         .process_results(|events| {
-            let events = Footnote::new(events);
-            let events = Figure::new(events);
-            let events = TypstImage::new(events, slug);
-            let events = Embed::new(events);
+            let events = Footnote::process(events);
+            let events = Figure::process(events);
+            let events = TypstImage::process(events, slug);
+            let events = Embed::process(events);
             normalize_html_content(to_contents(events))
         })
         .wrap_err("failed to parse metadata")?;
@@ -61,8 +61,8 @@ pub fn parse_markdown(slug: Slug) -> eyre::Result<ShallowSection> {
 pub fn parse_spanned_markdown(markdown_input: &str, slug: Slug) -> HTMLContent {
     let events = pulldown_cmark::Parser::new_ext(markdown_input, OPTIONS);
     let events = ignore_paragraph(events);
-    let iter = Embed::new(TypstImage::new(events, slug));
-    normalize_html_content(to_contents(iter))
+    let events = Embed::process(TypstImage::process(events, slug));
+    normalize_html_content(to_contents(events))
 }
 
 fn normalize_html_content(mut content: Vec<LazyContent>) -> HTMLContent {
@@ -83,12 +83,12 @@ mod tests {
 
         let events = pulldown_cmark::Parser::new_ext(source, OPTIONS);
 
-        let iter = Embed::new(TypstImage::new(
-            Figure::new(Footnote::new(events)),
-            Slug::new("-"),
-        ));
+        let events = Footnote::process(events);
+        let events = Figure::process(events);
+        let events = TypstImage::process(events, Slug::new("-"));
+        let events = Embed::process(events);
 
-        let content = normalize_html_content(to_contents(iter));
+        let content = normalize_html_content(to_contents(events));
 
         assert_eq!(content.as_str().unwrap(), "<table><thead><tr><th>a</th><th>b</th></tr></thead><tbody>\n<tr><td>c</td><td>d</td></tr>\n</tbody></table>\n");
     }

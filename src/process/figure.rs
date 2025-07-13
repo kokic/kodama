@@ -11,7 +11,7 @@ pub struct Figure<E> {
 }
 
 impl<E> Figure<E> {
-    pub fn new(events: E) -> Self {
+    pub fn process(events: E) -> Self {
         Self {
             events,
             title: String::new(),

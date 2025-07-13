@@ -25,7 +25,7 @@ pub struct TypstImage<E> {
 }
 
 impl<E> TypstImage<E> {
-    pub fn new(events: E, current_slug: Slug) -> Self {
+    pub fn process(events: E, current_slug: Slug) -> Self {
         Self {
             events,
             state: State::None,

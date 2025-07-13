@@ -21,7 +21,7 @@ pub struct Embed<'e, E> {
 }
 
 impl<'e, E> Embed<'e, E> {
-    pub fn new(events: E) -> Self {
+    pub fn process(events: E) -> Self {
         Self {
             events,
             state: State::None,

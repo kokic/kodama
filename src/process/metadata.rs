@@ -18,7 +18,7 @@ pub struct Metadata<'m, E> {
 }
 
 impl<'m, E> Metadata<'m, E> {
-    pub fn new(events: E, metadata: &'m mut HashMap<String, HTMLContent>) -> Self {
+    pub fn process(events: E, metadata: &'m mut HashMap<String, HTMLContent>) -> Self {
         Self {
             events,
             state: false,

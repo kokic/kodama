@@ -14,7 +14,7 @@ pub struct Footnote<E> {
 }
 
 impl<E> Footnote<E> {
-    pub fn new(events: E) -> Self {
+    pub fn process(events: E) -> Self {
         Self {
             events,
             entries: HashMap::new(),
