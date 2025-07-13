@@ -78,6 +78,9 @@ impl<'e, 'm, E: Iterator<Item = Event<'e>>> Iterator for Embed2<'e, 'm, E> {
                 Event::Start(Tag::MetadataBlock(_)) => {
                     self.state = State::Metadata;
                 }
+                Event::End(TagEnd::MetadataBlock(_)) => {
+                    self.state = State::None;
+                }
                 Event::End(TagEnd::Link) => match self.state {
                     State::Embed => {
                         let (url, mut content) = self.exit();
@@ -137,7 +140,6 @@ impl<'e, 'm, E: Iterator<Item = Event<'e>>> Iterator for Embed2<'e, 'm, E> {
                         if let Err(e) = parse_metadata2(text, self.metadata) {
                             return Some(Err(e.wrap_err("failed to parse metadata")));
                         }
-                        self.state = State::None;
                     } else {
                         return Some(Ok(e.into()));
                     }
