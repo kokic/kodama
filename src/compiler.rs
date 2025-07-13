@@ -27,7 +27,6 @@ use walkdir::WalkDir;
 use writer::Writer;
 
 use crate::{
-    cli::new,
     config::{self, verify_and_file_hash},
     slug::{self, Ext, Slug},
 };
@@ -95,8 +94,8 @@ fn to_slug_ext(source_dir: &Path, p: &Path) -> Option<(Slug, Ext)> {
     Some((slug, ext))
 }
 
-/// Collect all source file paths in workspace dir. 
-/// 
+/// Collect all source file paths in workspace dir.
+///
 /// It includes all `.md` and `.typ` files in the `trees_dir`.
 pub fn all_trees_source(trees_dir: &PathBuf) -> eyre::Result<Workspace> {
     let mut slug_exts = HashMap::new();
