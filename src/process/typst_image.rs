@@ -2,7 +2,7 @@
 // Released under the GPL-3.0 license as described in the file LICENSE.
 // Authors: Kokic (@kokic), Spore (@s-cerevisiae)
 
-use std::fs;
+use std::{fmt::Write, fs};
 
 use crate::{
     compiler::section::{HTMLContent, LazyContent},
@@ -76,14 +76,16 @@ impl<'e, E: Iterator<Item = Event<'e>>> Iterator for TypstImage2<E> {
                         return Some(e);
                     }
                 }
-                Event::Text(ref content)
-                | Event::InlineMath(ref content)
-                | Event::Code(ref content) => {
-                    if allow_inline(&self.state) {
-                        self.content = Some(content.to_string());
-                    } else {
-                        return Some(e);
-                    }
+                Event::Text(ref content) if allow_inline(&self.state) => {
+                    self.content.get_or_insert_default().push_str(content);
+                }
+                Event::InlineMath(ref content) if allow_inline(&self.state) => {
+                    let c = self.content.get_or_insert_default();
+                    write!(c, "${content}$").unwrap();
+                }
+                Event::Code(ref content) if allow_inline(&self.state) => {
+                    let c = self.content.get_or_insert_default();
+                    write!(c, "<code>{content}</code>").unwrap();
                 }
                 Event::End(TagEnd::Link) => match self.state {
                     State::Html => {
