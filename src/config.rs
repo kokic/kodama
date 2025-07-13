@@ -174,7 +174,7 @@ pub fn parent_dir<P: AsRef<Path>>(path: P) -> (PathBuf, PathBuf) {
 }
 
 pub fn input_path<P: AsRef<Path>>(path: P) -> PathBuf {
-    let mut filepath: PathBuf = root_dir().into();
+    let mut filepath: PathBuf = trees_dir().into();
     filepath.push(path);
     filepath
 }
@@ -275,7 +275,7 @@ pub fn is_hash_updated<P: AsRef<Path>>(content: &str, hash_path: P) -> (bool, u6
 /// Checks whether the file has been modified by comparing its current hash with the stored hash.
 /// If the file is modified, updates the stored hash to reflect the latest state.
 pub fn verify_and_file_hash<P: AsRef<Path>>(relative_path: P) -> eyre::Result<bool> {
-    let root_dir = root_dir();
+    let root_dir = trees_dir();
     let full_path = root_dir.join(&relative_path);
     let hash_path = hash_file_path(&relative_path);
 

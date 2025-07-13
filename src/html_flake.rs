@@ -8,7 +8,7 @@ use crate::{
     config::{self, input_path},
     entry::{EntryMetaData, MetaData},
     html_macro::html,
-    slug::Slug,
+    slug::{posix_style, Slug},
 };
 
 pub fn html_article_inner(
@@ -85,11 +85,13 @@ pub fn html_header(
             let source_url = format!(
                 "{}{}",
                 prefix,
-                PathBuf::from(input_path(format!("{}.md", slug.as_str())))
-                    .canonicalize()
-                    .unwrap()
-                    .to_str()
-                    .unwrap()
+                posix_style(
+                    PathBuf::from(input_path(format!("{}.md", slug.as_str())))
+                        .canonicalize()
+                        .unwrap()
+                        .to_str()
+                        .unwrap()
+                )
             );
             html!(a class="slug" href={source_url} { "[edit]" })
         }

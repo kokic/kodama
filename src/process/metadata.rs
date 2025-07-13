@@ -2,10 +2,9 @@
 // Released under the GPL-3.0 license as described in the file LICENSE.
 // Authors: Kokic (@kokic), Spore (@s-cerevisiae)
 
-use std::collections::HashMap;
-
 use crate::{
     compiler::{parser::parse_spanned_markdown, section::HTMLContent},
+    ordered_map::OrderedMap,
     slug::Slug,
 };
 use eyre::eyre;
@@ -14,11 +13,11 @@ use pulldown_cmark::{Event, Tag, TagEnd};
 pub struct Metadata<'m, E> {
     events: E,
     state: bool,
-    metadata: &'m mut HashMap<String, HTMLContent>,
+    metadata: &'m mut OrderedMap<String, HTMLContent>,
 }
 
 impl<'m, E> Metadata<'m, E> {
-    pub fn process(events: E, metadata: &'m mut HashMap<String, HTMLContent>) -> Self {
+    pub fn process(events: E, metadata: &'m mut OrderedMap<String, HTMLContent>) -> Self {
         Self {
             events,
             state: false,
@@ -59,7 +58,7 @@ impl<'e, 'm, E: Iterator<Item = Event<'e>>> Iterator for Metadata<'m, E> {
 /// `(I)` `x86_64-pc-windows-msvc` and `(II)` `aarch64-unknown-linux-musl`.
 /// `(I)` automatically splits the input by lines,
 /// while `(II)` receives the entire multi-line string as a whole.
-fn parse_metadata(s: &str, metadata: &mut HashMap<String, HTMLContent>) -> eyre::Result<()> {
+fn parse_metadata(s: &str, metadata: &mut OrderedMap<String, HTMLContent>) -> eyre::Result<()> {
     let lines: Vec<&str> = s.split("\n").collect();
     for s in lines {
         if !s.trim().is_empty() {
@@ -69,7 +68,10 @@ fn parse_metadata(s: &str, metadata: &mut HashMap<String, HTMLContent>) -> eyre:
             let key = s[0..pos].trim();
             let val = s[pos + 1..].trim();
 
-            let res = parse_spanned_markdown(val, Slug::new(metadata["slug"].as_str().unwrap()));
+            let res = parse_spanned_markdown(
+                val,
+                Slug::new(metadata.get("slug").unwrap().as_str().unwrap()),
+            );
             let mut val = res;
 
             if key == "taxon" {

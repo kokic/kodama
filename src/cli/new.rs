@@ -133,7 +133,7 @@ fn new_section_inner(path: &PathBuf, template: &str, config: &PathBuf) -> eyre::
     let filestem = path.file_stem().unwrap().to_str().unwrap();
     let content = content.replace("<FILE_NAME>", filestem);
 
-    let section_path = config::root_dir().join(path);
+    let section_path = config::trees_dir().join(path);
     let section_path_display = section_path.display();
 
     if section_path.exists() {

@@ -2,15 +2,21 @@
 // Released under the GPL-3.0 license as described in the file LICENSE.
 // Authors: Kokic (@kokic), Spore (@s-cerevisiae)
 
-use std::vec;
+use std::mem;
 
 use eyre::{eyre, WrapErr};
 use itertools::Itertools;
 use pulldown_cmark::Options;
 
 use crate::{
-    config::input_path, entry::HTMLMetaData, ordered_map::OrderedMap,
-    process::processer::Processer, recorder::ParseRecorder, slug::Slug,
+    config::input_path,
+    entry::HTMLMetaData,
+    ordered_map::OrderedMap,
+    process::{
+        content::to_contents, embed_markdown::Embed, figure::Figure, footnote::Footnote,
+        ignore_paragraph, metadata::Metadata, typst_image::TypstImage,
+    },
+    slug::Slug,
 };
 
 use super::{section::LazyContent, HTMLContent, ShallowSection};
@@ -74,31 +80,17 @@ mod tests {
 
     #[test]
     fn test_table_td() {
-        use crate::ordered_map::OrderedMap;
-        use crate::{
-            compiler::section::HTMLContent, process::processer::Processer, recorder::ParseRecorder,
-        };
-
-        let mut processers: Vec<Box<dyn Processer>> = vec![
-            Box::new(crate::process::footnote::Footnote),
-            Box::new(crate::process::figure::Figure),
-            Box::new(crate::process::typst_image::TypstImage),
-            Box::new(crate::process::katex_compat::KatexCompact),
-            Box::new(crate::process::embed_markdown::Embed),
-        ];
-
         let source = "| a | b |\n| - | - |\n| c | d |";
-        let mut metadata: OrderedMap<String, HTMLContent> = OrderedMap::new();
-        let mut recorder = ParseRecorder::new("test".to_owned());
 
-        let contents = super::parse_content(
-            &source,
-            &mut recorder,
-            &mut metadata,
-            &mut processers,
-            false,
-        );
+        let events = pulldown_cmark::Parser::new_ext(source, OPTIONS);
 
-        assert_eq!(contents.unwrap().as_str().unwrap(), "<table><thead><tr><th>a</th><th>b</th></tr></thead><tbody>\n<tr><td>c</td><td>d</td></tr>\n</tbody></table>\n");
+        let events = Footnote::process(events);
+        let events = Figure::process(events);
+        let events = TypstImage::process(events, Slug::new("-"));
+        let events = Embed::process(events);
+
+        let content = normalize_html_content(to_contents(events));
+
+        assert_eq!(content.as_str().unwrap(), "<table><thead><tr><th>a</th><th>b</th></tr></thead><tbody>\n<tr><td>c</td><td>d</td></tr>\n</tbody></table>\n");
     }
 }

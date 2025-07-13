@@ -79,8 +79,8 @@ fn source_to_html<P: AsRef<Path>>(rel_path: P, root_dir: P) -> Result<String, st
         .arg("c")
         .arg("-f=html")
         .arg("--features=html")
-        .arg(format!("--root={}", root_dir.display()))
-        .args(["--input", &format!("path={}", rel_path.display())])
+        .arg(format!("--root={}", root_dir.to_string_lossy()))
+        .args(["--input", &format!("path={}", rel_path.to_string_lossy())])
         .args([
             "--input",
             &format!("sha256={}", sha256::digest(full_path.to_str().unwrap())),
