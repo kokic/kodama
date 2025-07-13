@@ -9,7 +9,7 @@ use crate::{
     config::{self, join_path, output_path, parent_dir},
     html_flake::{html_figure, html_figure_code},
     recorder::{ParseRecorder, State},
-    slug::adjust_name,
+    slug::{adjust_name, Slug},
     typst_cli::{self, source_to_inline_html, write_svg, InlineConfig},
 };
 use pulldown_cmark::{Event, Tag, TagEnd};
@@ -24,16 +24,18 @@ pub struct TypstImage2<E> {
     shareds: Vec<String>,
     url: Option<String>,
     content: Option<String>,
+    current_slug: Slug,
 }
 
 impl<E> TypstImage2<E> {
-    pub fn new(events: E) -> Self {
+    pub fn new(events: E, current_slug: Slug) -> Self {
         Self {
             events,
             state: State::None,
             shareds: Vec::new(),
             url: None,
             content: None,
+            current_slug,
         }
     }
 
@@ -95,7 +97,7 @@ impl<'e, E: Iterator<Item = Event<'e>>> Iterator for TypstImage2<E> {
                         let html = match source_to_inline_html(&typst_url, &html_url) {
                             Ok(inline_html) => inline_html,
                             Err(err) => {
-                                eprintln!("{:?} at {}", err, todo!("report current token"));
+                                eprintln!("{:?} at {}", err, self.current_slug);
                                 String::new()
                             }
                         };
@@ -115,10 +117,10 @@ impl<'e, E: Iterator<Item = Event<'e>>> Iterator for TypstImage2<E> {
 
                         let mut inline_typst = self.content.take().unwrap();
                         if auto_math_mode {
-                            inline_typst = format!("${}$", inline_typst);
+                            inline_typst = format!("${inline_typst}$");
                         }
 
-                        let inline_typst = format!("{}\n{}", shareds, inline_typst);
+                        let inline_typst = format!("{shareds}\n{inline_typst}");
                         let x = args.get(0);
                         let config = InlineConfig {
                             margin_x: x.map(|s| s.to_string()),
@@ -128,7 +130,7 @@ impl<'e, E: Iterator<Item = Event<'e>>> Iterator for TypstImage2<E> {
                         let html = match typst_cli::source_to_inline_svg(&inline_typst, config) {
                             Ok(svg) => svg,
                             Err(err) => {
-                                eprintln!("{:?} at {}", err, todo!("get current token"));
+                                eprintln!("{:?} at {}", err, self.current_slug);
                                 String::new()
                             }
                         };
@@ -146,9 +148,8 @@ impl<'e, E: Iterator<Item = Event<'e>>> Iterator for TypstImage2<E> {
                         let img_src = join_path(&parent_dir, &svg_url);
                         svg_url = output_path(&img_src);
 
-                        match write_svg(&typst_url, &svg_url) {
-                            Err(err) => eprintln!("{:?} at {}", err, todo!("get current token")),
-                            Ok(_) => (),
+                        if let Err(err) = write_svg(&typst_url, &svg_url) {
+                            eprintln!("{:?} at {}", err, self.current_slug)
                         }
                         self.exit();
 
@@ -165,9 +166,8 @@ impl<'e, E: Iterator<Item = Event<'e>>> Iterator for TypstImage2<E> {
                         let img_src = join_path(&parent_dir, &svg_url);
                         svg_url = output_path(&img_src);
 
-                        match write_svg(&typst_url, &svg_url) {
-                            Err(err) => eprintln!("{:?} at {}", err, todo!("get current token")),
-                            Ok(_) => (),
+                        if let Err(err) = write_svg(&typst_url, &svg_url) {
+                            eprintln!("{:?} at {}", err, self.current_slug)
                         }
                         self.exit();
 
@@ -184,15 +184,14 @@ impl<'e, E: Iterator<Item = Event<'e>>> Iterator for TypstImage2<E> {
                         let img_src = join_path(&parent_dir, &svg_url);
                         svg_url = output_path(&img_src);
 
-                        match write_svg(&typst_url, &svg_url) {
-                            Err(err) => eprintln!("{:?} at {}", err, todo!("get current token")),
-                            Ok(_) => (),
+                        if let Err(err) = write_svg(&typst_url, &svg_url) {
+                            eprintln!("{:?} at {}", err, self.current_slug)
                         }
                         self.exit();
 
                         let root_dir = config::root_dir();
                         let full_path = config::join_path(&root_dir, &typst_url);
-                        let code = fs::read_to_string(format!("{}.code", full_path))
+                        let code = fs::read_to_string(format!("{full_path}.code"))
                             .unwrap_or_else(|_| fs::read_to_string(full_path).unwrap());
 
                         let html = html_figure_code(&config::full_url(&img_src), caption, code);
@@ -207,7 +206,7 @@ impl<'e, E: Iterator<Item = Event<'e>>> Iterator for TypstImage2<E> {
                          */
                         let imported = imported.as_ref().map_or("*", |s| s);
                         self.shareds
-                            .push(format!(r#"#import "{}": {}"#, typst_url, imported));
+                            .push(format!(r#"#import "{typst_url}": {imported}"#));
 
                         self.state = State::None;
                     }

@@ -15,7 +15,7 @@ use crate::{
     },
     html_flake::html_link,
     recorder::{ParseRecorder, State},
-    slug::to_slug,
+    slug::{to_slug, Slug},
 };
 use eyre::{eyre, WrapErr};
 use pulldown_cmark::{html, Event, Tag, TagEnd};
@@ -174,7 +174,7 @@ pub fn parse_metadata2(s: &str, metadata: &mut HashMap<String, HTMLContent>) -> 
             let key = s[0..pos].trim();
             let val = s[pos + 1..].trim();
 
-            let res = parse_spanned_markdown2(val);
+            let res = parse_spanned_markdown2(val, Slug::new(metadata["slug"].as_str().unwrap()));
             let mut val = res.wrap_err("failed to parse metadata value")?;
 
             if key == "taxon" {

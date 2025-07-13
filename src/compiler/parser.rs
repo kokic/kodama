@@ -111,7 +111,7 @@ pub fn parse_markdown2(slug: Slug) -> eyre::Result<ShallowSection> {
     let events = pulldown_cmark::Parser::new_ext(&source, OPTIONS);
 
     let iter = Embed2::new(
-        KatexCompat2::new(TypstImage2::new(Figure2::new(Footnote2::new(events)))),
+        KatexCompat2::new(TypstImage2::new(Figure2::new(Footnote2::new(events)), slug)),
         &mut metadata,
     );
 
@@ -123,11 +123,14 @@ pub fn parse_markdown2(slug: Slug) -> eyre::Result<ShallowSection> {
     Ok(ShallowSection { metadata, content })
 }
 
-pub fn parse_spanned_markdown2(markdown_input: &str) -> eyre::Result<HTMLContent> {
+pub fn parse_spanned_markdown2(markdown_input: &str, slug: Slug) -> eyre::Result<HTMLContent> {
     let events = pulldown_cmark::Parser::new_ext(markdown_input, OPTIONS);
     let events = ignore_paragraph(events);
     let mut metadata = HashMap::new();
-    let iter = Embed2::new(KatexCompat2::new(TypstImage2::new(events)), &mut metadata);
+    let iter = Embed2::new(
+        KatexCompat2::new(TypstImage2::new(events, slug)),
+        &mut metadata,
+    );
     iter.process_results(|i| HTMLContent::Lazy(to_contents(i)))
         .map(normalize_html_content)
 }
@@ -166,7 +169,10 @@ $$ 8P = \left(\frac{1243617733990094836481}{609623835676137297449}, \frac{487267
 
         let mut metadata = HashMap::new();
         let iter = Embed2::new(
-            KatexCompat2::new(TypstImage2::new(Figure2::new(Footnote2::new(events)))),
+            KatexCompat2::new(TypstImage2::new(
+                Figure2::new(Footnote2::new(events)),
+                Slug::new("-"),
+            )),
             &mut metadata,
         );
 
