@@ -26,19 +26,17 @@ pub const OPTIONS: Options = Options::ENABLE_MATH
     .union(Options::ENABLE_SMART_PUNCTUATION)
     .union(Options::ENABLE_FOOTNOTES);
 
-pub fn initialize(
-    slug: Slug,
-) -> eyre::Result<(String, HashMap<String, HTMLContent>)> {
+pub fn initialize(slug: Slug) -> eyre::Result<(String, HashMap<String, HTMLContent>)> {
     // global data store
     let mut metadata: HashMap<String, HTMLContent> = HashMap::new();
     let fullname = format!("{}.md", slug);
     metadata.insert("slug".to_string(), HTMLContent::Plain(slug.to_string()));
 
-    // local contents
+    // local contents recorder
     let markdown_path = input_path(&fullname);
     std::fs::read_to_string(&markdown_path)
         .map(|markdown_input| (markdown_input, metadata))
-        .wrap_err_with(|| eyre!("Failed to read markdown file `{:?}`", markdown_path))
+        .wrap_err_with(|| eyre!("failed to read markdown file `{:?}`", markdown_path))
 }
 
 pub fn parse_markdown(slug: Slug) -> eyre::Result<ShallowSection> {

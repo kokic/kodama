@@ -18,7 +18,7 @@ pub fn source_to_inline_html<P: AsRef<Path>>(typst_path: P, html_path: P) -> eyr
     }
 
     let root_dir = config::root_dir();
-    let html = source_to_html(&typst_path, &root_dir)?;
+    let html = source_to_html(typst_path.as_ref(), &root_dir)?;
     let html_body = html_to_body_content(&html);
 
     fs::write(&html_path, html)?;
@@ -61,21 +61,30 @@ pub fn source_to_inline_svg(src: &str, config: InlineConfig) -> Result<String, s
         config.margin_x.unwrap_or(InlineConfig::default_margin()),
         config.margin_y.unwrap_or(InlineConfig::default_margin())
     );
-    let svg = source_to_svg(format!("{}{}", styles, src).as_str())?;
+    let typst_root = crate::config::root_dir();
+    let svg = source_to_svg(
+        format!("{}{}", styles, src).as_str(),
+        typst_root.to_str().unwrap(),
+    )?;
 
     Ok(format!("\n{}\n", html_flake::html_inline_typst_span(&svg)))
 }
 
-fn source_to_html(rel_path: &str, root_dir: &str) -> Result<String, std::io::Error> {
-    let full_path = config::join_path(&root_dir, rel_path);
+fn source_to_html<P: AsRef<Path>>(rel_path: P, root_dir: P) -> Result<String, std::io::Error> {
+    let root_dir = root_dir.as_ref();
+    let rel_path = rel_path.as_ref();
+    let full_path = root_dir.join(rel_path);
 
     let output = Command::new("typst")
         .arg("c")
         .arg("-f=html")
         .arg("--features=html")
-        .arg(format!("--root={}", root_dir))
-        .args(["--input", &format!("path={}", rel_path)])
-        .args(["--input", &format!("sha256={}", sha256::digest(&full_path))]) // sha256 of the path!
+        .arg(format!("--root={}", root_dir.display()))
+        .args(["--input", &format!("path={}", rel_path.display())])
+        .args([
+            "--input",
+            &format!("sha256={}", sha256::digest(full_path.to_str().unwrap())),
+        ]) // sha256 of the path!
         .args(["--input", &format!("random={}", fastrand::i64(0..))])
         .arg(full_path)
         .arg("-")
@@ -87,7 +96,11 @@ fn source_to_html(rel_path: &str, root_dir: &str) -> Result<String, std::io::Err
         stdout.to_string()
     } else {
         let stderr = String::from_utf8_lossy(&output.stderr);
-        failed_in_file(concat!(file!(), '#', line!()), rel_path, stderr);
+        failed_in_file(
+            concat!(file!(), '#', line!()),
+            rel_path.to_str().unwrap(),
+            stderr,
+        );
         String::new()
     })
 }
@@ -105,7 +118,7 @@ fn source_to_svg(src: &str, root_dir: &str) -> Result<String, std::io::Error> {
 
     let root_dir = root_dir;
     let buffer = Buffer {
-        path: config::buffer_path(),
+        path: config::buffer_path().to_string_lossy().to_string(),
     };
     fs::write(&buffer.path, src)?;
 
@@ -114,9 +127,6 @@ fn source_to_svg(src: &str, root_dir: &str) -> Result<String, std::io::Error> {
         .arg("-f=svg")
         .arg(format!("--root={}", root_dir))
         .arg(&buffer.path)
-        .arg(format!("-f={}", output_format))
-        .arg(format!("--root={}", crate::config::root_dir().display()))
-        .arg(&buffer_path)
         .arg("-")
         .stdout(std::process::Stdio::piped())
         .output()?;
@@ -137,7 +147,6 @@ fn source_to_svg(src: &str, root_dir: &str) -> Result<String, std::io::Error> {
 
 /// typst file to svg (`stdout -> disk`)
 pub fn write_svg<P: AsRef<Path>>(typst_path: P, svg_path: P) -> eyre::Result<()> {
-    
     let typst_path = typst_path.as_ref();
     let svg_path = svg_path.as_ref();
 
@@ -167,7 +176,11 @@ pub fn write_svg<P: AsRef<Path>>(typst_path: P, svg_path: P) -> eyre::Result<()>
         );
     } else {
         let stderr = String::from_utf8_lossy(&output.stderr);
-        failed_in_file(concat!(file!(), '#', line!()), &full_path.to_str().unwrap(), stderr);
+        failed_in_file(
+            concat!(file!(), '#', line!()),
+            &full_path.to_str().unwrap(),
+            stderr,
+        );
     }
     Ok(())
 }
