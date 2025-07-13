@@ -8,7 +8,6 @@ pub mod content;
 pub mod embed_markdown;
 pub mod figure;
 pub mod footnote;
-pub mod katex_compat;
 pub mod processer;
 pub mod typst_image;
 

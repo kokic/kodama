@@ -13,7 +13,7 @@ use crate::{
     entry::HTMLMetaData,
     process::{
         content::to_contents, embed_markdown::Embed2, figure::Figure2, footnote::Footnote2,
-        ignore_paragraph, katex_compat::KatexCompat2, typst_image::TypstImage2,
+        ignore_paragraph, typst_image::TypstImage2,
     },
     slug::Slug,
 };
@@ -44,7 +44,7 @@ pub fn parse_markdown2(slug: Slug) -> eyre::Result<ShallowSection> {
     let events = pulldown_cmark::Parser::new_ext(&source, OPTIONS);
 
     let iter = Embed2::new(
-        KatexCompat2::new(TypstImage2::new(Figure2::new(Footnote2::new(events)), slug)),
+        TypstImage2::new(Figure2::new(Footnote2::new(events)), slug),
         &mut metadata,
     );
 
@@ -60,10 +60,7 @@ pub fn parse_spanned_markdown2(markdown_input: &str, slug: Slug) -> eyre::Result
     let events = pulldown_cmark::Parser::new_ext(markdown_input, OPTIONS);
     let events = ignore_paragraph(events);
     let mut metadata = HashMap::new();
-    let iter = Embed2::new(
-        KatexCompat2::new(TypstImage2::new(events, slug)),
-        &mut metadata,
-    );
+    let iter = Embed2::new(TypstImage2::new(events, slug), &mut metadata);
     iter.process_results(|i| HTMLContent::Lazy(to_contents(i)))
         .map(normalize_html_content)
 }
@@ -96,10 +93,7 @@ mod tests {
         let events = pulldown_cmark::Parser::new_ext(source, OPTIONS);
 
         let iter = Embed2::new(
-            KatexCompat2::new(TypstImage2::new(
-                Figure2::new(Footnote2::new(events)),
-                Slug::new("-"),
-            )),
+            TypstImage2::new(Figure2::new(Footnote2::new(events)), Slug::new("-")),
             &mut metadata,
         );
 
