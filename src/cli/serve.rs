@@ -17,24 +17,60 @@ pub struct ServeCommand {
 
 /// This function invoked the [`config_toml::apply_config`] function to apply the configuration.
 pub fn serve(command: &ServeCommand) -> eyre::Result<()> {
-    build_with(command.config.clone(), BuildMode::Serve)?;
+    let serve_build = || -> eyre::Result<()> {
+        build_with(command.config.clone(), BuildMode::Serve)?;
+        Ok(())
+    };
 
-    // miniserve <publish_dir> --index index.html --pretty-urls
-    std::process::Command::new("miniserve")
+    serve_build()?;
+
+    print!("\x1B[2J\x1B[H");
+    std::io::stdout().flush()?;
+
+    let mut serve = std::process::Command::new("miniserve")
         .arg(crate::config::output_dir())
         .arg("--index")
         .arg("index.html")
         .arg("--pretty-urls")
+        .stdout(std::process::Stdio::piped())
+        .stderr(std::process::Stdio::piped())
         .spawn()?;
+
+    let serve_stdout = serve.stdout.take().unwrap();
+    let serve_stderr = serve.stderr.take().unwrap();
+
+    std::thread::spawn(move || {
+        use std::io::{BufRead, BufReader};
+        let reader = BufReader::new(serve_stdout);
+        for line in reader.lines() {
+            println!("[serve] {}", line.unwrap());
+        }
+    });
+
+    std::thread::spawn(move || {
+        use std::io::{BufRead, BufReader};
+        let reader = BufReader::new(serve_stderr);
+        for line in reader.lines() {
+            eprintln!("[serve:ERROR] {}", line.unwrap());
+        }
+    });
+
+    watch_paths(
+        &vec![crate::config::trees_dir(), crate::config::assets_dir()],
+        |_| serve_build(),
+    )?;
+
+    // After watching process is done, kill the miniserve process.
+    let _ = serve.kill();
 
     Ok(())
 }
 
 /// from: https://github.com/notify-rs/notify/blob/main/examples/monitor_raw.rs#L18
-fn watch_paths<P: AsRef<Path>>(watched_paths: &Vec<P>, script_path: &str) -> notify::Result<()> {
-    print!("\x1B[2J\x1B[H");
-    std::io::stdout().flush()?;
-
+fn watch_paths<P: AsRef<Path>, F>(watched_paths: &Vec<P>, action: F) -> eyre::Result<()>
+where
+    F: Fn(&Path) -> eyre::Result<()>,
+{
     let (tx, rx) = std::sync::mpsc::channel();
 
     // Automatically select the best implementation for your platform.
@@ -52,7 +88,6 @@ fn watch_paths<P: AsRef<Path>>(watched_paths: &Vec<P>, script_path: &str) -> not
     }
     println!("\n\nPress Ctrl+C to stop watching.\n");
 
-    let row = watched_paths.len() + 1;
     for res in rx {
         match res {
             Ok(event) => {
@@ -62,19 +97,9 @@ fn watch_paths<P: AsRef<Path>>(watched_paths: &Vec<P>, script_path: &str) -> not
                 }
 
                 for path in event.paths {
-                    print!("\x1B[{};0H\x1B[2K", row);
-                    print!("Change: {path:?}");
+                    println!("[watch] Change: {path:?}");
                     std::io::stdout().flush()?;
-
-                    let output = std::process::Command::new(script_path)
-                        .stdout(std::process::Stdio::piped())
-                        .output()
-                        .expect("Build command failed to start");
-
-                    if !output.status.success() {
-                        let stderr = String::from_utf8_lossy(&output.stderr);
-                        eprintln!("{}", stderr);
-                    }
+                    action(&path)?;
                 }
             }
             Err(error) => eprintln!("Error: {error:?}"),

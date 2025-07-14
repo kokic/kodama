@@ -48,13 +48,18 @@ pub fn new_site(command: &NewSiteCommand) -> eyre::Result<()> {
 
     let default_config_path = site_path.join(config_toml::DEFAULT_CONFIG_PATH);
     let default_source_dir = site_path.join(config_toml::DEFAULT_SOURCE_DIR);
+    let default_assets_dir = site_path.join(config_toml::DEFAULT_ASSETS_DIR);
 
     // Create default config file in the new site directory
     new_config_inner(&default_config_path)?;
-    
+
     // Create the default source directory `trees`
     std::fs::create_dir(default_source_dir)
         .wrap_err("Failed to create default source directory")?;
+
+    // Create the default assets directory `assets`
+    std::fs::create_dir(default_assets_dir)
+        .wrap_err("Failed to create default assets directory")?;
 
     // Create the `index.md` section in the new site directory
     new_section_inner(

@@ -6,6 +6,7 @@ use crate::config::{self, FooterMode};
 
 pub const DEFAULT_CONFIG_PATH: &'static str = "./Kodama.toml";
 pub const DEFAULT_SOURCE_DIR: &'static str = "trees";
+pub const DEFAULT_ASSETS_DIR: &'static str = "assets";
 
 #[derive(Deserialize, Debug, Default, Serialize)]
 pub struct Config {
@@ -31,7 +32,7 @@ impl Default for Kodama {
     fn default() -> Self {
         Self {
             trees: DEFAULT_SOURCE_DIR.to_string(),
-            assets: "assets".to_string(),
+            assets: DEFAULT_ASSETS_DIR.to_string(),
             url: "/".to_string(),
         }
     }
