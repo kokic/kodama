@@ -2,13 +2,13 @@
 // Released under the GPL-3.0 license as described in the file LICENSE.
 // Authors: Kokic (@kokic), Spore (@s-cerevisiae)
 
-use std::{ops::Not, path::PathBuf};
+use std::ops::Not;
 
 use crate::{
     config::{self, input_path},
     entry::{EntryMetaData, MetaData},
     html_macro::html,
-    slug::{posix_style, Slug},
+    slug::Slug,
 };
 
 pub fn html_article_inner(
@@ -84,16 +84,13 @@ pub fn html_header(
         Some(prefix) if config::is_serve() => {
             // Bug: The suffix of slug is not necessarily `.md`,
             // perhaps we need to add an `ext` field for [`Slug`].
-            let source_url = format!(
-                "{}{}",
-                prefix,
-                (input_path(format!("{}.md", slug.as_str())))
-                    .canonicalize()
-                    .unwrap()
-                    .to_str()
-                    .unwrap()
-            );
-            html!(a class="slug" href={source_url} { "[edit]" })
+            let source_path = input_path(format!("{}.md", slug.as_str()))
+                .canonicalize()
+                .unwrap();
+            let source_url = url::Url::from_file_path(source_path).unwrap();
+            let base = url::Url::parse(&prefix).unwrap();
+            let editor_url = base.join(source_url.path()).unwrap();
+            html!(a class="slug" href={editor_url.to_string()} { "[edit]" })
         }
         _ => String::default(),
     };
@@ -278,14 +275,4 @@ pub fn html_main_style() -> &'static str {
 
 pub fn html_typst_style() -> &'static str {
     return include_str!("include/typst.css");
-}
-
-mod test {
-
-    #[test]
-    fn path_to_url() {
-        let url = url::Url::from_file_path("./src/html_flake.rs");
-        println!("URL: {:?}", url);
-    }
-
 }

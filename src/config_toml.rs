@@ -70,7 +70,7 @@ pub struct Serve {
 impl Default for Serve {
     fn default() -> Self {
         Self {
-            edit: Some("vscode://".to_string()),
+            edit: Some("vscode://file/".to_string()),
             output: "./.cache/publish".to_string(),
         }
     }

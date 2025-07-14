@@ -67,16 +67,6 @@ pub enum BuildMode {
     Serve,
 }
 
-impl BuildMode {
-    pub fn is_build(&self) -> bool {
-        matches!(self, BuildMode::Build)
-    }
-
-    pub fn is_serve(&self) -> bool {
-        matches!(self, BuildMode::Serve)
-    }
-}
-
 pub static BUILD_MODE: OnceLock<BuildMode> = OnceLock::new();
 
 pub static CONFIG_TOML: OnceLock<Config> = OnceLock::new();
@@ -117,7 +107,7 @@ pub fn root_dir() -> PathBuf {
 }
 
 pub fn is_serve() -> bool {
-    BUILD_MODE.get().unwrap().is_serve()
+    matches!(BUILD_MODE.get().unwrap(), BuildMode::Serve)
 }
 
 pub fn is_short_slug() -> bool {
