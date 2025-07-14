@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::config::{self, FooterMode};
 
-pub const DEFAULT_CONFIG_PATH: &'static str = "./config.toml";
+pub const DEFAULT_CONFIG_PATH: &'static str = "./Kodama.toml";
 pub const DEFAULT_SOURCE_DIR: &'static str = "trees";
 
 #[derive(Deserialize, Debug, Default, Serialize)]
@@ -70,7 +70,7 @@ pub struct Serve {
 impl Default for Serve {
     fn default() -> Self {
         Self {
-            edit: Some("vscode://file:".to_string()),
+            edit: Some("vscode://".to_string()),
             output: "./.cache/publish".to_string(),
         }
     }

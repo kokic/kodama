@@ -49,7 +49,7 @@ impl ToString for FooterMode {
     }
 }
 
-/// Specifies the filename of the TOML configuration file (e.g., "kodama.toml").
+/// Specifies the filename of the TOML configuration file (e.g., "Kodama.toml").
 pub static TOML: OnceLock<String> = OnceLock::new();
 
 /// Specifies the project root path.
@@ -58,9 +58,28 @@ pub static TOML: OnceLock<String> = OnceLock::new();
 /// the location of the toml configuration file.
 pub static ROOT: OnceLock<PathBuf> = OnceLock::new();
 
-pub static CONFIG_TOML: OnceLock<Config> = OnceLock::new();
+#[derive(Clone)]
+pub enum BuildMode {
+    /// Build mode for the `kodama build` command.
+    Build,
 
-// pub static CONFIG: OnceLock<CompileConfig<String>> = OnceLock::new();
+    /// Serve mode for the `kodama serve` command.
+    Serve,
+}
+
+impl BuildMode {
+    pub fn is_build(&self) -> bool {
+        matches!(self, BuildMode::Build)
+    }
+
+    pub fn is_serve(&self) -> bool {
+        matches!(self, BuildMode::Serve)
+    }
+}
+
+pub static BUILD_MODE: OnceLock<BuildMode> = OnceLock::new();
+
+pub static CONFIG_TOML: OnceLock<Config> = OnceLock::new();
 
 pub static CUSTOM_META_HTML: LazyLock<String> = LazyLock::new(|| {
     std::fs::read_to_string(root_dir().join("import-meta.html")).unwrap_or_default()
@@ -93,12 +112,16 @@ pub fn to_page_suffix(pretty_urls: bool) -> String {
     page_suffix.into()
 }
 
-pub fn is_short_slug() -> bool {
-    CONFIG_TOML.get().unwrap().build.short_slug
-}
-
 pub fn root_dir() -> PathBuf {
     ROOT.get().unwrap().clone()
+}
+
+pub fn is_serve() -> bool {
+    BUILD_MODE.get().unwrap().is_serve()
+}
+
+pub fn is_short_slug() -> bool {
+    CONFIG_TOML.get().unwrap().build.short_slug
 }
 
 pub fn typst_root_dir() -> PathBuf {
@@ -111,7 +134,11 @@ pub fn trees_dir() -> PathBuf {
 }
 
 pub fn output_dir() -> PathBuf {
-    CONFIG_TOML.get().unwrap().build.output.clone().into()
+    let output_dir = match BUILD_MODE.get().unwrap() {
+        BuildMode::Build => &CONFIG_TOML.get().unwrap().build.output,
+        BuildMode::Serve => &CONFIG_TOML.get().unwrap().serve.output,
+    };
+    output_dir.into()
 }
 
 pub fn base_url() -> String {

@@ -8,7 +8,7 @@ use std::{fs, path::PathBuf};
 use crate::{
     assets_sync,
     compiler::{self, all_trees_source},
-    config::{self, output_path},
+    config::{self, output_path, BuildMode},
     config_toml, html_flake,
 };
 
@@ -20,13 +20,13 @@ pub struct BuildCommand {
 }
 
 /// This function invoked the [`config_toml::apply_config`] function to apply the configuration.
-pub fn compile(command: &BuildCommand) -> eyre::Result<()> {
-    config_toml::apply_config(PathBuf::from(command.config.clone()))?;
+pub fn build(command: &BuildCommand) -> eyre::Result<()> {
+    build_with(command.config.clone(), BuildMode::Build)
+}
 
-    // match config::editor_url() {
-    //     Some(s) => println!("[{}] EDIT MODE IS ENABLE. Please note that your disk file path information will be included in the pages!", s),
-    //     None => (),
-    // }
+pub fn build_with(config: String, mode: BuildMode) -> eyre::Result<()> {
+    let _ = config::BUILD_MODE.set(mode);
+    config_toml::apply_config(PathBuf::from(config))?;
 
     if !config::inline_css() {
         export_css_files().wrap_err("Failed to export CSS")?;

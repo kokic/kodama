@@ -2,17 +2,11 @@
 // Released under the GPL-3.0 license as described in the file LICENSE.
 // Authors: Kokic (@kokic)
 
-use std::{
-    io::Write,
-    path::{Path, PathBuf},
-};
+use std::{io::Write, path::Path};
 
 use notify::{event::ModifyKind, Config, EventKind, RecommendedWatcher, RecursiveMode, Watcher};
 
-use crate::{
-    config::{self},
-    config_toml,
-};
+use crate::{cli::build::build_with, config::BuildMode, config_toml};
 
 #[derive(clap::Args)]
 pub struct ServeCommand {
@@ -21,13 +15,17 @@ pub struct ServeCommand {
     config: String,
 }
 
-// TODO: serve
-
 /// This function invoked the [`config_toml::apply_config`] function to apply the configuration.
 pub fn serve(command: &ServeCommand) -> eyre::Result<()> {
-    config_toml::apply_config(PathBuf::from(command.config.clone()))?;
+    build_with(command.config.clone(), BuildMode::Serve)?;
 
-    let dirs = config::trees_dir();
+    // miniserve <publish_dir> --index index.html --pretty-urls
+    std::process::Command::new("miniserve")
+        .arg(crate::config::output_dir())
+        .arg("--index")
+        .arg("index.html")
+        .arg("--pretty-urls")
+        .spawn()?;
 
     Ok(())
 }

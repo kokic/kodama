@@ -81,21 +81,21 @@ pub fn html_header(
     let slug_url = config::full_html_url(*slug);
 
     let editor_url = match config::editor_url() {
-        Some(prefix) => {
+        Some(prefix) if config::is_serve() => {
+            // Bug: The suffix of slug is not necessarily `.md`,
+            // perhaps we need to add an `ext` field for [`Slug`].
             let source_url = format!(
                 "{}{}",
                 prefix,
-                posix_style(
-                    PathBuf::from(input_path(format!("{}.md", slug.as_str())))
-                        .canonicalize()
-                        .unwrap()
-                        .to_str()
-                        .unwrap()
-                )
+                (input_path(format!("{}.md", slug.as_str())))
+                    .canonicalize()
+                    .unwrap()
+                    .to_str()
+                    .unwrap()
             );
             html!(a class="slug" href={source_url} { "[edit]" })
         }
-        None => String::default(),
+        _ => String::default(),
     };
 
     html!(header {
@@ -278,4 +278,14 @@ pub fn html_main_style() -> &'static str {
 
 pub fn html_typst_style() -> &'static str {
     return include_str!("include/typst.css");
+}
+
+mod test {
+
+    #[test]
+    fn path_to_url() {
+        let url = url::Url::from_file_path("./src/html_flake.rs");
+        println!("URL: {:?}", url);
+    }
+
 }

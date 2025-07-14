@@ -66,11 +66,11 @@ fn main() -> eyre::Result<()> {
     match &cli.command {
         Command::New(NewCommandCli { command }) => match command {
             NewCommand::Site(command) => crate::cli::new::new_site(command)?,
-            NewCommand::Section(command) => crate::cli::new::new_section(command)?,
+            NewCommand::Post(command) => crate::cli::new::new_section(command)?,
             NewCommand::Config(command) => crate::cli::new::new_config(command)?,
         },
         Command::Serve(command) => crate::cli::serve::serve(command)?,
-        Command::Build(command) => crate::cli::build::compile(command)?,
+        Command::Build(command) => crate::cli::build::build(command)?,
         Command::Remove(command) => crate::cli::remove::remove(command)?,
     };
     Ok(())

@@ -18,14 +18,16 @@ pub struct NewCommandCli {
 #[derive(clap::Subcommand)]
 pub enum NewCommand {
     /// Create a new kodama site.
+    #[command(visible_alias = "s")]
     Site(NewSiteCommand),
 
     /// Create a new config file.
+    #[command(visible_alias = "c")]
     Config(NewConfigCommand),
 
-    /// Create a new section.
-    #[command(visible_alias = "post")]
-    Section(NewSectionCommand),
+    /// Create a new post.
+    #[command(visible_alias = "p")]
+    Post(NewPostCommand),
 }
 
 #[derive(clap::Args)]
@@ -94,7 +96,7 @@ title: <FILE_NAME>
 "#;
 
 #[derive(clap::Args)]
-pub struct NewSectionCommand {
+pub struct NewPostCommand {
     /// Path to the new section.
     #[arg(required = true)]
     pub path: PathBuf,
@@ -109,7 +111,7 @@ pub struct NewSectionCommand {
 }
 
 /// This function invoked the [`config_toml::apply_config`] function to apply the configuration.
-pub fn new_section(command: &NewSectionCommand) -> eyre::Result<()> {
+pub fn new_section(command: &NewPostCommand) -> eyre::Result<()> {
     new_section_inner(
         &command.path,
         &command.template,
