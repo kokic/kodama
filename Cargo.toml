@@ -23,3 +23,6 @@ url = "2.5.4"
 
 [profile.release]
 strip = true
+
+[lints.clippy]
+uninlined_format_args = "allow"
