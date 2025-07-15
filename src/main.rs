@@ -39,20 +39,16 @@ enum Command {
     New(NewCommandCli),
 
     /// Compile current workspace dir to HTMLs.
-    ///
-    /// This is a config dependent command.
     #[command(visible_alias = "b")]
     Build(BuildCommand),
 
-    /// Watch files and run build script on changes.
-    ///
-    /// This is a config dependent command.
+    /// Serves a forest at http://localhost:8080, and rebuilds it on changes.
+    /// 
+    /// Server temporarily depends on the miniserve program in the user's environment.
     #[command(visible_alias = "s")]
     Serve(ServeCommand),
 
     /// Remove associated files (hash, entry & HTML) for the given section paths.
-    ///
-    /// This is a config dependent command.
     #[command(visible_alias = "rm")]
     Remove(RemoveCommand),
     //

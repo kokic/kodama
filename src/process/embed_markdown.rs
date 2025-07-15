@@ -68,6 +68,7 @@ impl<'e, E: Iterator<Item = Event<'e>>> Iterator for Embed<'e, E> {
                     State::Embed => {
                         let (url, mut content) = self.exit();
                         let url = crate::config::relativize(&url);
+
                         let mut option = SectionOption::default();
                         let title = if let Some(e) = content.first_mut() {
                             // parse options, then strip /[-+.]/ from beginning of the title

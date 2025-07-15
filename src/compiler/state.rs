@@ -89,6 +89,7 @@ impl CompileState {
                         }
                         LazyContent::Embed(embed_content) => {
                             let child_slug = slug::to_slug(&embed_content.url);
+
                             let refered = match self.fetch_section(shallows, child_slug) {
                                 Some(refered_section) => refered_section,
                                 None => {

@@ -173,7 +173,7 @@ pub fn full_html_url(slug: Slug) -> String {
     full_url(&format!("{}{}", slug, page_suffix))
 }
 
-/// Convert `path` to `./{path}` or `path`.
+/// Convert `path` to `./{path}` (starts with `/`) or `path`.
 ///
 /// This function keep posix style for the path, so it will return a [`String`].
 pub fn relativize(path: &str) -> String {

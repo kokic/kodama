@@ -4,7 +4,7 @@
 
 use std::{io::Write, path::Path};
 
-use notify::{event::ModifyKind, Config, EventKind, RecommendedWatcher, RecursiveMode, Watcher};
+use notify::{Config, EventKind, RecommendedWatcher, RecursiveMode, Watcher};
 
 use crate::{cli::build::build_with, config::BuildMode, config_toml};
 
@@ -80,9 +80,17 @@ where
     // All files and directories at that path and
     // below will be monitored for changes.
 
-    print!("Watching: ");
+    print!("[watch] ");
     for watched_path in watched_paths {
         let watched_path = watched_path.as_ref();
+        if !watched_path.exists() {
+            eprintln!(
+                "[watch] Warning: Path \"{}\" does not exist, skipping.",
+                watched_path.to_string_lossy()
+            );
+            continue;
+        }
+
         watcher.watch(watched_path, RecursiveMode::Recursive)?;
         print!("\"{}\"  ", watched_path.to_string_lossy());
     }
@@ -91,18 +99,18 @@ where
     for res in rx {
         match res {
             Ok(event) => {
-                if !matches!(event.kind, EventKind::Modify(ModifyKind::Data(_))) {
-                    // Ignore non-modify events
-                    continue;
-                }
-
-                for path in event.paths {
-                    println!("[watch] Change: {path:?}");
-                    std::io::stdout().flush()?;
-                    action(&path)?;
+                // Generally, we only need to listen for changes in file content `ModifyKind::Data(_)`,
+                // but since notify-rs always only gets `Modify(Any)` on Windows,
+                // we expand the listening scope here.
+                if let EventKind::Modify(_) = event.kind {
+                    for path in event.paths {
+                        println!("[watch] Change: {path:?}");
+                        std::io::stdout().flush()?;
+                        action(&path)?;
+                    }
                 }
             }
-            Err(error) => eprintln!("Error: {error:?}"),
+            Err(error) => eprintln!("[watch] Error: {error:?}"),
         }
     }
 

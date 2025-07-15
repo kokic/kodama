@@ -28,12 +28,10 @@ pub const OPTIONS: Options = Options::ENABLE_MATH
     .union(Options::ENABLE_FOOTNOTES);
 
 pub fn initialize(slug: Slug) -> eyre::Result<(String, OrderedMap<String, HTMLContent>)> {
-    // global data store
     let mut metadata: OrderedMap<String, HTMLContent> = OrderedMap::new();
     let fullname = format!("{}.md", slug);
     metadata.insert("slug".to_string(), HTMLContent::Plain(slug.to_string()));
 
-    // local contents recorder
     let markdown_path = input_path(&fullname);
     std::fs::read_to_string(&markdown_path)
         .map(|markdown_input| (markdown_input, metadata))
