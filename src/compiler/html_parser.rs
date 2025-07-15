@@ -170,8 +170,8 @@ impl<'a> Iterator for HTMLParser<'a> {
         };
 
         if open_tag.kind.tri_equal(&close_tag.kind) != Some(true) {
-            open_tag.mid.map(|mid| open_tag.start = mid);
-            close_tag.mid.map(|mid| close_tag.end = mid);
+            open_tag.mid.inspect(|mid| open_tag.start = *mid);
+            close_tag.mid.inspect(|mid| close_tag.end = *mid);
         }
 
         static RE_ATTR: LazyLock<Regex> = LazyLock::new(|| {
@@ -183,7 +183,7 @@ impl<'a> Iterator for HTMLParser<'a> {
             .map(|c| {
                 (
                     c.name("key").unwrap().as_str(),
-                    unescape_attribute(c.name("value").map_or("", |s| s.as_str())).to_owned(),
+                    unescape_attribute(c.name("value").map_or("", |s| s.as_str())),
                 )
             })
             .collect();
