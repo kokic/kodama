@@ -33,7 +33,7 @@ fn parse_typst_html(
     let mut builder = HTMLContentBuilder::new();
     let mut cursor: usize = 0;
 
-    for span in HTMLParser::new(&html_str) {
+    for span in HTMLParser::new(html_str) {
         builder.push_str(&html_str[cursor..span.start]);
         cursor = span.end;
 

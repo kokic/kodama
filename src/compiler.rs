@@ -16,7 +16,7 @@ use std::{
     collections::HashMap,
     fs::File,
     io::BufReader,
-    path::{Path, PathBuf},
+    path::Path,
 };
 
 use eyre::{bail, eyre, Ok, WrapErr};
@@ -83,8 +83,7 @@ pub fn should_ignored_file(path: &Path) -> bool {
 
 pub fn should_ignored_dir(path: &Path) -> bool {
     let name = path.file_name().unwrap();
-    name.to_str()
-        .map_or(false, |s| s.starts_with('.') || s.starts_with('_'))
+    name.to_str().is_some_and(|s| s.starts_with('.') || s.starts_with('_'))
 }
 
 fn to_slug_ext(source_dir: &Path, p: &Path) -> Option<(Slug, Ext)> {
@@ -97,7 +96,7 @@ fn to_slug_ext(source_dir: &Path, p: &Path) -> Option<(Slug, Ext)> {
 /// Collect all source file paths in workspace dir.
 ///
 /// It includes all `.md` and `.typ` files in the `trees_dir`.
-pub fn all_trees_source(trees_dir: &PathBuf) -> eyre::Result<Workspace> {
+pub fn all_trees_source(trees_dir: &Path) -> eyre::Result<Workspace> {
     let mut slug_exts = HashMap::new();
 
     let failed_to_read_dir = |dir: &Path| eyre!("Failed to read directory `{}`", dir.display());
@@ -110,43 +109,44 @@ pub fn all_trees_source(trees_dir: &PathBuf) -> eyre::Result<Workspace> {
     };
 
     let mut collect_files = |source_dir: &Path| {
-        Ok(
-            for entry in
-                std::fs::read_dir(source_dir).wrap_err_with(|| failed_to_read_dir(source_dir))?
-            {
-                let path = entry
-                    .wrap_err_with(|| failed_to_read_dir(source_dir))?
-                    .path();
-                if path.is_file() && !should_ignored_file(&path) {
-                    let Some((slug, ext)) = to_slug_ext(source_dir, &path) else {
-                        continue;
-                    };
-                    if let Some(ext) = slug_exts.insert(slug, ext) {
-                        bail!(file_collide(&path, ext));
-                    };
-                } else if path.is_dir() && !should_ignored_dir(&path) {
-                    for entry in WalkDir::new(&path)
-                        .follow_links(true)
-                        .into_iter()
-                        .filter_entry(|e| {
-                            let path = e.path();
-                            path.is_file() || !should_ignored_dir(path)
-                        })
-                    {
-                        let path = entry
-                            .wrap_err_with(|| failed_to_read_dir(&path))?
-                            .into_path();
-                        if path.is_file() {
-                            let Some((slug, ext)) = to_slug_ext(&source_dir, &path) else {
-                                continue;
-                            };
-                            if let Some(ext) = slug_exts.insert(slug, ext) {
-                                bail!(file_collide(&path, ext));
-                            }
+        for entry in
+            std::fs::read_dir(source_dir).wrap_err_with(|| failed_to_read_dir(source_dir))?
+        {
+            let path = entry
+                .wrap_err_with(|| failed_to_read_dir(source_dir))?
+                .path();
+            if path.is_file() && !should_ignored_file(&path) {
+                let Some((slug, ext)) = to_slug_ext(source_dir, &path) else {
+                    continue;
+                };
+                if let Some(ext) = slug_exts.insert(slug, ext) {
+                    bail!(file_collide(&path, ext));
+                };
+            } else if path.is_dir() && !should_ignored_dir(&path) {
+                for entry in WalkDir::new(&path)
+                    .follow_links(true)
+                    .into_iter()
+                    .filter_entry(|e| {
+                        let path = e.path();
+                        path.is_file() || !should_ignored_dir(path)
+                    })
+                {
+                    let path = entry
+                        .wrap_err_with(|| failed_to_read_dir(&path))?
+                        .into_path();
+                    if path.is_file() {
+                        let Some((slug, ext)) = to_slug_ext(source_dir, &path) else {
+                            continue;
+                        };
+                        if let Some(ext) = slug_exts.insert(slug, ext) {
+                            bail!(file_collide(&path, ext));
                         }
                     }
                 }
-            },
+            }
+        };
+        Ok(
+            (),
         )
     };
 

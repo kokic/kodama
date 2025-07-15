@@ -24,7 +24,7 @@ pub fn write_to_inline_html<P: AsRef<Path>>(typst_path: P, html_path: P) -> eyre
     fs::write(&html_path, html)?;
     println!(
         "Compiled to HTML: {}",
-        crate::slug::pretty_path(&html_path.as_ref())
+        crate::slug::pretty_path(html_path.as_ref())
     );
 
     Ok(html_body)
@@ -34,7 +34,7 @@ pub fn html_to_body_content(html: &str) -> String {
     let start_pos = html.find("<html>").expect(concat!(file!(), '#', line!())) + 6;
     let end_pos = html.rfind("</html>").expect(concat!(file!(), '#', line!()));
     let content = &html[start_pos..end_pos];
-    return content.to_string();
+    content.to_string()
 }
 
 pub struct InlineConfig {
@@ -147,7 +147,7 @@ pub fn write_svg<P: AsRef<Path>>(typst_path: P, svg_path: P) -> eyre::Result<()>
         .arg("-f=svg")
         .arg(format!("--root={}", root_dir.to_string_lossy()))
         .arg(&full_path)
-        .arg(&svg_path)
+        .arg(svg_path)
         .output()?;
 
     if output.status.success() {
@@ -159,7 +159,7 @@ pub fn write_svg<P: AsRef<Path>>(typst_path: P, svg_path: P) -> eyre::Result<()>
         let stderr = String::from_utf8_lossy(&output.stderr);
         failed_in_file(
             concat!(file!(), '#', line!()),
-            &full_path.to_str().unwrap(),
+            full_path.to_str().unwrap(),
             stderr,
         );
     }

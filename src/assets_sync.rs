@@ -57,12 +57,12 @@ pub fn sync_assets<P: AsRef<Path>>(source: P , target: P) -> eyre::Result<bool> 
             // If source file is newer, copy it
             if source_mtime > target_mtime {
                 all_same_mtime = false;
-                fs::copy(&source_file_path, &target_file_path)?;
+                fs::copy(source_file_path, &target_file_path)?;
             }
         } else {
             // Target file does not exist, copy source file
             all_same_mtime = false;
-            fs::copy(&source_file_path, &target_file_path)?;
+            fs::copy(source_file_path, &target_file_path)?;
         }
     }
 

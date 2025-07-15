@@ -4,9 +4,9 @@ use serde::{Deserialize, Serialize};
 
 use crate::config::{self, FooterMode};
 
-pub const DEFAULT_CONFIG_PATH: &'static str = "./Kodama.toml";
-pub const DEFAULT_SOURCE_DIR: &'static str = "trees";
-pub const DEFAULT_ASSETS_DIR: &'static str = "assets";
+pub const DEFAULT_CONFIG_PATH: &str = "./Kodama.toml";
+pub const DEFAULT_SOURCE_DIR: &str = "trees";
+pub const DEFAULT_ASSETS_DIR: &str = "assets";
 
 #[derive(Deserialize, Debug, Default, Serialize)]
 pub struct Config {
@@ -79,7 +79,7 @@ impl Default for Serve {
 
 fn parse_config(config: &str) -> eyre::Result<Config> {
     let config: Config =
-        toml::from_str(&config).map_err(|e| eyre::eyre!("Failed to parse config file: {}", e))?;
+        toml::from_str(config).map_err(|e| eyre::eyre!("Failed to parse config file: {}", e))?;
     Ok(config)
 }
 
@@ -118,9 +118,9 @@ mod test {
         assert_eq!(config.kodama.trees, "trees");
         assert_eq!(config.kodama.assets, "assets");
         assert_eq!(config.kodama.url, "/");
-        assert_eq!(config.build.short_slug, false);
-        assert_eq!(config.build.pretty_urls, false);
-        assert_eq!(config.build.inline_css, false);
+        assert!(!config.build.short_slug);
+        assert!(!config.build.pretty_urls);
+        assert!(!config.build.inline_css);
         assert_eq!(config.serve.edit, None);
     }
 

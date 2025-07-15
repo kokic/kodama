@@ -120,7 +120,7 @@ impl CompileState {
 
                             let metadata = get_metadata(shallows, link_slug);
                             let article_title = get_metadata(shallows, link_slug).map_or("", |s| {
-                                s.title().map(|c| c.as_string()).flatten().map_or("", |s| s)
+                                s.title().and_then(|c| c.as_string()).map_or("", |s| s)
                             });
                             let page_title = metadata
                                 .map_or("", |s| s.page_title().map_or(article_title, |s| s));
@@ -199,7 +199,7 @@ impl CompileState {
     }
 }
 
-fn get_metadata<'s>(shallows: &'s Shallows, slug: Slug) -> Option<&'s HTMLMetaData> {
+fn get_metadata(shallows: &Shallows, slug: Slug) -> Option<&HTMLMetaData> {
     shallows.get(&slug).map(|s| &s.metadata)
 }
 

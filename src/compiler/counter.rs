@@ -9,7 +9,7 @@ pub struct Counter {
 
 impl Counter {
     pub fn init() -> Self {
-        return Counter { numbers: vec![0] };
+        Counter { numbers: vec![0] }
     }
 
     pub fn display(&self) -> String {
@@ -35,7 +35,7 @@ impl Counter {
     pub fn left_shift_by(&self, n: u8) -> Counter {
         let mut counter = self.clone();
         counter.numbers.push(n);
-        return counter;
+        counter
     }
 
     pub fn left_shift(&self) -> Counter {

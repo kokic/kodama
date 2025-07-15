@@ -120,7 +120,7 @@ impl<'e, E: Iterator<Item = Event<'e>>> Iterator for TypstImage<E> {
                         }
 
                         let inline_typst = format!("{shareds}\n{inline_typst}");
-                        let x = args.get(0);
+                        let x = args.first();
                         let config = InlineConfig {
                             margin_x: x.map(|s| s.to_string()),
                             margin_y: args.get(1).or(x).map(|s| s.to_string()),

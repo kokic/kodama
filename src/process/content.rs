@@ -14,13 +14,13 @@ pub enum EventExtended<'e> {
     Local(LocalLink),
 }
 
-impl<'e> From<LocalLink> for EventExtended<'e> {
+impl From<LocalLink> for EventExtended<'_> {
     fn from(v: LocalLink) -> Self {
         Self::Local(v)
     }
 }
 
-impl<'e> From<EmbedContent> for EventExtended<'e> {
+impl From<EmbedContent> for EventExtended<'_> {
     fn from(v: EmbedContent) -> Self {
         Self::Embed(v)
     }

@@ -146,7 +146,7 @@ fn new_section_inner(path: &PathBuf, template: &str, config: &PathBuf) -> eyre::
     if section_path.exists() {
         return Err(eyre::eyre!("Already exists: {}", section_path_display));
     } else {
-        std::fs::create_dir_all(&section_path.parent().unwrap())
+        std::fs::create_dir_all(section_path.parent().unwrap())
             .map_err(|e| eyre::eyre!("Failed to create section directory: {}", e))?;
     }
 

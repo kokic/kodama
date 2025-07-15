@@ -40,11 +40,11 @@ impl FromStr for FooterMode {
     }
 }
 
-impl ToString for FooterMode {
-    fn to_string(&self) -> String {
+impl std::fmt::Display for FooterMode {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            FooterMode::Link => "link".into(),
-            FooterMode::Embed => "embed".into(),
+            FooterMode::Link => write!(f, "link"),
+            FooterMode::Embed => write!(f, "embed"),
         }
     }
 }
@@ -158,10 +158,10 @@ pub fn assets_dir() -> PathBuf {
 /// URL keep posix style, so the type of return value is [`String`].
 pub fn full_url<P: AsRef<Path>>(path: P) -> String {
     let path = crate::slug::pretty_path(path.as_ref());
-    if path.starts_with("/") {
-        return format!("{}{}", base_url(), path[1..].to_string());
-    } else if path.starts_with("./") {
-        return format!("{}{}", base_url(), path[2..].to_string());
+    if let Some(stripped) = path.strip_prefix("/") {
+        return format!("{}{}", base_url(), stripped);
+    } else if let Some(stripped) = path.strip_prefix("./") {
+        return format!("{}{}", base_url(), stripped);
     }
     format!("{}{}", base_url(), path)
 }
@@ -169,7 +169,7 @@ pub fn full_url<P: AsRef<Path>>(path: P) -> String {
 pub fn full_html_url(slug: Slug) -> String {
     let pretty_urls = CONFIG_TOML.get().unwrap().build.pretty_urls;
     let page_suffix = to_page_suffix(pretty_urls);
-    full_url(&format!("{}{}", slug, page_suffix))
+    full_url(format!("{}{}", slug, page_suffix))
 }
 
 /// Convert `path` to `./{path}` (starts with `/`) or `path`.
@@ -190,7 +190,7 @@ pub fn parent_dir<P: AsRef<Path>>(path: P) -> (PathBuf, PathBuf) {
 }
 
 pub fn input_path<P: AsRef<Path>>(path: P) -> PathBuf {
-    let mut filepath: PathBuf = trees_dir().into();
+    let mut filepath: PathBuf = trees_dir();
     filepath.push(path);
     filepath
 }
@@ -198,12 +198,12 @@ pub fn input_path<P: AsRef<Path>>(path: P) -> PathBuf {
 pub fn create_parent_dirs<P: AsRef<Path>>(path: P) {
     let parent_dir = path.as_ref().parent().unwrap();
     if !parent_dir.exists() {
-        let _ = create_dir_all(&parent_dir);
+        let _ = create_dir_all(parent_dir);
     }
 }
 
 pub fn auto_create_dir_path<P: AsRef<Path>>(paths: Vec<P>) -> PathBuf {
-    let mut filepath: PathBuf = root_dir().into();
+    let mut filepath: PathBuf = root_dir();
     for path in paths {
         filepath.push(path);
     }
@@ -218,7 +218,7 @@ pub fn output_path<P: AsRef<Path>>(path: P) -> PathBuf {
 #[allow(dead_code)]
 pub fn trim_divide_prefix<P: AsRef<Path>>(path: P) -> PathBuf {
     let path = path.as_ref();
-    path.strip_prefix("/").unwrap_or(&path).to_path_buf()
+    path.strip_prefix("/").unwrap_or(path).to_path_buf()
 }
 
 /// Return the output HTML path `<output_dir>/<path>.html` for the given section.
@@ -298,14 +298,14 @@ pub fn verify_and_file_hash<P: AsRef<Path>>(relative_path: P) -> eyre::Result<bo
         std::fs::write(&hash_path, current_hash.to_string())
             .wrap_err_with(|| eyre::eyre!("Failed to write file `{}`", hash_path.display()))?;
     }
-    return Ok(is_modified);
+    Ok(is_modified)
 }
 
 /// Checks whether the content has been modified by comparing its current hash with the stored hash.
 /// If the content is modified, updates the stored hash to reflect the latest state.
 pub fn verify_update_hash<P: AsRef<Path>>(path: P, content: &str) -> Result<bool, std::io::Error> {
     let hash_path = hash_file_path(path.as_ref());
-    let (is_modified, current_hash) = is_hash_updated(&content, &hash_path);
+    let (is_modified, current_hash) = is_hash_updated(content, &hash_path);
     if is_modified {
         std::fs::write(&hash_path, current_hash.to_string())?;
     }

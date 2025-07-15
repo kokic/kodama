@@ -18,34 +18,34 @@ pub struct HTMLMetaData(pub OrderedMap<String, HTMLContent>);
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct EntryMetaData(pub OrderedMap<String, String>);
 
-pub const KEY_TITLE: &'static str = "title";
-pub const KEY_SLUG: &'static str = "slug";
-pub const KEY_TAXON: &'static str = "taxon";
-pub const KEY_DATA_TAXON: &'static str = "data-taxon";
+pub const KEY_TITLE: &str = "title";
+pub const KEY_SLUG: &str = "slug";
+pub const KEY_TAXON: &str = "taxon";
+pub const KEY_DATA_TAXON: &str = "data-taxon";
 
 /// Control the "Previous Level" information in the current page navigation.
-pub const KEY_PARENT: &'static str = "parent";
+pub const KEY_PARENT: &str = "parent";
 
 /// Control the page title text of the current page.
-pub const KEY_PAGE_TITLE: &'static str = "page-title";
+pub const KEY_PAGE_TITLE: &str = "page-title";
 
 /// `backlinks: bool`:
 /// Controls whether the current page displays backlinks.
-pub const KEY_BACKLINKS: &'static str = "backlinks";
+pub const KEY_BACKLINKS: &str = "backlinks";
 
 /// `collect: bool`:
 /// Controls whether the current page is a collection page.
 /// A collection page displays metadata of child entries.
-pub const KEY_COLLECT: &'static str = "collect";
+pub const KEY_COLLECT: &str = "collect";
 
 /// `asref: bool`:
 /// Controls whether the current page process as reference.
-pub const KEY_ASREF: &'static str = "asref";
+pub const KEY_ASREF: &str = "asref";
 
 /// `footer-mode: embed | link`
-pub const KEY_FOOTER_MODE: &'static str = "footer-mode";
+pub const KEY_FOOTER_MODE: &str = "footer-mode";
 
-const PRESET_METADATA: [&'static str; 10] = [
+const PRESET_METADATA: [&str; 10] = [
     KEY_TITLE,
     KEY_SLUG,
     KEY_TAXON,
@@ -64,7 +64,7 @@ where
 {
     fn get(&self, key: &str) -> Option<&V>;
     fn get_str(&self, key: &str) -> Option<&String>;
-    fn keys<'a>(&'a self) -> impl Iterator<Item = &'a String>;
+    fn keys(&self) -> impl Iterator<Item = &String>;
 
     fn is_custom_metadata(s: &str) -> bool {
         !PRESET_METADATA.contains(&s)
@@ -96,63 +96,63 @@ where
 
     /// Return taxon text
     fn taxon(&self) -> Option<&V> {
-        return self.get(KEY_TAXON);
+        self.get(KEY_TAXON)
     }
 
     fn data_taxon(&self) -> Option<&String> {
-        return self.get_str(KEY_DATA_TAXON);
+        self.get_str(KEY_DATA_TAXON)
     }
 
     fn title(&self) -> Option<&V> {
-        return self.get(KEY_TITLE);
+        self.get(KEY_TITLE)
     }
 
     fn page_title(&self) -> Option<&String> {
-        return self.get_str(KEY_PAGE_TITLE);
+        self.get_str(KEY_PAGE_TITLE)
     }
 
     fn slug(&self) -> Option<Slug> {
-        return self.get_str(KEY_SLUG).map(Slug::new);
+        self.get_str(KEY_SLUG).map(Slug::new)
     }
 
     fn is_enable_backlinks(&self) -> bool {
-        return self.get_bool(&KEY_BACKLINKS).unwrap_or(true);
+        self.get_bool(KEY_BACKLINKS).unwrap_or(true)
     }
 
     fn is_collect(&self) -> bool {
-        return self.get_bool(&KEY_COLLECT).unwrap_or(false);
+        self.get_bool(KEY_COLLECT).unwrap_or(false)
     }
 
     fn is_asref(&self) -> bool {
-        return self.get_bool(&KEY_ASREF).unwrap_or(false);
+        self.get_bool(KEY_ASREF).unwrap_or(false)
     }
 }
 
 impl MetaData<HTMLContent> for HTMLMetaData {
     fn get(&self, key: &str) -> Option<&HTMLContent> {
-        return self.0.get(key);
+        self.0.get(key)
     }
 
     fn get_str(&self, key: &str) -> Option<&String> {
-        return self.0.get(key).and_then(HTMLContent::as_string);
+        self.0.get(key).and_then(HTMLContent::as_string)
     }
 
-    fn keys<'a>(&'a self) -> impl Iterator<Item = &'a String> {
-        return self.0.keys();
+    fn keys(&self) -> impl Iterator<Item = &String> {
+        self.0.keys()
     }
 }
 
 impl MetaData<String> for EntryMetaData {
     fn get(&self, key: &str) -> Option<&String> {
-        return self.0.get(key);
+        self.0.get(key)
     }
 
     fn get_str(&self, key: &str) -> Option<&String> {
-        return self.0.get(key);
+        self.0.get(key)
     }
 
-    fn keys<'a>(&'a self) -> impl Iterator<Item = &'a String> {
-        return self.0.keys();
+    fn keys(&self) -> impl Iterator<Item = &String> {
+        self.0.keys()
     }
 }
 
@@ -208,8 +208,8 @@ impl EntryMetaData {
     }
 
     pub fn footer_mode(&self) -> Option<FooterMode> {
-        return self.get_str(&KEY_FOOTER_MODE).map(|s| {
+        self.get_str(KEY_FOOTER_MODE).map(|s| {
             FooterMode::from_str(s).expect("footer-mode must be either `embed` or `link`.")
-        });
+        })
     }
 }

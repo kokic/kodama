@@ -52,7 +52,7 @@ pub fn html_section(
         class_name.push("hide-metadata");
     }
     let data_taxon = data_taxon.map_or("", |s| s);
-    let open = open.then(|| "open").unwrap_or("");
+    let open = if open { "open" } else { "" };
     let inner_html = format!("{}{}", (html!(summary id={id} { (summary) })), content);
     let html_details = format!("<details {}>{}</details>", open, inner_html);
     html!(section class={class_name.join(" ")} data_taxon={data_taxon} { (html_details) })
@@ -254,25 +254,25 @@ pub fn html_css() -> String {
 }
 
 pub fn html_import_meta() -> String {
-    return config::CUSTOM_META_HTML.clone();
+    config::CUSTOM_META_HTML.clone()
 }
 
 pub fn html_import_style() -> String {
-    return config::CUSTOM_STYLE_HTML.clone();
+    config::CUSTOM_STYLE_HTML.clone()
 }
 
 pub fn html_import_fonts() -> String {
-    return config::CUSTOM_FONTS_HTML.clone();
+    config::CUSTOM_FONTS_HTML.clone()
 }
 
 pub fn html_import_math() -> String {
-    return config::CUSTOM_MATH_HTML.clone();
+    config::CUSTOM_MATH_HTML.clone()
 }
 
 pub fn html_main_style() -> &'static str {
-    return include_str!("include/main.css");
+    include_str!("include/main.css")
 }
 
 pub fn html_typst_style() -> &'static str {
-    return include_str!("include/typst.css");
+    include_str!("include/typst.css")
 }

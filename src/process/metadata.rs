@@ -26,7 +26,7 @@ impl<'m, E> Metadata<'m, E> {
     }
 }
 
-impl<'e, 'm, E: Iterator<Item = Event<'e>>> Iterator for Metadata<'m, E> {
+impl<'e, E: Iterator<Item = Event<'e>>> Iterator for Metadata<'_, E> {
     type Item = eyre::Result<Event<'e>>;
 
     fn next(&mut self) -> Option<Self::Item> {
