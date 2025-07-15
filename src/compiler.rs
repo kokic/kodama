@@ -12,12 +12,7 @@ pub mod taxon;
 pub mod typst;
 pub mod writer;
 
-use std::{
-    collections::HashMap,
-    fs::File,
-    io::BufReader,
-    path::Path,
-};
+use std::{collections::HashMap, fs::File, io::BufReader, path::Path};
 
 use eyre::{bail, eyre, Ok, WrapErr};
 use parser::parse_markdown;
@@ -83,7 +78,8 @@ pub fn should_ignored_file(path: &Path) -> bool {
 
 pub fn should_ignored_dir(path: &Path) -> bool {
     let name = path.file_name().unwrap();
-    name.to_str().is_some_and(|s| s.starts_with('.') || s.starts_with('_'))
+    name.to_str()
+        .is_some_and(|s| s.starts_with('.') || s.starts_with('_'))
 }
 
 fn to_slug_ext(source_dir: &Path, p: &Path) -> Option<(Slug, Ext)> {
@@ -144,10 +140,8 @@ pub fn all_trees_source(trees_dir: &Path) -> eyre::Result<Workspace> {
                     }
                 }
             }
-        };
-        Ok(
-            (),
-        )
+        }
+        Ok(())
     };
 
     if !trees_dir.exists() {
