@@ -169,7 +169,7 @@ pub fn full_url<P: AsRef<Path>>(path: P) -> String {
 
 pub fn full_html_url(slug: Slug) -> String {
     let pretty_urls = CONFIG_TOML.get().unwrap().build.pretty_urls;
-    let page_suffix = to_page_suffix(!pretty_urls);
+    let page_suffix = to_page_suffix(pretty_urls);
     full_url(&format!("{}{}", slug, page_suffix))
 }
 
