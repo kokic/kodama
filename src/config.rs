@@ -90,7 +90,6 @@ pub static CUSTOM_MATH_HTML: LazyLock<String> = LazyLock::new(|| {
 });
 
 pub const CACHE_DIR_NAME: &str = ".cache";
-pub const BUFFER_FILE_NAME: &str = "buffer";
 pub const HASH_DIR_NAME: &str = "hash";
 pub const ENTRY_DIR_NAME: &str = "entry";
 
@@ -210,11 +209,6 @@ pub fn auto_create_dir_path<P: AsRef<Path>>(paths: Vec<P>) -> PathBuf {
     }
     create_parent_dirs(&filepath);
     filepath
-}
-
-/// Typst: source file must be contained in project root.
-pub fn buffer_path() -> PathBuf {
-    trees_dir().join(BUFFER_FILE_NAME)
 }
 
 pub fn output_path<P: AsRef<Path>>(path: P) -> PathBuf {

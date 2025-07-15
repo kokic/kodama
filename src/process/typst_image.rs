@@ -9,7 +9,7 @@ use crate::{
     html_flake::{html_figure, html_figure_code},
     recorder::State,
     slug::Slug,
-    typst_cli::{self, source_to_inline_html, write_svg, InlineConfig},
+    typst_cli::{self, write_to_inline_html, write_svg, InlineConfig},
 };
 use pulldown_cmark::{Event, Tag, TagEnd};
 
@@ -93,7 +93,7 @@ impl<'e, E: Iterator<Item = Event<'e>>> Iterator for TypstImage<E> {
                         let img_src = parent_dir.join(&html_url);
                         html_url = output_path(&img_src);
 
-                        let html = match source_to_inline_html(PathBuf::from(typst_url), html_url) {
+                        let html = match write_to_inline_html(PathBuf::from(typst_url), html_url) {
                             Ok(inline_html) => inline_html,
                             Err(err) => {
                                 eprintln!("{:?} at {}", err, self.current_slug);
