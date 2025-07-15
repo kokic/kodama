@@ -17,7 +17,7 @@ pub fn source_to_inline_html<P: AsRef<Path>>(typst_path: P, html_path: P) -> eyr
         return Ok(existed_html);
     }
 
-    let root_dir = config::root_dir();
+    let root_dir = config::trees_dir();
     let html = source_to_html(typst_path.as_ref(), &root_dir)?;
     let html_body = html_to_body_content(&html);
 
@@ -61,11 +61,7 @@ pub fn source_to_inline_svg(src: &str, config: InlineConfig) -> Result<String, s
         config.margin_x.unwrap_or(InlineConfig::default_margin()),
         config.margin_y.unwrap_or(InlineConfig::default_margin())
     );
-    let typst_root = crate::config::root_dir();
-    let svg = source_to_svg(
-        format!("{}{}", styles, src).as_str(),
-        typst_root.to_str().unwrap(),
-    )?;
+    let svg = source_to_svg(format!("{}{}", styles, src).as_str())?;
 
     Ok(format!("\n{}\n", html_flake::html_inline_typst_span(&svg)))
 }
@@ -105,7 +101,7 @@ fn source_to_html<P: AsRef<Path>>(rel_path: P, root_dir: P) -> Result<String, st
     })
 }
 
-fn source_to_svg(src: &str, root_dir: &str) -> Result<String, std::io::Error> {
+fn source_to_svg(src: &str) -> Result<String, std::io::Error> {
     struct Buffer {
         path: String,
     }
@@ -116,7 +112,8 @@ fn source_to_svg(src: &str, root_dir: &str) -> Result<String, std::io::Error> {
         }
     }
 
-    let root_dir = root_dir;
+    let root_dir = config::trees_dir();
+    let root_dir = root_dir.to_string_lossy();
     let buffer = Buffer {
         path: config::buffer_path().to_string_lossy().to_string(),
     };
@@ -155,12 +152,12 @@ pub fn write_svg<P: AsRef<Path>>(typst_path: P, svg_path: P) -> eyre::Result<()>
         return Ok(());
     }
 
-    let root_dir = config::root_dir();
+    let root_dir = config::trees_dir();
     let full_path = root_dir.join(typst_path);
     let output = Command::new("typst")
         .arg("c")
         .arg("-f=svg")
-        .arg(format!("--root={}", root_dir.display()))
+        .arg(format!("--root={}", root_dir.to_string_lossy()))
         .arg(&full_path)
         .arg("-")
         .stdout(std::process::Stdio::piped())

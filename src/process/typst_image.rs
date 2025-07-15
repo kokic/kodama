@@ -187,7 +187,7 @@ impl<'e, E: Iterator<Item = Event<'e>>> Iterator for TypstImage<E> {
                         }
                         self.exit();
 
-                        let root_dir = config::root_dir();
+                        let root_dir = config::trees_dir();
                         let full_path = root_dir.join(typst_url);
                         let code = fs::read_to_string(format!("{}.code", full_path.display()))
                             .unwrap_or_else(|_| fs::read_to_string(full_path).unwrap());
@@ -196,7 +196,7 @@ impl<'e, E: Iterator<Item = Event<'e>>> Iterator for TypstImage<E> {
                         return Some(Event::Html(html.into()));
                     }
                     State::Shared => {
-                        let typst_url = self.url.take().unwrap();
+                        let typst_url = self.url.as_ref().unwrap();
                         let imported = self.content.take();
                         /*
                          * Unspecified import items will default to all (*),

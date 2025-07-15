@@ -84,6 +84,21 @@ fn parse_config(config: &str) -> eyre::Result<Config> {
 }
 
 pub fn apply_config(toml_file: PathBuf) -> eyre::Result<()> {
+    // Try find toml file in the current directory or the parent directory.
+    let mut toml_file = toml_file;
+    if !toml_file.exists() {
+        let parent = toml_file.parent().unwrap().canonicalize()?;
+        let parent = parent.parent().unwrap();
+
+        toml_file = parent.join(DEFAULT_CONFIG_PATH);
+        if !toml_file.exists() {
+            return Err(eyre::eyre!(
+                "Cannot find configuration file: {}",
+                toml_file.display()
+            ));
+        }
+    }
+
     let root = toml_file
         .parent()
         .expect("Path terminates in a root or prefix!");

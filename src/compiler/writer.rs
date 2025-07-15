@@ -30,7 +30,7 @@ impl Writer {
         let relative_path = config::output_dir().join(&html_url);
         if verify_update_hash(&relative_path, &html).expect("Failed to verify update hash") {
             match std::fs::write(&filepath, html) {
-                Ok(()) => println!("Output: {:?} {}", page_title, filepath.display()), 
+                Ok(()) => println!("[build] {:?} {}", page_title, filepath.display()), 
                 Err(err) => eprintln!("{:?}", err),
             }
         }

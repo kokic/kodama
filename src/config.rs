@@ -128,7 +128,7 @@ pub fn output_dir() -> PathBuf {
         BuildMode::Build => &CONFIG_TOML.get().unwrap().build.output,
         BuildMode::Serve => &CONFIG_TOML.get().unwrap().serve.output,
     };
-    output_dir.into()
+    root_dir().join(output_dir)
 }
 
 pub fn base_url() -> String {
@@ -212,8 +212,9 @@ pub fn auto_create_dir_path<P: AsRef<Path>>(paths: Vec<P>) -> PathBuf {
     filepath
 }
 
+/// Typst: source file must be contained in project root.
 pub fn buffer_path() -> PathBuf {
-    get_cache_dir().join(BUFFER_FILE_NAME)
+    trees_dir().join(BUFFER_FILE_NAME)
 }
 
 pub fn output_path<P: AsRef<Path>>(path: P) -> PathBuf {

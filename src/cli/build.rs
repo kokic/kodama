@@ -67,6 +67,7 @@ fn export_css_file(css_content: &str, name: &str) -> eyre::Result<()> {
 fn sync_assets_dir() -> eyre::Result<bool> {
     let asset_dir = config::assets_dir();
     let target = config::output_dir().join(&asset_dir.file_name().unwrap());
+
     assets_sync::sync_assets(asset_dir, target)?;
     Ok(true)
 }
