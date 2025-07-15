@@ -27,7 +27,6 @@ fn parse_bool(m: Option<&Cow<'_, str>>, def: bool) -> bool {
 
 fn parse_typst_html(
     html_str: &str,
-    relative_path: &str,
     metadata: &mut OrderedMap<String, HTMLContent>,
 ) -> eyre::Result<HTMLContent> {
     let mut builder = HTMLContentBuilder::new();
@@ -60,7 +59,7 @@ fn parse_typst_html(
                 let mut val = if let Some(value) = span.attrs.get("value") {
                     HTMLContent::Plain(value.to_string())
                 } else {
-                    parse_typst_html(span.body, relative_path, &mut OrderedMap::new())?
+                    parse_typst_html(span.body, &mut OrderedMap::new())?
                 };
                 if key == "taxon" {
                     if let HTMLContent::Plain(v) = val {
@@ -106,7 +105,7 @@ pub fn parse_typst<P: AsRef<Path>>(slug: Slug, root_dir: P) -> eyre::Result<Shal
     let mut metadata: OrderedMap<String, HTMLContent> = OrderedMap::new();
     metadata.insert("slug".to_string(), HTMLContent::Plain(slug.to_string()));
 
-    let content = parse_typst_html(&html_str, &relative_path, &mut metadata)?;
+    let content = parse_typst_html(&html_str, &mut metadata)?;
 
     Ok(ShallowSection {
         metadata: HTMLMetaData(metadata),

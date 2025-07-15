@@ -10,10 +10,9 @@ impl<K: Eq + Hash, V> OrderedMap<K, V> {
         OrderedMap(HashMap::new())
     }
 
-    pub fn get<Q: ?Sized>(&self, k: &Q) -> Option<&V>
+    pub fn get<Q: Eq + Hash + ?Sized>(&self, k: &Q) -> Option<&V>
     where
         K: Borrow<Q>,
-        Q: Hash + Eq,
     {
         self.0.get(k).map(|t| &t.0)
     }
