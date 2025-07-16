@@ -44,7 +44,7 @@ pub fn parse_markdown(slug: Slug) -> eyre::Result<ShallowSection> {
 
     let content = Metadata::process(events, &mut metadata)
         .process_results(|events| {
-            let events = Footnote::process(events);
+            let events = Footnote::process(events, slug);
             let events = Figure::process(events);
             let events = TypstImage::process(events, slug);
             let events = Embed::process(events);
@@ -83,7 +83,7 @@ mod tests {
 
         let events = pulldown_cmark::Parser::new_ext(source, OPTIONS);
 
-        let events = Footnote::process(events);
+        let events = Footnote::process(events, mocked_slug);
         let events = Figure::process(events);
         let events = TypstImage::process(events, mocked_slug);
         let events = Embed::process(events);
