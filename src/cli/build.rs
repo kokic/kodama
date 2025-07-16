@@ -29,14 +29,14 @@ pub fn build_with(config: String, mode: BuildMode) -> eyre::Result<()> {
     config_toml::apply_config(PathBuf::from(config))?;
 
     if !config::inline_css() {
-        export_css_files().wrap_err("Failed to export CSS")?;
+        export_css_files().wrap_err("failed to export CSS")?;
     }
 
     let root = config::root_dir();
     let workspace = all_trees_source(&config::trees_dir())?;
     compiler::compile(workspace).wrap_err_with(|| {
         eyre!(
-            "Failed to compile site `{}`",
+            "failed to compile site `{}`",
             root.canonicalize().unwrap().display()
         )
     })?;
@@ -57,7 +57,7 @@ fn export_css_file(css_content: &str, name: &str) -> eyre::Result<()> {
     let path = std::path::Path::new(&path);
     if !path.exists() {
         fs::write(path, css_content)
-            .wrap_err_with(|| eyre!("Failed to write CSS file to \"{}\"", path.display()))?;
+            .wrap_err_with(|| eyre!("failed to write CSS file to \"{}\"", path.display()))?;
     }
     Ok(())
 }

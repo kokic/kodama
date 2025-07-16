@@ -83,7 +83,7 @@ fn parse_typst_html(
                 }))
             }
             HTMLTagKind::Local { span: _ } => {
-                let slug = to_slug(attr("slug")?);
+                let slug = to_slug(attr("slug")?.to_string());
                 let text = value();
                 builder.push(LazyContent::Local(LocalLink { slug, text }))
             }
@@ -100,7 +100,7 @@ pub fn parse_typst<P: AsRef<Path>>(slug: Slug, root_dir: P) -> eyre::Result<Shal
     let relative_path = format!("{}.typst", slug);
     let html_str =
         typst_cli::file_to_html(&relative_path, typst_root_dir.as_ref())
-            .wrap_err_with(|| eyre!("Failed to compile typst file `{relative_path}` to html"))?;
+            .wrap_err_with(|| eyre!("failed to compile typst file `{relative_path}` to html"))?;
 
     let mut metadata: OrderedMap<String, HTMLContent> = OrderedMap::new();
     metadata.insert("slug".to_string(), HTMLContent::Plain(slug.to_string()));

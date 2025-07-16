@@ -79,7 +79,7 @@ impl Default for Serve {
 
 fn parse_config(config: &str) -> eyre::Result<Config> {
     let config: Config =
-        toml::from_str(config).map_err(|e| eyre::eyre!("Failed to parse config file: {}", e))?;
+        toml::from_str(config).map_err(|e| eyre::eyre!("failed to parse config file: {}", e))?;
     Ok(config)
 }
 
@@ -93,7 +93,7 @@ pub fn apply_config(toml_file: PathBuf) -> eyre::Result<()> {
         toml_file = parent.join(DEFAULT_CONFIG_PATH);
         if !toml_file.exists() {
             return Err(eyre::eyre!(
-                "Cannot find configuration file: {}",
+                "cannot find configuration file: {}",
                 toml_file.display()
             ));
         }
@@ -101,7 +101,7 @@ pub fn apply_config(toml_file: PathBuf) -> eyre::Result<()> {
 
     let root = toml_file
         .parent()
-        .expect("Path terminates in a root or prefix!");
+        .expect("path terminates in a root or prefix!");
     let toml = std::fs::read_to_string(&toml_file)?;
 
     let _ = config::ROOT.set(root.to_path_buf());

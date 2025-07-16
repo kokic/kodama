@@ -24,7 +24,7 @@ pub fn sync_assets<P: AsRef<Path>>(source: P , target: P) -> eyre::Result<bool> 
     if !target_path.exists() {
         fs::create_dir_all(target_path)?;
     } else if !target_path.is_dir() {
-        return Err(eyre!("Target path is not a directory: {}", target_path.display()));
+        return Err(eyre!("target path is not a directory: {}", target_path.display()));
     }
 
     // Flag to track if all files have same modification time
@@ -38,7 +38,7 @@ pub fn sync_assets<P: AsRef<Path>>(source: P , target: P) -> eyre::Result<bool> 
         }
 
         let relative_path = source_file_path.strip_prefix(source_path)    
-        .map_err(|_| eyre::eyre!("Failed to compute relative path for {}", source_file_path.display()))?;
+        .map_err(|_| eyre::eyre!("failed to compute relative path for {}", source_file_path.display()))?;
 
         let target_file_path = target_path.join(relative_path);
 

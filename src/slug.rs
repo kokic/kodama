@@ -96,9 +96,8 @@ pub fn to_hash_id(slug_str: &str) -> String {
     slug_str.replace("/", "-")
 }
 
-/// path to slug
-pub fn to_slug(fullname: &str) -> Slug {
-    let path = Path::new(fullname);
+pub fn to_slug<P: AsRef<Path>>(path: P) -> Slug {
+    let path = path.as_ref();
     Slug::new(pretty_path(&path.with_extension("")))
 }
 

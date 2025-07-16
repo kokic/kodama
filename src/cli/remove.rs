@@ -43,10 +43,10 @@ fn remove_with_hint<P: AsRef<Path>>(path: P) -> eyre::Result<()> {
     let path = path.as_ref();
     if path.exists() {
         fs::remove_file(path)
-            .wrap_err_with(|| eyre!("Failed to remove file `{}`", path.display()))?;
+            .wrap_err_with(|| eyre!("failed to remove file `{}`", path.display()))?;
         println!("Removed: \"{}\"", path.display());
     } else {
-        println!("File \"{}\" does not exist, skipping.", path.display());
+        println!("file \"{}\" does not exist, skipping.", path.display());
     }
     Ok(())
 }

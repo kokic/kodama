@@ -34,19 +34,19 @@ pub fn compile(workspace: Workspace) -> eyre::Result<()> {
 
         let is_modified = match config::is_serve() {
             true => verify_and_file_hash(&relative_path)
-            .wrap_err_with(|| eyre!("Failed to verify hash of `{relative_path}`"))?,
+            .wrap_err_with(|| eyre!("failed to verify hash of `{relative_path}`"))?,
             false => true,
         };
         
         let entry_path = config::entry_file_path(&relative_path);
         let shallow = if !is_modified && entry_path.exists() {
             let entry_file = BufReader::new(File::open(&entry_path).wrap_err_with(|| {
-                eyre!("Failed to open entry file at `{}`", entry_path.display())
+                eyre!("failed to open entry file at `{}`", entry_path.display())
             })?);
             let shallow: ShallowSection =
                 serde_json::from_reader(entry_file).wrap_err_with(|| {
                     eyre!(
-                        "Failed to deserialize entry file at `{}`",
+                        "failed to deserialize entry file at `{}`",
                         entry_path.display()
                     )
                 })?;
@@ -54,13 +54,13 @@ pub fn compile(workspace: Workspace) -> eyre::Result<()> {
         } else {
             let shallow = match ext {
                 Ext::Markdown => parse_markdown(slug)
-                    .wrap_err_with(|| eyre!("Failed to parse markdown file `{slug}.{ext}`"))?,
+                    .wrap_err_with(|| eyre!("failed to parse markdown file `{slug}.{ext}`"))?,
                 Ext::Typst => parse_typst(slug, config::typst_root_dir())
-                    .wrap_err_with(|| eyre!("Failed to parse typst file `{slug}.{ext}`"))?,
+                    .wrap_err_with(|| eyre!("failed to parse typst file `{slug}.{ext}`"))?,
             };
             let serialized = serde_json::to_string(&shallow).unwrap();
             std::fs::write(&entry_path, serialized)
-                .wrap_err_with(|| eyre!("Failed to write entry to `{}`", entry_path.display()))?;
+                .wrap_err_with(|| eyre!("failed to write entry to `{}`", entry_path.display()))?;
 
             shallow
         };
@@ -98,7 +98,7 @@ fn to_slug_ext(source_dir: &Path, p: &Path) -> Option<(Slug, Ext)> {
 pub fn all_trees_source(trees_dir: &Path) -> eyre::Result<Workspace> {
     let mut slug_exts = HashMap::new();
 
-    let failed_to_read_dir = |dir: &Path| eyre!("Failed to read directory `{}`", dir.display());
+    let failed_to_read_dir = |dir: &Path| eyre!("failed to read directory `{}`", dir.display());
     let file_collide = |p: &Path, e: Ext| {
         eyre!(
             "`{}` collides with `{}`",

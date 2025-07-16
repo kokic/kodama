@@ -28,7 +28,7 @@ impl Writer {
         let filepath = crate::config::output_path(&html_url);
 
         let relative_path = config::output_dir().join(&html_url);
-        if verify_update_hash(&relative_path, &html).expect("Failed to verify update hash") {
+        if verify_update_hash(&relative_path, &html).expect("failed to verify update hash") {
             match std::fs::write(&filepath, html) {
                 Ok(()) => println!("[build] {:?} {}", page_title, filepath.display()), 
                 Err(err) => eprintln!("{:?}", err),

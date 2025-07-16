@@ -79,12 +79,13 @@ mod tests {
     #[test]
     fn test_table_td() {
         let source = "| a | b |\n| - | - |\n| c | d |";
+        let mocked_slug = Slug::new("-");
 
         let events = pulldown_cmark::Parser::new_ext(source, OPTIONS);
 
         let events = Footnote::process(events);
         let events = Figure::process(events);
-        let events = TypstImage::process(events, Slug::new("-"));
+        let events = TypstImage::process(events, mocked_slug);
         let events = Embed::process(events);
 
         let content = normalize_html_content(to_contents(events));

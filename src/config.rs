@@ -292,11 +292,11 @@ pub fn verify_and_file_hash<P: AsRef<Path>>(relative_path: P) -> eyre::Result<bo
     let hash_path = hash_file_path(&relative_path);
 
     let content = std::fs::read_to_string(&full_path)
-        .wrap_err_with(|| eyre::eyre!("Failed to read file `{}`", full_path.display()))?;
+        .wrap_err_with(|| eyre::eyre!("failed to read file `{}`", full_path.display()))?;
     let (is_modified, current_hash) = is_hash_updated(&content, &hash_path);
     if is_modified {
         std::fs::write(&hash_path, current_hash.to_string())
-            .wrap_err_with(|| eyre::eyre!("Failed to write file `{}`", hash_path.display()))?;
+            .wrap_err_with(|| eyre::eyre!("failed to write file `{}`", hash_path.display()))?;
     }
     Ok(is_modified)
 }

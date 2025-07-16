@@ -43,7 +43,7 @@ pub fn new_site(command: &NewSiteCommand) -> eyre::Result<()> {
         return Err(eyre::eyre!("Already exists: {}", site_path.display()));
     }
 
-    std::fs::create_dir_all(site_path).wrap_err("Failed to create site directory")?;
+    std::fs::create_dir_all(site_path).wrap_err("failed to create site directory")?;
     println!("Created new site at: {}", site_path.display());
 
     let default_config_path = site_path.join(config_toml::DEFAULT_CONFIG_PATH);
@@ -55,11 +55,11 @@ pub fn new_site(command: &NewSiteCommand) -> eyre::Result<()> {
 
     // Create the default source directory `trees`
     std::fs::create_dir(default_source_dir)
-        .wrap_err("Failed to create default source directory")?;
+        .wrap_err("failed to create default source directory")?;
 
     // Create the default assets directory `assets`
     std::fs::create_dir(default_assets_dir)
-        .wrap_err("Failed to create default assets directory")?;
+        .wrap_err("failed to create default assets directory")?;
 
     // Create the `index.md` section in the new site directory
     new_section_inner(
@@ -84,9 +84,9 @@ pub fn new_config(command: &NewConfigCommand) -> eyre::Result<()> {
 
 fn new_config_inner(config_path: &PathBuf) -> Result<(), eyre::Error> {
     let config = config_toml::Config::default();
-    let toml = toml::to_string(&config).wrap_err("Failed to serialize default config")?;
+    let toml = toml::to_string(&config).wrap_err("failed to serialize default config")?;
 
-    std::fs::write(config_path, toml).wrap_err("Failed to create default config file")?;
+    std::fs::write(config_path, toml).wrap_err("failed to create default config file")?;
     println!("Created new config at: {}", config_path.display());
     Ok(())
 }
@@ -134,7 +134,7 @@ fn new_section_inner(path: &PathBuf, template: &str, config: &PathBuf) -> eyre::
         DEFAULT_TEMPLATE_CONTENT.to_string()
     } else {
         std::fs::read_to_string(template)
-            .map_err(|e| eyre::eyre!("Failed to read template file: {}", e))?
+            .map_err(|e| eyre::eyre!("failed to read template file: {}", e))?
     };
 
     let filestem = path.file_stem().unwrap().to_str().unwrap();
@@ -144,14 +144,14 @@ fn new_section_inner(path: &PathBuf, template: &str, config: &PathBuf) -> eyre::
     let section_path_display = section_path.display();
 
     if section_path.exists() {
-        return Err(eyre::eyre!("Already exists: {}", section_path_display));
+        return Err(eyre::eyre!("already exists: {}", section_path_display));
     } else {
         std::fs::create_dir_all(section_path.parent().unwrap())
-            .map_err(|e| eyre::eyre!("Failed to create section directory: {}", e))?;
+            .map_err(|e| eyre::eyre!("failed to create section directory: {}", e))?;
     }
 
     std::fs::write(&section_path, content)
-        .map_err(|e| eyre::eyre!("Failed to create section file: {}", e))?;
+        .map_err(|e| eyre::eyre!("failed to create section file: {}", e))?;
     println!("Created new section at: {}", section_path_display);
 
     Ok(())
