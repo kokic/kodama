@@ -35,7 +35,7 @@ struct Cli {
 #[derive(clap::Subcommand)]
 enum Command {
     /// Create a new kodama site.
-    #[command(visible_alias = "new")]
+    #[command(visible_alias = "n")]
     New(NewCommandCli),
 
     /// Compile current workspace dir to HTMLs.
