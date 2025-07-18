@@ -9,7 +9,6 @@ use crate::{
     compiler::section::{EmbedContent, LocalLink, SectionOption},
     html_flake::html_link,
     recorder::State,
-    slug::to_slug,
 };
 use pulldown_cmark::{html, Event, Tag, TagEnd};
 
@@ -67,7 +66,6 @@ impl<'e, E: Iterator<Item = Event<'e>>> Iterator for Embed<'e, E> {
                 Event::End(TagEnd::Link) => match self.state {
                     State::Embed => {
                         let (url, mut content) = self.exit();
-                        let url = crate::config::relativize(&url);
 
                         let mut option = SectionOption::default();
                         let title = if let Some(e) = content.first_mut() {
@@ -95,13 +93,7 @@ impl<'e, E: Iterator<Item = Event<'e>>> Iterator for Embed<'e, E> {
                             html::push_html(&mut text, content.into_iter());
                             Some(text)
                         };
-                        return Some(
-                            LocalLink {
-                                slug: to_slug(&url),
-                                text,
-                            }
-                            .into(),
-                        );
+                        return Some(LocalLink { url, text }.into());
                     }
                     State::ExternalLink => {
                         let (url, content) = self.exit();

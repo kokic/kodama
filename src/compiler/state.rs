@@ -7,7 +7,11 @@ use std::collections::{BTreeSet, HashMap, HashSet};
 use eyre::OptionExt;
 
 use crate::{
-    config, entry::{EntryMetaData, HTMLMetaData, MetaData, KEY_SLUG, KEY_TITLE}, ordered_map::OrderedMap, slug::{self, Slug}
+    config,
+    entry::{EntryMetaData, HTMLMetaData, MetaData, KEY_SLUG, KEY_TITLE},
+    ordered_map::OrderedMap,
+    path_utils,
+    slug::{self, Slug},
 };
 
 use super::{
@@ -88,7 +92,7 @@ impl CompileState {
                             children.push(SectionContent::Plain(html.to_string()));
                         }
                         LazyContent::Embed(embed_content) => {
-                            let child_slug = slug::to_slug(&embed_content.url);
+                            let child_slug = subsection_slug(slug, &embed_content.url);
 
                             let refered = match self.fetch_section(shallows, child_slug) {
                                 Some(refered_section) => refered_section,
@@ -116,7 +120,7 @@ impl CompileState {
                             children.push(SectionContent::Embed(child_section));
                         }
                         LazyContent::Local(local_link) => {
-                            let link_slug = local_link.slug;
+                            let link_slug = subsection_slug(slug, &local_link.url);
 
                             let metadata = get_metadata(shallows, link_slug);
                             let article_title = get_metadata(shallows, link_slug).map_or("", |s| {
@@ -199,6 +203,13 @@ impl CompileState {
     }
 }
 
+/// Calculate the slug of a subsection referenced by the current file, from the `url` referencing
+/// it. If the url starts with `/`, the slug is considered absolute starting from the base of the
+/// tree. Otherwise it's attached to the directory containing the current file.
+fn subsection_slug(current_slug: Slug, url: &str) -> Slug {
+    slug::to_slug(path_utils::relative_to_current(current_slug.as_str(), url))
+}
+
 fn get_metadata(shallows: &Shallows, slug: Slug) -> Option<&HTMLMetaData> {
     shallows.get(&slug).map(|s| &s.metadata)
 }
@@ -219,4 +230,17 @@ fn is_reference(shallows: &Shallows, slug: Slug) -> bool {
                 || Taxon::is_reference(metadata.data_taxon().map_or("", String::as_str))
         })
         .unwrap_or(false)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_subsection_slug() {
+        assert_eq!(subsection_slug(Slug::new("a/b"), "c/d.md"), "a/c/d");
+        assert_eq!(subsection_slug(Slug::new("a/b"), "./c/d.md"), "a/c/d");
+
+        assert_eq!(subsection_slug(Slug::new("a/b"), "/c/d.md"), "c/d");
+    }
 }
