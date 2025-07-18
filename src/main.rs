@@ -11,6 +11,7 @@ mod entry;
 mod html_flake;
 mod html_macro;
 mod ordered_map;
+mod path_utils;
 mod process;
 mod recorder;
 mod slug;
@@ -43,7 +44,7 @@ enum Command {
     Build(BuildCommand),
 
     /// Serves a forest at http://localhost:8080, and rebuilds it on changes.
-    /// 
+    ///
     /// Server temporarily depends on the miniserve program in the user's environment.
     #[command(visible_alias = "s")]
     Serve(ServeCommand),

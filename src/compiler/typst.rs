@@ -11,7 +11,7 @@ use super::ShallowSection;
 use crate::entry::HTMLMetaData;
 use crate::ordered_map::OrderedMap;
 use crate::process::embed_markdown;
-use crate::slug::{to_slug, Slug};
+use crate::slug::Slug;
 use crate::typst_cli;
 use std::borrow::Cow;
 use std::path::Path;
@@ -83,9 +83,9 @@ fn parse_typst_html(
                 }))
             }
             HTMLTagKind::Local { span: _ } => {
-                let slug = to_slug(attr("slug")?.to_string());
+                let url = attr("slug")?.to_string();
                 let text = value();
-                builder.push(LazyContent::Local(LocalLink { slug, text }))
+                builder.push(LazyContent::Local(LocalLink { url, text }))
             }
         }
     }
@@ -98,9 +98,8 @@ fn parse_typst_html(
 pub fn parse_typst<P: AsRef<Path>>(slug: Slug, root_dir: P) -> eyre::Result<ShallowSection> {
     let typst_root_dir = root_dir.as_ref().to_string_lossy();
     let relative_path = format!("{}.typst", slug);
-    let html_str =
-        typst_cli::file_to_html(&relative_path, typst_root_dir.as_ref())
-            .wrap_err_with(|| eyre!("failed to compile typst file `{relative_path}` to html"))?;
+    let html_str = typst_cli::file_to_html(&relative_path, typst_root_dir.as_ref())
+        .wrap_err_with(|| eyre!("failed to compile typst file `{relative_path}` to html"))?;
 
     let mut metadata: OrderedMap<String, HTMLContent> = OrderedMap::new();
     metadata.insert("slug".to_string(), HTMLContent::Plain(slug.to_string()));

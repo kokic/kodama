@@ -47,7 +47,7 @@ pub struct EmbedContent {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct LocalLink {
-    pub slug: Slug,
+    pub url: String,
     pub text: Option<String>,
 }
 

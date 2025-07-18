@@ -172,16 +172,6 @@ pub fn full_html_url(slug: Slug) -> String {
     full_url(format!("{}{}", slug, page_suffix))
 }
 
-/// Convert `path` to `./{path}` (starts with `/`) or `path`.
-///
-/// This function keep posix style for the path, so it will return a [`String`].
-pub fn relativize(path: &str) -> String {
-    match path.starts_with("/") {
-        true => format!(".{}", path),
-        _ => path.to_string(),
-    }
-}
-
 pub fn parent_dir<P: AsRef<Path>>(path: P) -> (PathBuf, PathBuf) {
     let binding = path.as_ref();
     let filename = binding.file_name().expect("Path must have a filename");
