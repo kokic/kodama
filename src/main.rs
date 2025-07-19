@@ -42,7 +42,7 @@ enum Command {
     #[command(visible_alias = "b")]
     Build(BuildCommand),
 
-    /// Serves a forest at http://localhost:8080, and rebuilds it on changes.
+    /// Serve a forest at http://localhost:8080, and rebuilds it on changes.
     ///
     /// Server temporarily depends on the miniserve program in the user's environment.
     #[command(visible_alias = "s")]
