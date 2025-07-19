@@ -190,11 +190,6 @@ impl ShallowSection {
     pub fn slug(&self) -> Slug {
         self.metadata.slug().unwrap()
     }
-
-    #[allow(dead_code)]
-    pub fn is_compiled(&self) -> bool {
-        matches!(&self.content, HTMLContent::Plain(_)) && self.metadata.etc_keys().is_empty()
-    }
 }
 
 pub type SectionContents = Vec<SectionContent>;

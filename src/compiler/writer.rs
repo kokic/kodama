@@ -142,13 +142,6 @@ impl Writer {
         html_flake::html_footer(&references_html, &backlinks_html)
     }
 
-    #[allow(dead_code)]
-    fn clip_metadata_badge(slug: Slug) -> Slug {
-        slug.as_str()
-            .strip_suffix(":metadata")
-            .map_or(slug, Slug::new)
-    }
-
     fn catalog_item(section: &Section, taxon: &str, child_html: &str) -> String {
         let slug = section.slug();
         let title = section.metadata.title().map_or("", |s| s);

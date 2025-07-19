@@ -22,7 +22,6 @@ use clap::Parser;
 use crate::cli::{
     build::BuildCommand,
     new::{NewCommand, NewCommandCli},
-    remove::RemoveCommand,
     serve::ServeCommand,
 };
 
@@ -48,14 +47,6 @@ enum Command {
     /// Server temporarily depends on the miniserve program in the user's environment.
     #[command(visible_alias = "s")]
     Serve(ServeCommand),
-
-    /// Remove associated files (hash, entry & HTML) for the given section paths.
-    #[command(visible_alias = "rm")]
-    Remove(RemoveCommand),
-    //
-    // TODO: Move.
-    //
-    // We are temporarily putting this feature on hold because we have not yet exported the dependency information for the section.
 }
 
 fn main() -> eyre::Result<()> {
@@ -68,7 +59,6 @@ fn main() -> eyre::Result<()> {
         },
         Command::Serve(command) => crate::cli::serve::serve(command)?,
         Command::Build(command) => crate::cli::build::build(command)?,
-        Command::Remove(command) => crate::cli::remove::remove(command)?,
     };
     Ok(())
 }

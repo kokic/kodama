@@ -4,5 +4,4 @@
 
 pub mod new;
 pub mod build;
-pub mod remove;
 pub mod serve;
