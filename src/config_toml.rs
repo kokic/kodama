@@ -21,11 +21,11 @@ pub struct Config {
 }
 
 #[derive(Deserialize, Debug, Serialize)]
-#[serde(default)]
+#[serde(default, rename_all = "kebab-case")]
 pub struct Kodama {
     pub trees: String,
     pub assets: String,
-    pub url: String,
+    pub base_url: String,
 }
 
 impl Default for Kodama {
@@ -33,7 +33,7 @@ impl Default for Kodama {
         Self {
             trees: DEFAULT_SOURCE_DIR.to_string(),
             assets: DEFAULT_ASSETS_DIR.to_string(),
-            url: "/".to_string(),
+            base_url: "/".to_string(),
         }
     }
 }
@@ -117,7 +117,7 @@ mod test {
         let config = crate::config_toml::parse_config("").unwrap();
         assert_eq!(config.kodama.trees, "trees");
         assert_eq!(config.kodama.assets, "assets");
-        assert_eq!(config.kodama.url, "/");
+        assert_eq!(config.kodama.base_url, "/");
         assert!(!config.build.short_slug);
         assert!(!config.build.pretty_urls);
         assert!(!config.build.inline_css);

@@ -27,6 +27,7 @@ pub fn serve(command: &ServeCommand) -> eyre::Result<()> {
     print!("\x1B[2J\x1B[H");
     std::io::stdout().flush()?;
 
+    // TODO: custom server implementation from config file, default to miniserve.
     let mut serve = std::process::Command::new("miniserve")
         .arg(crate::config::output_dir())
         .arg("--index")

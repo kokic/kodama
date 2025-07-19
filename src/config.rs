@@ -131,7 +131,7 @@ pub fn output_dir() -> PathBuf {
 }
 
 pub fn base_url() -> String {
-    CONFIG_TOML.get().unwrap().kodama.url.clone()
+    CONFIG_TOML.get().unwrap().kodama.base_url.clone()
 }
 
 pub fn footer_mode() -> FooterMode {
