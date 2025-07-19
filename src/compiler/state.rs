@@ -9,6 +9,8 @@ use eyre::OptionExt;
 use crate::{
     config,
     entry::{EntryMetaData, HTMLMetaData, MetaData, KEY_SLUG, KEY_TITLE},
+    ordered_map::OrderedMap,
+    path_utils,
     slug::{self, Slug},
 };
 
@@ -37,7 +39,7 @@ pub fn compile_all(mut shallows: Shallows) -> eyre::Result<CompileState> {
     let mut state = CompileState::new(residued);
     state
         .compile(&shallows, Slug::new("index"))
-        .ok_or_eyre("missing `index` section, please provide `index.md` or `index.typst`")?;
+        .ok_or_eyre("Missing `index` section, please provide `index.md` or `index.typst`")?;
 
     /*
      * Unlinked or unembedded pages.
@@ -90,7 +92,8 @@ impl CompileState {
                             children.push(SectionContent::Plain(html.to_string()));
                         }
                         LazyContent::Embed(embed_content) => {
-                            let child_slug = slug::to_slug(&embed_content.url);
+                            let child_slug = subsection_slug(slug, &embed_content.url);
+
                             let refered = match self.fetch_section(shallows, child_slug) {
                                 Some(refered_section) => refered_section,
                                 None => {
@@ -117,11 +120,11 @@ impl CompileState {
                             children.push(SectionContent::Embed(child_section));
                         }
                         LazyContent::Local(local_link) => {
-                            let link_slug = local_link.slug;
+                            let link_slug = subsection_slug(slug, &local_link.url);
 
                             let metadata = get_metadata(shallows, link_slug);
                             let article_title = get_metadata(shallows, link_slug).map_or("", |s| {
-                                s.title().map(|c| c.as_string()).flatten().map_or("", |s| s)
+                                s.title().and_then(|c| c.as_string()).map_or("", |s| s)
                             });
                             let page_title = metadata
                                 .map_or("", |s| s.page_title().map_or(article_title, |s| s));
@@ -156,7 +159,7 @@ impl CompileState {
         };
 
         // compile metadata
-        let mut metadata = EntryMetaData(HashMap::new());
+        let mut metadata = EntryMetaData(OrderedMap::new());
         metadata.update(KEY_SLUG.to_string(), slug.to_string());
         spanned.metadata.keys().for_each(|key| {
             // Obviously, the slug must be a pure string, so we do not perform compilation.
@@ -179,7 +182,7 @@ impl CompileState {
     }
 
     fn metadata_to_section(content: &HTMLContent, current_slug: Slug) -> ShallowSection {
-        let mut metadata = HashMap::new();
+        let mut metadata = OrderedMap::new();
         metadata.insert(
             KEY_SLUG.to_string(),
             HTMLContent::Plain(current_slug.to_string()),
@@ -200,7 +203,14 @@ impl CompileState {
     }
 }
 
-fn get_metadata<'s>(shallows: &'s Shallows, slug: Slug) -> Option<&'s HTMLMetaData> {
+/// Calculate the slug of a subsection referenced by the current file, from the `url` referencing
+/// it. If the url starts with `/`, the slug is considered absolute starting from the base of the
+/// tree. Otherwise it's attached to the directory containing the current file.
+fn subsection_slug(current_slug: Slug, url: &str) -> Slug {
+    slug::to_slug(path_utils::relative_to_current(current_slug.as_str(), url))
+}
+
+fn get_metadata(shallows: &Shallows, slug: Slug) -> Option<&HTMLMetaData> {
     shallows.get(&slug).map(|s| &s.metadata)
 }
 
@@ -220,4 +230,17 @@ fn is_reference(shallows: &Shallows, slug: Slug) -> bool {
                 || Taxon::is_reference(metadata.data_taxon().map_or("", String::as_str))
         })
         .unwrap_or(false)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_subsection_slug() {
+        assert_eq!(subsection_slug(Slug::new("a/b"), "c/d.md"), "a/c/d");
+        assert_eq!(subsection_slug(Slug::new("a/b"), "./c/d.md"), "a/c/d");
+
+        assert_eq!(subsection_slug(Slug::new("a/b"), "/c/d.md"), "c/d");
+    }
 }

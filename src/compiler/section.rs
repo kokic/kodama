@@ -47,7 +47,7 @@ pub struct EmbedContent {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct LocalLink {
-    pub slug: Slug,
+    pub url: String,
     pub text: Option<String>,
 }
 
@@ -151,7 +151,7 @@ impl HTMLContentBuilder {
     }
     pub fn push_str(&mut self, s: &str) {
         if !s.is_empty() {
-            self.content.push_str(&s);
+            self.content.push_str(s);
         }
     }
     fn push_content(&mut self) {
@@ -193,7 +193,7 @@ impl ShallowSection {
 
     #[allow(dead_code)]
     pub fn is_compiled(&self) -> bool {
-        matches!(&self.content, HTMLContent::Plain(_)) && self.metadata.etc_keys().len() == 0
+        matches!(&self.content, HTMLContent::Plain(_)) && self.metadata.etc_keys().is_empty()
     }
 }
 

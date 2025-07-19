@@ -10,14 +10,18 @@ use std::{
 };
 
 use eyre::Context;
+use serde::{Deserialize, Serialize};
 use walkdir::WalkDir;
 
-use crate::slug::Slug;
+use crate::{config_toml::Config, slug::Slug};
 
-#[derive(Debug, Clone, clap::ValueEnum, Default)]
+#[derive(Debug, Clone, clap::ValueEnum, Default, Deserialize, Serialize)]
 pub enum FooterMode {
     #[default]
+    #[serde(rename = "link")]
     Link,
+
+    #[serde(rename = "embed")]
     Embed,
 }
 
@@ -36,119 +40,36 @@ impl FromStr for FooterMode {
     }
 }
 
-impl ToString for FooterMode {
-    fn to_string(&self) -> String {
+impl std::fmt::Display for FooterMode {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            FooterMode::Link => "link".into(),
-            FooterMode::Embed => "embed".into(),
+            FooterMode::Link => write!(f, "link"),
+            FooterMode::Embed => write!(f, "embed"),
         }
     }
 }
 
-pub struct BaseUrl(pub String);
+/// Specifies the filename of the TOML configuration file (e.g., "Kodama.toml").
+pub static TOML: OnceLock<String> = OnceLock::new();
 
-impl Default for BaseUrl {
-    fn default() -> Self {
-        BaseUrl("/".into())
-    }
+/// Specifies the project root path.
+///
+/// Please note that this value should always be automatically derived from
+/// the location of the toml configuration file.
+pub static ROOT: OnceLock<PathBuf> = OnceLock::new();
+
+#[derive(Clone)]
+pub enum BuildMode {
+    /// Build mode for the `kodama build` command.
+    Build,
+
+    /// Serve mode for the `kodama serve` command.
+    Serve,
 }
 
-impl BaseUrl {
-    pub fn normalize_base_url(self) -> Self {
-        match self.0.ends_with("/") {
-            true => self,
-            false => BaseUrl(format!("{}/", self.0)),
-        }
-    }
-}
+pub static BUILD_MODE: OnceLock<BuildMode> = OnceLock::new();
 
-pub struct OutputDir(pub String);
-
-impl Default for OutputDir {
-    fn default() -> Self {
-        OutputDir("./publish".into())
-    }
-}
-
-pub struct AssetsDir(pub String);
-
-impl Default for AssetsDir {
-    fn default() -> Self {
-        AssetsDir("./assets".into())
-    }
-}
-
-pub struct RootDir(pub String);
-
-impl Default for RootDir {
-    fn default() -> Self {
-        RootDir("./".into())
-    }
-}
-
-pub struct CompileConfig<S> {
-    pub root_dir: RootDir,
-    pub output_dir: OutputDir,
-    pub assets_dir: AssetsDir,
-    pub base_url: BaseUrl,
-    pub page_suffix: S,
-    pub short_slug: bool,
-    pub footer_mode: FooterMode,
-
-    /// `false`: This is very useful for users who want to modify existing styles or configure other themes.
-    pub disable_export_css: bool,
-
-    /// URL prefix for opening files in the editor.
-    pub edit: Option<S>,
-}
-
-impl CompileConfig<String> {
-    // pub fn default() -> CompileConfig<String> {
-    //     CompileConfig::new(
-    //         RootDir::default(),
-    //         OutputDir::default(),
-    //         AssetsDir::default(),
-    //         BaseUrl::default(),
-    //         false,
-    //         false,
-    //         FooterMode::Link,
-    //         false,
-    //         None,
-    //     )
-    // }
-
-    pub fn new<'a>(
-        root_dir: RootDir,
-        output_dir: OutputDir,
-        assets_dir: AssetsDir,
-        base_url: BaseUrl,
-        disable_pretty_urls: bool,
-        short_slug: bool,
-        footer_mode: FooterMode,
-        disable_export_css: bool,
-        edit: Option<String>,
-    ) -> CompileConfig<String> {
-        CompileConfig {
-            root_dir,
-            output_dir,
-            assets_dir,
-            base_url: base_url.normalize_base_url(),
-            page_suffix: to_page_suffix(disable_pretty_urls),
-            short_slug,
-            footer_mode,
-            disable_export_css,
-            edit,
-        }
-    }
-}
-
-
-// pub fn mutex_set<T>(source: &Mutex<T>, target: T) {
-//     let mut guard = source.lock().unwrap();
-//     *guard = target;
-// }
-
-pub static CONFIG: OnceLock<CompileConfig<String>> = OnceLock::new();
+pub static CONFIG_TOML: OnceLock<Config> = OnceLock::new();
 
 pub static CUSTOM_META_HTML: LazyLock<String> = LazyLock::new(|| {
     std::fs::read_to_string(root_dir().join("import-meta.html")).unwrap_or_default()
@@ -169,44 +90,60 @@ pub static CUSTOM_MATH_HTML: LazyLock<String> = LazyLock::new(|| {
 });
 
 pub const CACHE_DIR_NAME: &str = ".cache";
-pub const BUFFER_FILE_NAME: &str = "buffer";
 pub const HASH_DIR_NAME: &str = "hash";
 pub const ENTRY_DIR_NAME: &str = "entry";
 
-pub fn to_page_suffix(disable_pretty_urls: bool) -> String {
-    let page_suffix = match disable_pretty_urls {
-        true => ".html",
-        false => "",
+pub fn to_page_suffix(pretty_urls: bool) -> String {
+    let page_suffix = match pretty_urls {
+        true => "",
+        false => ".html",
     };
     page_suffix.into()
 }
 
-pub fn is_short_slug() -> bool {
-    CONFIG.get().unwrap().short_slug
+pub fn root_dir() -> PathBuf {
+    ROOT.get().unwrap().clone()
 }
 
-pub fn root_dir() -> PathBuf {
-    CONFIG.get().unwrap().root_dir.0.clone().into()
+pub fn is_serve() -> bool {
+    matches!(BUILD_MODE.get().unwrap(), BuildMode::Serve)
+}
+
+pub fn is_short_slug() -> bool {
+    CONFIG_TOML.get().unwrap().build.short_slug
+}
+
+pub fn typst_root_dir() -> PathBuf {
+    CONFIG_TOML.get().unwrap().build.typst_root.clone().into()
+}
+
+pub fn trees_dir() -> PathBuf {
+    let trees = &CONFIG_TOML.get().unwrap().kodama.trees;
+    root_dir().join(trees)
 }
 
 pub fn output_dir() -> PathBuf {
-    CONFIG.get().unwrap().output_dir.0.clone().into()
+    let output_dir = match BUILD_MODE.get().unwrap() {
+        BuildMode::Build => &CONFIG_TOML.get().unwrap().build.output,
+        BuildMode::Serve => &CONFIG_TOML.get().unwrap().serve.output,
+    };
+    root_dir().join(output_dir)
 }
 
 pub fn base_url() -> String {
-    CONFIG.get().unwrap().base_url.0.clone()
+    CONFIG_TOML.get().unwrap().kodama.base_url.clone()
 }
 
 pub fn footer_mode() -> FooterMode {
-    CONFIG.get().unwrap().footer_mode.clone()
+    CONFIG_TOML.get().unwrap().build.footer_mode.clone()
 }
 
-pub fn disable_export_css() -> bool {
-    CONFIG.get().unwrap().disable_export_css
+pub fn inline_css() -> bool {
+    CONFIG_TOML.get().unwrap().build.inline_css
 }
 
 pub fn editor_url() -> Option<String> {
-    CONFIG.get().unwrap().edit.clone()
+    CONFIG_TOML.get().unwrap().serve.edit.clone()
 }
 
 pub fn get_cache_dir() -> PathBuf {
@@ -214,32 +151,25 @@ pub fn get_cache_dir() -> PathBuf {
 }
 
 pub fn assets_dir() -> PathBuf {
-    root_dir().join(CONFIG.get().unwrap().assets_dir.0.clone())
+    let assets = &CONFIG_TOML.get().unwrap().kodama.assets;
+    root_dir().join(assets)
 }
 
 /// URL keep posix style, so the type of return value is [`String`].
 pub fn full_url<P: AsRef<Path>>(path: P) -> String {
     let path = crate::slug::pretty_path(path.as_ref());
-    if path.starts_with("/") {
-        return format!("{}{}", base_url(), path[1..].to_string());
-    } else if path.starts_with("./") {
-        return format!("{}{}", base_url(), path[2..].to_string());
+    if let Some(stripped) = path.strip_prefix("/") {
+        return format!("{}{}", base_url(), stripped);
+    } else if let Some(stripped) = path.strip_prefix("./") {
+        return format!("{}{}", base_url(), stripped);
     }
     format!("{}{}", base_url(), path)
 }
 
 pub fn full_html_url(slug: Slug) -> String {
-    full_url(&format!("{}{}", slug, CONFIG.get().unwrap().page_suffix))
-}
-
-/// Convert `path` to `./{path}` or `path`.
-///
-/// This function keep posix style for the path, so it will return a [`String`].
-pub fn relativize(path: &str) -> String {
-    match path.starts_with("/") {
-        true => format!(".{}", path),
-        _ => path.to_string(),
-    }
+    let pretty_urls = CONFIG_TOML.get().unwrap().build.pretty_urls;
+    let page_suffix = to_page_suffix(pretty_urls);
+    full_url(format!("{}{}", slug, page_suffix))
 }
 
 pub fn parent_dir<P: AsRef<Path>>(path: P) -> (PathBuf, PathBuf) {
@@ -250,7 +180,7 @@ pub fn parent_dir<P: AsRef<Path>>(path: P) -> (PathBuf, PathBuf) {
 }
 
 pub fn input_path<P: AsRef<Path>>(path: P) -> PathBuf {
-    let mut filepath: PathBuf = root_dir().into();
+    let mut filepath: PathBuf = trees_dir();
     filepath.push(path);
     filepath
 }
@@ -258,21 +188,17 @@ pub fn input_path<P: AsRef<Path>>(path: P) -> PathBuf {
 pub fn create_parent_dirs<P: AsRef<Path>>(path: P) {
     let parent_dir = path.as_ref().parent().unwrap();
     if !parent_dir.exists() {
-        let _ = create_dir_all(&parent_dir);
+        let _ = create_dir_all(parent_dir);
     }
 }
 
 pub fn auto_create_dir_path<P: AsRef<Path>>(paths: Vec<P>) -> PathBuf {
-    let mut filepath: PathBuf = root_dir().into();
+    let mut filepath: PathBuf = root_dir();
     for path in paths {
         filepath.push(path);
     }
     create_parent_dirs(&filepath);
     filepath
-}
-
-pub fn buffer_path() -> PathBuf {
-    get_cache_dir().join(BUFFER_FILE_NAME)
 }
 
 pub fn output_path<P: AsRef<Path>>(path: P) -> PathBuf {
@@ -282,7 +208,7 @@ pub fn output_path<P: AsRef<Path>>(path: P) -> PathBuf {
 #[allow(dead_code)]
 pub fn trim_divide_prefix<P: AsRef<Path>>(path: P) -> PathBuf {
     let path = path.as_ref();
-    path.strip_prefix("/").unwrap_or(&path).to_path_buf()
+    path.strip_prefix("/").unwrap_or(path).to_path_buf()
 }
 
 /// Return the output HTML path `<output_dir>/<path>.html` for the given section.
@@ -351,25 +277,25 @@ pub fn is_hash_updated<P: AsRef<Path>>(content: &str, hash_path: P) -> (bool, u6
 /// Checks whether the file has been modified by comparing its current hash with the stored hash.
 /// If the file is modified, updates the stored hash to reflect the latest state.
 pub fn verify_and_file_hash<P: AsRef<Path>>(relative_path: P) -> eyre::Result<bool> {
-    let root_dir = root_dir();
+    let root_dir = trees_dir();
     let full_path = root_dir.join(&relative_path);
     let hash_path = hash_file_path(&relative_path);
 
     let content = std::fs::read_to_string(&full_path)
-        .wrap_err_with(|| eyre::eyre!("Failed to read file `{}`", full_path.display()))?;
+        .wrap_err_with(|| eyre::eyre!("failed to read file `{}`", full_path.display()))?;
     let (is_modified, current_hash) = is_hash_updated(&content, &hash_path);
     if is_modified {
         std::fs::write(&hash_path, current_hash.to_string())
-            .wrap_err_with(|| eyre::eyre!("Failed to write file `{}`", hash_path.display()))?;
+            .wrap_err_with(|| eyre::eyre!("failed to write file `{}`", hash_path.display()))?;
     }
-    return Ok(is_modified);
+    Ok(is_modified)
 }
 
 /// Checks whether the content has been modified by comparing its current hash with the stored hash.
 /// If the content is modified, updates the stored hash to reflect the latest state.
 pub fn verify_update_hash<P: AsRef<Path>>(path: P, content: &str) -> Result<bool, std::io::Error> {
     let hash_path = hash_file_path(path.as_ref());
-    let (is_modified, current_hash) = is_hash_updated(&content, &hash_path);
+    let (is_modified, current_hash) = is_hash_updated(content, &hash_path);
     if is_modified {
         std::fs::write(&hash_path, current_hash.to_string())?;
     }

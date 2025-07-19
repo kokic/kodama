@@ -9,7 +9,10 @@ use std::{
 
 use eyre::{eyre, WrapErr};
 
-use crate::config::{self, CompileConfig, FooterMode};
+use crate::{
+    config::{self},
+    config_toml,
+};
 
 #[derive(clap::Args)]
 pub struct RemoveCommand {
@@ -17,28 +20,16 @@ pub struct RemoveCommand {
     #[arg(required = true)]
     pub path: Vec<PathBuf>,
 
-    /// Path to output directory.
-    #[arg(short, long, default_value_t)]
-    pub output: String,
+    /// Path to the configuration file (e.g., "kodama.toml").
+    #[arg(short, long, default_value_t = config_toml::DEFAULT_CONFIG_PATH.into())]
+    config: String,
 }
 
+/// This function invoked the [`config_toml::apply_config`] function to apply the configuration.
 pub fn remove(command: &RemoveCommand) -> eyre::Result<()> {
-    let path = &command.path;
-    let output = &command.output;
+    config_toml::apply_config(PathBuf::from(command.config.clone()))?;
 
-    let _ = config::CONFIG.set(CompileConfig::new(
-        config::RootDir::default(),
-        config::OutputDir(output.to_string()),
-        config::AssetsDir::default(),
-        config::BaseUrl::default(),
-        false,
-        false,
-        FooterMode::default(),
-        false,
-        None,
-    ));
-
-    for section_path in path {
+    for section_path in &command.path {
         remove_with_hint(section_path)?;
         remove_with_hint(config::hash_file_path(section_path))?;
         remove_with_hint(config::entry_file_path(section_path))?;
@@ -52,10 +43,10 @@ fn remove_with_hint<P: AsRef<Path>>(path: P) -> eyre::Result<()> {
     let path = path.as_ref();
     if path.exists() {
         fs::remove_file(path)
-            .wrap_err_with(|| eyre!("Failed to remove file `{}`", path.display()))?;
+            .wrap_err_with(|| eyre!("failed to remove file `{}`", path.display()))?;
         println!("Removed: \"{}\"", path.display());
     } else {
-        println!("File \"{}\" does not exist, skipping.", path.display());
+        println!("file \"{}\" does not exist, skipping.", path.display());
     }
     Ok(())
 }

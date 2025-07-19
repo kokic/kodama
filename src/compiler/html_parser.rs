@@ -96,7 +96,7 @@ impl<'a> HTMLParser<'a> {
         });
         HTMLParser {
             html_str,
-            captures: RE_TAG.captures_iter(&html_str),
+            captures: RE_TAG.captures_iter(html_str),
         }
     }
 }
@@ -107,7 +107,7 @@ impl<'a> Iterator for HTMLParser<'a> {
     // HTML is typst-generated, so it's not expected to be ill-formatted.
     // Using panics here.
     fn next(&mut self) -> Option<Self::Item> {
-        fn get_tag<'a>(capture: Captures<'a>) -> (HTMLTag, Option<&'a str>) {
+        fn get_tag(capture: Captures<'_>) -> (HTMLTag, Option<&str>) {
             let all = capture.get(0).unwrap();
             let make_tag = |kind, mid| HTMLTag {
                 start: all.start(),
@@ -170,8 +170,8 @@ impl<'a> Iterator for HTMLParser<'a> {
         };
 
         if open_tag.kind.tri_equal(&close_tag.kind) != Some(true) {
-            open_tag.mid.map(|mid| open_tag.start = mid);
-            close_tag.mid.map(|mid| close_tag.end = mid);
+            open_tag.mid.inspect(|mid| open_tag.start = *mid);
+            close_tag.mid.inspect(|mid| close_tag.end = *mid);
         }
 
         static RE_ATTR: LazyLock<Regex> = LazyLock::new(|| {
@@ -183,7 +183,7 @@ impl<'a> Iterator for HTMLParser<'a> {
             .map(|c| {
                 (
                     c.name("key").unwrap().as_str(),
-                    unescape_attribute(c.name("value").map_or("", |s| s.as_str())).to_owned(),
+                    unescape_attribute(c.name("value").map_or("", |s| s.as_str())),
                 )
             })
             .collect();
@@ -193,7 +193,7 @@ impl<'a> Iterator for HTMLParser<'a> {
             start: open_tag.start,
             end: close_tag.end,
             attrs,
-            body: &self.html_str[open_tag.end..close_tag.start].trim(),
+            body: self.html_str[open_tag.end..close_tag.start].trim(),
         })
     }
 }

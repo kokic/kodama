@@ -2,7 +2,7 @@
 // Released under the GPL-3.0 license as described in the file LICENSE.
 // Authors: Kokic (@kokic), Spore (@s-cerevisiae)
 
-use std::{ops::Not, path::PathBuf};
+use std::ops::Not;
 
 use crate::{
     config::{self, input_path},
@@ -52,7 +52,7 @@ pub fn html_section(
         class_name.push("hide-metadata");
     }
     let data_taxon = data_taxon.map_or("", |s| s);
-    let open = open.then(|| "open").unwrap_or("");
+    let open = if open { "open" } else { "" };
     let inner_html = format!("{}{}", (html!(summary id={id} { (summary) })), content);
     let html_details = format!("<details {}>{}</details>", open, inner_html);
     html!(section class={class_name.join(" ")} data_taxon={data_taxon} { (html_details) })
@@ -81,19 +81,18 @@ pub fn html_header(
     let slug_url = config::full_html_url(*slug);
 
     let editor_url = match config::editor_url() {
-        Some(prefix) => {
-            let source_url = format!(
-                "{}{}",
-                prefix,
-                PathBuf::from(input_path(format!("{}.md", slug.as_str())))
-                    .canonicalize()
-                    .unwrap()
-                    .to_str()
-                    .unwrap()
-            );
-            html!(a class="slug" href={source_url} { "[edit]" })
+        Some(prefix) if config::is_serve() => {
+            // Bug: The suffix of slug is not necessarily `.md`,
+            // perhaps we need to add an `ext` field for [`Slug`].
+            let source_path = input_path(format!("{}.md", slug.as_str()))
+                .canonicalize()
+                .unwrap();
+            let source_url = url::Url::from_file_path(source_path).unwrap();
+            let base = url::Url::parse(&prefix).unwrap();
+            let editor_url = base.join(source_url.path()).unwrap();
+            html!(a class="slug" href={editor_url.to_string()} { "[edit]" })
         }
-        None => String::default(),
+        _ => String::default(),
     };
 
     html!(header {
@@ -241,7 +240,7 @@ pub fn html_doc(
 }
 
 pub fn html_css() -> String {
-    match config::disable_export_css() {
+    match config::inline_css() {
         true => html!(style { (html_main_style()) (html_typst_style()) }),
         false => {
             let base_url = config::base_url();
@@ -255,25 +254,25 @@ pub fn html_css() -> String {
 }
 
 pub fn html_import_meta() -> String {
-    return config::CUSTOM_META_HTML.clone();
+    config::CUSTOM_META_HTML.clone()
 }
 
 pub fn html_import_style() -> String {
-    return config::CUSTOM_STYLE_HTML.clone();
+    config::CUSTOM_STYLE_HTML.clone()
 }
 
 pub fn html_import_fonts() -> String {
-    return config::CUSTOM_FONTS_HTML.clone();
+    config::CUSTOM_FONTS_HTML.clone()
 }
 
 pub fn html_import_math() -> String {
-    return config::CUSTOM_MATH_HTML.clone();
+    config::CUSTOM_MATH_HTML.clone()
 }
 
 pub fn html_main_style() -> &'static str {
-    return include_str!("include/main.css");
+    include_str!("include/main.css")
 }
 
 pub fn html_typst_style() -> &'static str {
-    return include_str!("include/typst.css");
+    include_str!("include/typst.css")
 }

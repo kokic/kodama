@@ -5,7 +5,6 @@
 /*
 There are some external inputs:
   sys.inputs.path: relative path of the typst file
-  sys.inputs.sha256: sha256 of path
   sys.inputs.random: a random number in 0..INT64_MAX (note, it's a string)
 */
 

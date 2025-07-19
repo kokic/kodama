@@ -6,9 +6,12 @@ mod assets_sync;
 mod cli;
 mod compiler;
 mod config;
+mod config_toml;
 mod entry;
 mod html_flake;
 mod html_macro;
+mod ordered_map;
+mod path_utils;
 mod process;
 mod recorder;
 mod slug;
@@ -16,7 +19,12 @@ mod typst_cli;
 
 use clap::Parser;
 
-use crate::cli::{compile::CompileCommand, remove::RemoveCommand, watch::WatchCommand};
+use crate::cli::{
+    build::BuildCommand,
+    new::{NewCommand, NewCommandCli},
+    remove::RemoveCommand,
+    serve::ServeCommand,
+};
 
 #[derive(Parser)]
 #[command(version, about, long_about = None)]
@@ -27,27 +35,24 @@ struct Cli {
 
 #[derive(clap::Subcommand)]
 enum Command {
-    /// Create a new section.
-    #[command(visible_alias = "new")]
-    New(crate::cli::new::NewCommand),
+    /// Create a new kodama site.
+    #[command(visible_alias = "n")]
+    New(NewCommandCli),
 
     /// Compile current workspace dir to HTMLs.
-    ///
-    /// This is a config dependent command.
-    #[command(visible_alias = "c")]
-    Compile(CompileCommand),
+    #[command(visible_alias = "b")]
+    Build(BuildCommand),
 
-    /// Watch files and run build script on changes.
+    /// Serves a forest at http://localhost:8080, and rebuilds it on changes.
     ///
-    /// This is a config dependent command.
-    #[command(visible_alias = "w")]
-    Watch(WatchCommand),
+    /// Server temporarily depends on the miniserve program in the user's environment.
+    #[command(visible_alias = "s")]
+    Serve(ServeCommand),
 
     /// Remove associated files (hash, entry & HTML) for the given section paths.
-    ///
-    /// This is a config dependent command.
     #[command(visible_alias = "rm")]
     Remove(RemoveCommand),
+    //
     // TODO: Move.
     //
     // We are temporarily putting this feature on hold because we have not yet exported the dependency information for the section.
@@ -56,10 +61,14 @@ enum Command {
 fn main() -> eyre::Result<()> {
     let cli = Cli::parse();
     match &cli.command {
-        Command::New(command) => crate::cli::new::new(command)?,
-        Command::Compile(command) => crate::cli::compile::compile(command)?,
+        Command::New(NewCommandCli { command }) => match command {
+            NewCommand::Site(command) => crate::cli::new::new_site(command)?,
+            NewCommand::Post(command) => crate::cli::new::new_section(command)?,
+            NewCommand::Config(command) => crate::cli::new::new_config(command)?,
+        },
+        Command::Serve(command) => crate::cli::serve::serve(command)?,
+        Command::Build(command) => crate::cli::build::build(command)?,
         Command::Remove(command) => crate::cli::remove::remove(command)?,
-        Command::Watch(command) => crate::cli::watch::watch(command)?,
     };
     Ok(())
 }

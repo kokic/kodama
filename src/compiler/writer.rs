@@ -2,7 +2,7 @@
 // Released under the GPL-3.0 license as described in the file LICENSE.
 // Authors: Kokic (@kokic), Spore (@s-cerevisiae)
 
-use std::{collections::HashSet, ops::Not, path::Path};
+use std::{collections::HashSet, ops::Not};
 
 use crate::{
     compiler::counter::Counter,
@@ -28,12 +28,9 @@ impl Writer {
         let filepath = crate::config::output_path(&html_url);
 
         let relative_path = config::output_dir().join(&html_url);
-        if verify_update_hash(&relative_path, &html).expect("Writer::write@hash") {
+        if verify_update_hash(&relative_path, &html).expect("failed to verify update hash") {
             match std::fs::write(&filepath, html) {
-                Ok(()) => {
-                    let output_path = crate::slug::pretty_path(Path::new(&html_url));
-                    println!("Output: {:?} {}", page_title, output_path);
-                }
+                Ok(()) => println!("[build] {:?} {}", page_title, filepath.display()), 
                 Err(err) => eprintln!("{:?}", err),
             }
         }
@@ -52,7 +49,7 @@ impl Writer {
                  * of the [`Section`].
                  */
                 None => eprintln!("Slug `{}` not in compiled entries.", slug),
-                Some(section) => Writer::write(section, &state),
+                Some(section) => Writer::write(section, state),
             });
     }
 
@@ -74,7 +71,7 @@ impl Writer {
         let page_title = section.metadata.page_title().map_or("", |s| s.as_str());
 
         let html = crate::html_flake::html_doc(
-            &page_title,
+            page_title,
             &html_header,
             &article_inner,
             &footer_html,
@@ -98,7 +95,7 @@ impl Writer {
         let section = state
             .compiled()
             .get(&parent)
-            .expect(&format!("missing slug `{:?}`", parent));
+            .unwrap_or_else(|| panic!("missing slug `{:?}`", parent));
         
         let href = config::full_html_url(parent);
         let title = section.metadata.title().map_or("", |s| s);
@@ -183,7 +180,7 @@ impl Writer {
                 format!(r#"<section class="block" data-taxon="{data_taxon}" style="margin-bottom: 0.4em;">{summary}</section>"#)
             }
             config::FooterMode::Embed => {
-                let contents = match section.children.len() > 0 {
+                let contents = match !section.children.is_empty() {
                     false => String::new(),
                     true => section
                         .children
@@ -211,7 +208,7 @@ impl Writer {
         hide_metadata: bool,
     ) -> (String, String) {
         let adhoc_taxon = Writer::taxon(section, counter);
-        let (contents, items) = match section.children.len() > 0 {
+        let (contents, items) = match !section.children.is_empty() {
             false => (String::new(), String::new()),
             true => {
                 let mut subcounter = match section.option.numbering {

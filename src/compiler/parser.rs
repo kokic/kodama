@@ -2,7 +2,7 @@
 // Released under the GPL-3.0 license as described in the file LICENSE.
 // Authors: Kokic (@kokic), Spore (@s-cerevisiae)
 
-use std::{collections::HashMap, mem};
+use std::mem;
 
 use eyre::{eyre, WrapErr};
 use itertools::Itertools;
@@ -11,6 +11,7 @@ use pulldown_cmark::Options;
 use crate::{
     config::input_path,
     entry::HTMLMetaData,
+    ordered_map::OrderedMap,
     process::{
         content::to_contents, embed_markdown::Embed, figure::Figure, footnote::Footnote,
         ignore_paragraph, metadata::Metadata, typst_image::TypstImage,
@@ -26,13 +27,11 @@ pub const OPTIONS: Options = Options::ENABLE_MATH
     .union(Options::ENABLE_SMART_PUNCTUATION)
     .union(Options::ENABLE_FOOTNOTES);
 
-pub fn initialize(slug: Slug) -> eyre::Result<(String, HashMap<String, HTMLContent>)> {
-    // global data store
-    let mut metadata: HashMap<String, HTMLContent> = HashMap::new();
+pub fn initialize(slug: Slug) -> eyre::Result<(String, OrderedMap<String, HTMLContent>)> {
+    let mut metadata: OrderedMap<String, HTMLContent> = OrderedMap::new();
     let fullname = format!("{}.md", slug);
     metadata.insert("slug".to_string(), HTMLContent::Plain(slug.to_string()));
 
-    // local contents recorder
     let markdown_path = input_path(&fullname);
     std::fs::read_to_string(&markdown_path)
         .map(|markdown_input| (markdown_input, metadata))
@@ -45,7 +44,7 @@ pub fn parse_markdown(slug: Slug) -> eyre::Result<ShallowSection> {
 
     let content = Metadata::process(events, &mut metadata)
         .process_results(|events| {
-            let events = Footnote::process(events);
+            let events = Footnote::process(events, slug);
             let events = Figure::process(events);
             let events = TypstImage::process(events, slug);
             let events = Embed::process(events);
@@ -80,12 +79,13 @@ mod tests {
     #[test]
     fn test_table_td() {
         let source = "| a | b |\n| - | - |\n| c | d |";
+        let mocked_slug = Slug::new("-");
 
         let events = pulldown_cmark::Parser::new_ext(source, OPTIONS);
 
-        let events = Footnote::process(events);
+        let events = Footnote::process(events, mocked_slug);
         let events = Figure::process(events);
-        let events = TypstImage::process(events, Slug::new("-"));
+        let events = TypstImage::process(events, mocked_slug);
         let events = Embed::process(events);
 
         let content = normalize_html_content(to_contents(events));
