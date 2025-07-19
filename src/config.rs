@@ -11,7 +11,6 @@ use std::{
 
 use eyre::Context;
 use serde::{Deserialize, Serialize};
-use walkdir::WalkDir;
 
 use crate::{config_toml::Config, slug::Slug};
 

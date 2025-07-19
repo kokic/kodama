@@ -1,6 +1,6 @@
 // Copyright (c) 2025 Kodama Project. All rights reserved.
 // Released under the GPL-3.0 license as described in the file LICENSE.
-// Authors: Kokic (@kokic)
+// Authors: Kokic (@kokic), Spore (@s-cerevisiae)
 
 use pulldown_cmark::{Event, Tag, TagEnd};
 
