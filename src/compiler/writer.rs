@@ -30,7 +30,7 @@ impl Writer {
         let relative_path = config::output_dir().join(&html_url);
         if verify_update_hash(&relative_path, &html).expect("failed to verify update hash") {
             match std::fs::write(&filepath, html) {
-                Ok(()) => println!("[build] {:?} {}", page_title, filepath.display()), 
+                Ok(()) => println!("[build] {:?} {}", page_title, filepath),
                 Err(err) => eprintln!("{:?}", err),
             }
         }
@@ -67,7 +67,12 @@ impl Writer {
         let html_header = Writer::header(state, slug);
 
         let callback = state.callback().0.get(&slug);
-        let footer_html = Writer::footer(section.metadata.footer_mode(), state, &section.references, callback);
+        let footer_html = Writer::footer(
+            section.metadata.footer_mode(),
+            state,
+            &section.references,
+            callback,
+        );
         let page_title = section.metadata.page_title().map_or("", |s| s.as_str());
 
         let html = crate::html_flake::html_doc(
@@ -96,7 +101,7 @@ impl Writer {
             .compiled()
             .get(&parent)
             .unwrap_or_else(|| panic!("missing slug `{:?}`", parent));
-        
+
         let href = config::full_html_url(parent);
         let title = section.metadata.title().map_or("", |s| s);
         let page_title = section.metadata.page_title().map_or("", |s| s);
@@ -104,7 +109,7 @@ impl Writer {
     }
 
     fn footer(
-        page_option: Option<FooterMode>, 
+        page_option: Option<FooterMode>,
         state: &CompileState,
         references: &HashSet<Slug>,
         callback: Option<&CallbackValue>,
@@ -170,7 +175,9 @@ impl Writer {
             config::FooterMode::Link => {
                 let summary = section.metadata.to_header(None, None);
                 let data_taxon = section.metadata.data_taxon().map_or("", |s| s);
-                format!(r#"<section class="block" data-taxon="{data_taxon}" style="margin-bottom: 0.4em;">{summary}</section>"#)
+                format!(
+                    r#"<section class="block" data-taxon="{data_taxon}" style="margin-bottom: 0.4em;">{summary}</section>"#
+                )
             }
             config::FooterMode::Embed => {
                 let contents = match !section.children.is_empty() {

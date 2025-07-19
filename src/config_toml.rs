@@ -1,9 +1,8 @@
 // Copyright (c) 2025 Kodama Project. All rights reserved.
 // Released under the GPL-3.0 license as described in the file LICENSE.
-// Authors: Kokic (@kokic)
+// Authors: Kokic (@kokic), Spore (@s-cerevisiae)
 
-use std::path::PathBuf;
-
+use camino::Utf8PathBuf;
 use serde::{Deserialize, Serialize};
 
 use crate::config::{self, FooterMode};
@@ -87,19 +86,16 @@ fn parse_config(config: &str) -> eyre::Result<Config> {
     Ok(config)
 }
 
-pub fn apply_config(toml_file: PathBuf) -> eyre::Result<()> {
+pub fn apply_config(toml_file: Utf8PathBuf) -> eyre::Result<()> {
     // Try find toml file in the current directory or the parent directory.
     let mut toml_file = toml_file;
     if !toml_file.exists() {
-        let parent = toml_file.parent().unwrap().canonicalize()?;
+        let parent = toml_file.parent().unwrap().canonicalize_utf8()?;
         let parent = parent.parent().unwrap();
 
         toml_file = parent.join(DEFAULT_CONFIG_PATH);
         if !toml_file.exists() {
-            return Err(eyre::eyre!(
-                "cannot find configuration file: {}",
-                toml_file.display()
-            ));
+            return Err(eyre::eyre!("cannot find configuration file: {}", toml_file));
         }
     }
 
@@ -109,7 +105,7 @@ pub fn apply_config(toml_file: PathBuf) -> eyre::Result<()> {
     let toml = std::fs::read_to_string(&toml_file)?;
 
     let _ = config::ROOT.set(root.to_path_buf());
-    let _ = config::TOML.set(toml_file.file_name().unwrap().to_str().unwrap().to_string());
+    let _ = config::TOML.set(toml_file.file_name().unwrap().to_owned());
     let _ = config::CONFIG_TOML.set(parse_config(&toml)?);
     Ok(())
 }

@@ -1,9 +1,10 @@
 // Copyright (c) 2025 Kodama Project. All rights reserved.
 // Released under the GPL-3.0 license as described in the file LICENSE.
-// Authors: Kokic (@kokic)
+// Authors: Kokic (@kokic), Spore (@s-cerevisiae)
 
-use std::{io::Write, path::Path};
+use std::io::Write;
 
+use camino::Utf8Path;
 use notify::{Config, EventKind, RecommendedWatcher, RecursiveMode, Watcher};
 
 use crate::{cli::build::build_with, config::BuildMode, config_toml};
@@ -68,9 +69,9 @@ pub fn serve(command: &ServeCommand) -> eyre::Result<()> {
 }
 
 /// from: https://github.com/notify-rs/notify/blob/main/examples/monitor_raw.rs#L18
-fn watch_paths<P: AsRef<Path>, F>(watched_paths: &Vec<P>, action: F) -> eyre::Result<()>
+fn watch_paths<P: AsRef<Utf8Path>, F>(watched_paths: &Vec<P>, action: F) -> eyre::Result<()>
 where
-    F: Fn(&Path) -> eyre::Result<()>,
+    F: Fn(&Utf8Path) -> eyre::Result<()>,
 {
     let (tx, rx) = std::sync::mpsc::channel();
 
@@ -87,13 +88,13 @@ where
         if !watched_path.exists() {
             eprintln!(
                 "[watch] Warning: Path \"{}\" does not exist, skipping.",
-                watched_path.to_string_lossy()
+                watched_path
             );
             continue;
         }
 
-        watcher.watch(watched_path, RecursiveMode::Recursive)?;
-        print!("\"{}\"  ", watched_path.to_string_lossy());
+        watcher.watch(watched_path.as_std_path(), RecursiveMode::Recursive)?;
+        print!("\"{}\"  ", watched_path);
     }
     println!("\n\nPress Ctrl+C to stop watching.\n");
 
@@ -107,7 +108,9 @@ where
                     for path in event.paths {
                         println!("[watch] Change: {path:?}");
                         std::io::stdout().flush()?;
-                        action(&path)?;
+                        if let Ok(p) = path.as_path().try_into() {
+                            action(p)?;
+                        }
                     }
                 }
             }

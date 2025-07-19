@@ -1,9 +1,11 @@
 // Copyright (c) 2025 Kodama Project. All rights reserved.
 // Released under the GPL-3.0 license as described in the file LICENSE.
-// Authors: Kokic (@kokic)
+// Authors: Kokic (@kokic), Spore (@s-cerevisiae)
 
+use std::fs;
+
+use camino::{Utf8Path, Utf8PathBuf};
 use eyre::{eyre, WrapErr};
-use std::{fs, path::PathBuf};
 
 use crate::{
     assets_sync,
@@ -26,7 +28,7 @@ pub fn build(command: &BuildCommand) -> eyre::Result<()> {
 
 pub fn build_with(config: String, mode: BuildMode) -> eyre::Result<()> {
     let _ = config::BUILD_MODE.set(mode);
-    config_toml::apply_config(PathBuf::from(config))?;
+    config_toml::apply_config(Utf8PathBuf::from(config))?;
 
     if !config::inline_css() {
         export_css_files().wrap_err("failed to export CSS")?;
@@ -54,10 +56,10 @@ fn export_css_files() -> eyre::Result<()> {
 
 fn export_css_file(css_content: &str, name: &str) -> eyre::Result<()> {
     let path = output_path(name);
-    let path = std::path::Path::new(&path);
+    let path = Utf8Path::new(&path);
     if !path.exists() {
         fs::write(path, css_content)
-            .wrap_err_with(|| eyre!("failed to write CSS file to \"{}\"", path.display()))?;
+            .wrap_err_with(|| eyre!("failed to write CSS file to \"{}\"", path))?;
     }
     Ok(())
 }

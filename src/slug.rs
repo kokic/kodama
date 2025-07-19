@@ -2,10 +2,13 @@
 // Released under the GPL-3.0 license as described in the file LICENSE.
 // Authors: Kokic (@kokic), Spore (@s-cerevisiae)
 
-use std::{fmt::Display, path::Path, str::FromStr};
+use std::{fmt::Display, str::FromStr};
 
+use camino::Utf8Path;
 use internment::Intern;
 use serde::{Deserialize, Serialize};
+
+use crate::path_utils;
 
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Slug(Intern<str>);
@@ -96,31 +99,7 @@ pub fn to_hash_id(slug_str: &str) -> String {
     slug_str.replace("/", "-")
 }
 
-pub fn to_slug<P: AsRef<Path>>(path: P) -> Slug {
+pub fn to_slug<P: AsRef<Utf8Path>>(path: P) -> Slug {
     let path = path.as_ref();
-    Slug::new(pretty_path(&path.with_extension("")))
-}
-
-pub fn pretty_path(path: &std::path::Path) -> String {
-    posix_style(clean_path(path).to_str().unwrap())
-}
-
-pub fn posix_style(s: &str) -> String {
-    s.replace("\\", "/")
-}
-
-fn clean_path(path: &std::path::Path) -> std::path::PathBuf {
-    let mut cleaned_path = std::path::PathBuf::new();
-    for component in path.components() {
-        match component {
-            std::path::Component::RootDir | std::path::Component::CurDir => {}
-            std::path::Component::ParentDir => {
-                cleaned_path.pop();
-            }
-            _ => {
-                cleaned_path.push(component.as_os_str());
-            }
-        }
-    }
-    cleaned_path
+    Slug::new(path_utils::pretty_path(&path.with_extension("")))
 }

@@ -2,7 +2,10 @@
 // Released under the GPL-3.0 license as described in the file LICENSE.
 // Authors: Kokic (@kokic), Spore (@s-cerevisiae)
 
-use std::{fmt::Write, fs, path::PathBuf};
+use std::{fmt::Write, fs};
+
+use camino::Utf8PathBuf;
+use pulldown_cmark::{Event, Tag, TagEnd};
 
 use crate::{
     config::{self, output_path, parent_dir},
@@ -12,7 +15,6 @@ use crate::{
     slug::Slug,
     typst_cli::{self, write_svg, write_to_inline_html, InlineConfig},
 };
-use pulldown_cmark::{Event, Tag, TagEnd};
 
 use super::processer::url_action;
 
@@ -191,7 +193,7 @@ impl<'e, E: Iterator<Item = Event<'e>>> Iterator for TypstImage<E> {
 
                         let root_dir = config::trees_dir();
                         let full_path = root_dir.join(typst_url);
-                        let code = fs::read_to_string(format!("{}.code", full_path.display()))
+                        let code = fs::read_to_string(format!("{}.code", full_path))
                             .unwrap_or_else(|_| fs::read_to_string(full_path).unwrap());
 
                         let html = html_figure_code(&config::full_url(&img_src), caption, code);
@@ -234,7 +236,7 @@ pub fn is_inline_typst(dest_url: &str) -> bool {
     dest_url == key || dest_url.starts_with(&format!("{}-", key))
 }
 
-fn typst_path(current_slug: Slug, url: &str) -> PathBuf {
+fn typst_path(current_slug: Slug, url: &str) -> Utf8PathBuf {
     let path = path_utils::relative_to_current(current_slug.as_str(), url);
     if let Ok(rest) = path.strip_prefix("/") {
         rest.to_owned()
