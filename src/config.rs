@@ -205,16 +205,11 @@ pub fn output_path<P: AsRef<Path>>(path: P) -> PathBuf {
     auto_create_dir_path(vec![&output_dir(), path.as_ref()])
 }
 
-#[allow(dead_code)]
-pub fn trim_divide_prefix<P: AsRef<Path>>(path: P) -> PathBuf {
-    let path = path.as_ref();
-    path.strip_prefix("/").unwrap_or(path).to_path_buf()
-}
-
 /// Return the output HTML path `<output_dir>/<path>.html` for the given section.
 /// e.g. `/path/to/index.md` will return `<output_dir>/path/to/index.html`.
 ///
 /// If the directory does not exist, it will be created.
+#[allow(dead_code)]
 pub fn output_html_path<P: AsRef<Path>>(path: P) -> PathBuf {
     let mut output_path = output_dir();
     output_path.push(path);
@@ -301,18 +296,4 @@ pub fn verify_update_hash<P: AsRef<Path>>(path: P, content: &str) -> Result<bool
     }
 
     Ok(is_modified)
-}
-
-#[allow(dead_code)]
-pub fn delete_all_with<P: AsRef<Path>, F>(dir: P, predicate: &F) -> Result<(), std::io::Error>
-where
-    F: Fn(&Path) -> bool,
-{
-    for entry in WalkDir::new(dir) {
-        let path = entry?.into_path();
-        if path.is_file() && predicate(&path) {
-            std::fs::remove_file(path)?;
-        }
-    }
-    Ok(())
 }
