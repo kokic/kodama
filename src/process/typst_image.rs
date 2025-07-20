@@ -8,7 +8,7 @@ use camino::Utf8PathBuf;
 use pulldown_cmark::{Event, Tag, TagEnd};
 
 use crate::{
-    config::{self, output_path, parent_dir},
+    config::{self, output_path},
     html_flake::{html_figure, html_figure_code},
     path_utils,
     recorder::State,
@@ -91,13 +91,9 @@ impl<'e, E: Iterator<Item = Event<'e>>> Iterator for TypstImage<E> {
                     State::Html => {
                         let typst_url =
                             typst_path(self.current_slug, &self.url.take().unwrap_or_default());
-                        let (parent_dir, filename) = parent_dir(&typst_url);
+                        let html_path = output_path(typst_url.with_extension("html"));
 
-                        let mut html_url = filename.with_extension("html");
-                        let img_src = parent_dir.join(&html_url);
-                        html_url = output_path(&img_src);
-
-                        let html = match write_to_inline_html(typst_url, html_url) {
+                        let html = match write_to_inline_html(typst_url, html_path) {
                             Ok(inline_html) => inline_html,
                             Err(err) => {
                                 eprintln!("{:?} at {}", err, self.current_slug);
@@ -144,49 +140,43 @@ impl<'e, E: Iterator<Item = Event<'e>>> Iterator for TypstImage<E> {
                         let typst_url =
                             typst_path(self.current_slug, &self.url.take().unwrap_or_default());
                         let caption = self.content.take().unwrap_or_default();
-                        let (parent_dir, filename) = parent_dir(&typst_url);
 
-                        let mut svg_url = filename.with_extension("svg");
-                        let img_src = parent_dir.join(&svg_url);
-                        svg_url = output_path(&img_src);
+                        let svg_url = typst_url.with_extension("svg");
+                        let svg_path = output_path(&svg_url);
 
-                        if let Err(err) = write_svg(typst_url, svg_url) {
+                        if let Err(err) = write_svg(typst_url, svg_path) {
                             eprintln!("{:?} at {}", err, self.current_slug)
                         }
                         self.exit();
 
-                        let html = html_figure(&config::full_url(&img_src), false, caption);
+                        let html = html_figure(&config::full_url(&svg_url), false, caption);
                         return Some(Event::Html(html.into()));
                     }
                     State::ImageBlock => {
                         let typst_url =
                             typst_path(self.current_slug, &self.url.take().unwrap_or_default());
                         let caption = self.content.take().unwrap_or_default();
-                        let (parent_dir, filename) = parent_dir(&typst_url);
 
-                        let mut svg_url = filename.with_extension("svg");
-                        let img_src = parent_dir.join(&svg_url);
-                        svg_url = output_path(&img_src);
+                        let svg_url = typst_url.with_extension("svg");
+                        let svg_path = output_path(&svg_url);
 
-                        if let Err(err) = write_svg(typst_url, svg_url) {
+                        if let Err(err) = write_svg(typst_url, svg_path) {
                             eprintln!("{:?} at {}", err, self.current_slug)
                         }
                         self.exit();
 
-                        let html = html_figure(&config::full_url(&img_src), true, caption);
+                        let html = html_figure(&config::full_url(&svg_url), true, caption);
                         return Some(Event::Html(html.into()));
                     }
                     State::ImageCode => {
                         let typst_url =
                             typst_path(self.current_slug, &self.url.take().unwrap_or_default());
                         let caption = self.content.take().unwrap_or_default();
-                        let (parent_dir, filename) = parent_dir(&typst_url);
 
-                        let mut svg_url = filename.with_extension("svg");
-                        let img_src = parent_dir.join(&svg_url);
-                        svg_url = output_path(&img_src);
+                        let svg_url = typst_url.with_extension("svg");
+                        let svg_path = output_path(&svg_url);
 
-                        if let Err(err) = write_svg(&typst_url, &svg_url) {
+                        if let Err(err) = write_svg(&typst_url, &svg_path) {
                             eprintln!("{:?} at {}", err, self.current_slug)
                         }
                         self.exit();
@@ -196,7 +186,7 @@ impl<'e, E: Iterator<Item = Event<'e>>> Iterator for TypstImage<E> {
                         let code = fs::read_to_string(format!("{}.code", full_path))
                             .unwrap_or_else(|_| fs::read_to_string(full_path).unwrap());
 
-                        let html = html_figure_code(&config::full_url(&img_src), caption, code);
+                        let html = html_figure_code(&config::full_url(&svg_url), caption, code);
                         return Some(Event::Html(html.into()));
                     }
                     State::Shared => {

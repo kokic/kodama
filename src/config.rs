@@ -171,13 +171,6 @@ pub fn full_html_url(slug: Slug) -> String {
     full_url(format!("{}{}", slug, page_suffix))
 }
 
-pub fn parent_dir<P: AsRef<Utf8Path>>(path: P) -> (Utf8PathBuf, Utf8PathBuf) {
-    let binding = path.as_ref();
-    let filename = binding.file_name().expect("Utf8Path must have a filename");
-    let parent = binding.parent().expect("Utf8Path must have a parent");
-    (parent.to_path_buf(), filename.into())
-}
-
 pub fn input_path<P: AsRef<Utf8Path>>(path: P) -> Utf8PathBuf {
     let mut filepath: Utf8PathBuf = trees_dir();
     filepath.push(path);
