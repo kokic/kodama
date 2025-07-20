@@ -4,16 +4,14 @@
 
 use std::{
     fs::{self, create_dir_all},
-    str::FromStr,
     sync::{LazyLock, OnceLock},
 };
 
 use camino::{Utf8Path, Utf8PathBuf};
 use eyre::Context;
-use serde::{Deserialize, Serialize};
 
 use crate::{
-    config_toml::{self, Config},
+    config_toml::{self, Config, FooterMode},
     path_utils,
     slug::Slug,
 };
@@ -45,8 +43,7 @@ fn get_config() -> &'static Config {
 pub fn init_environment(toml_file: Utf8PathBuf, build_mode: BuildMode) -> eyre::Result<()> {
     let toml_file = config_toml::find_config(toml_file)?;
 
-    let (root, file_name) =
-        path_utils::split_file_name(&toml_file).expect("path cannot be empty");
+    let (root, file_name) = path_utils::split_file_name(&toml_file).expect("path cannot be empty");
     let toml = std::fs::read_to_string(&toml_file)?;
 
     _ = ENVIRONMENT.set(Environment {
@@ -56,40 +53,6 @@ pub fn init_environment(toml_file: Utf8PathBuf, build_mode: BuildMode) -> eyre::
         build_mode,
     });
     Ok(())
-}
-
-#[derive(Debug, Copy, Clone, clap::ValueEnum, Default, Deserialize, Serialize)]
-pub enum FooterMode {
-    #[default]
-    #[serde(rename = "link")]
-    Link,
-
-    #[serde(rename = "embed")]
-    Embed,
-}
-
-#[derive(Debug)]
-pub struct ParseFooterModeError;
-
-impl FromStr for FooterMode {
-    type Err = ParseFooterModeError;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s {
-            "link" => Ok(FooterMode::Link),
-            "embed" => Ok(FooterMode::Embed),
-            _ => Err(ParseFooterModeError),
-        }
-    }
-}
-
-impl std::fmt::Display for FooterMode {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            FooterMode::Link => write!(f, "link"),
-            FooterMode::Embed => write!(f, "embed"),
-        }
-    }
 }
 
 #[derive(Clone)]

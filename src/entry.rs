@@ -4,13 +4,13 @@
 
 use crate::{
     compiler::{section::HTMLContent, taxon::Taxon},
-    config::{self, FooterMode},
+    config,
+    config_toml::FooterMode,
     html_flake,
     ordered_map::OrderedMap,
     slug::Slug,
 };
 use serde::{Deserialize, Serialize};
-use std::str::FromStr;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct HTMLMetaData(pub OrderedMap<String, HTMLContent>);
@@ -209,7 +209,8 @@ impl EntryMetaData {
 
     pub fn footer_mode(&self) -> Option<FooterMode> {
         self.get_str(KEY_FOOTER_MODE).map(|s| {
-            FooterMode::from_str(s).expect("footer-mode must be either `embed` or `link`.")
+            s.parse()
+                .expect("footer-mode must be either `embed` or `link`.")
         })
     }
 }

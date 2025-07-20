@@ -2,10 +2,10 @@
 // Released under the GPL-3.0 license as described in the file LICENSE.
 // Authors: Kokic (@kokic), Spore (@s-cerevisiae)
 
+use std::str::FromStr;
+
 use camino::Utf8PathBuf;
 use serde::{Deserialize, Serialize};
-
-use crate::config::FooterMode;
 
 pub const DEFAULT_CONFIG_PATH: &str = "./Kodama.toml";
 pub const DEFAULT_SOURCE_DIR: &str = "trees";
@@ -69,6 +69,40 @@ impl Default for Build {
 pub struct Serve {
     pub edit: Option<String>,
     pub output: String,
+}
+
+#[derive(Debug, Copy, Clone, clap::ValueEnum, Default, Deserialize, Serialize)]
+pub enum FooterMode {
+    #[default]
+    #[serde(rename = "link")]
+    Link,
+
+    #[serde(rename = "embed")]
+    Embed,
+}
+
+#[derive(Debug)]
+pub struct ParseFooterModeError;
+
+impl FromStr for FooterMode {
+    type Err = ParseFooterModeError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "link" => Ok(FooterMode::Link),
+            "embed" => Ok(FooterMode::Embed),
+            _ => Err(ParseFooterModeError),
+        }
+    }
+}
+
+impl std::fmt::Display for FooterMode {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            FooterMode::Link => write!(f, "link"),
+            FooterMode::Embed => write!(f, "embed"),
+        }
+    }
 }
 
 impl Default for Serve {

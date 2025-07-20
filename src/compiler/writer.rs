@@ -6,7 +6,8 @@ use std::{collections::HashSet, ops::Not};
 
 use crate::{
     compiler::counter::Counter,
-    config::{self, verify_update_hash, FooterMode},
+    config::{self, verify_update_hash},
+    config_toml::FooterMode,
     entry::MetaData,
     html_flake,
     slug::Slug,
@@ -172,14 +173,14 @@ impl Writer {
         let footer_mode = page_option.clone().unwrap_or(config::footer_mode());
 
         match footer_mode {
-            config::FooterMode::Link => {
+            FooterMode::Link => {
                 let summary = section.metadata.to_header(None, None);
                 let data_taxon = section.metadata.data_taxon().map_or("", |s| s);
                 format!(
                     r#"<section class="block" data-taxon="{data_taxon}" style="margin-bottom: 0.4em;">{summary}</section>"#
                 )
             }
-            config::FooterMode::Embed => {
+            FooterMode::Embed => {
                 let contents = match !section.children.is_empty() {
                     false => String::new(),
                     true => section
