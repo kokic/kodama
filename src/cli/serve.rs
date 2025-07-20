@@ -16,10 +16,10 @@ pub struct ServeCommand {
     config: String,
 }
 
-/// This function invoked the [`config_toml::apply_config`] function to apply the configuration.
+/// This function invoked the [`config::init_environment`] function to initialize the environment]
 pub fn serve(command: &ServeCommand) -> eyre::Result<()> {
     let serve_build = || -> eyre::Result<()> {
-        build_with(command.config.clone(), BuildMode::Serve)?;
+        build_with(&command.config, BuildMode::Serve)?;
         Ok(())
     };
 

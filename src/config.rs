@@ -12,9 +12,53 @@ use camino::{Utf8Path, Utf8PathBuf};
 use eyre::Context;
 use serde::{Deserialize, Serialize};
 
-use crate::{config_toml::Config, path_utils, slug::Slug};
+use crate::{
+    config_toml::{self, Config},
+    path_utils,
+    slug::Slug,
+};
 
-#[derive(Debug, Clone, clap::ValueEnum, Default, Deserialize, Serialize)]
+pub struct Environment {
+    /// Specifies the project root path.
+    ///
+    /// Please note that this value should always be automatically derived from
+    /// the location of the toml configuration file.
+    pub root: Utf8PathBuf,
+    /// Specifies the filename of the TOML configuration file (e.g., "Kodama.toml").
+    /// TODO: use it to implement config reloading in `serve`
+    #[allow(dead_code)]
+    pub config_file: String,
+    pub config: Config,
+    pub build_mode: BuildMode,
+}
+
+static ENVIRONMENT: OnceLock<Environment> = OnceLock::new();
+
+fn get_environment() -> &'static Environment {
+    ENVIRONMENT.get().expect("environment must be initialized")
+}
+
+fn get_config() -> &'static Config {
+    &get_environment().config
+}
+
+pub fn init_environment(toml_file: Utf8PathBuf, build_mode: BuildMode) -> eyre::Result<()> {
+    let toml_file = config_toml::find_config(toml_file)?;
+
+    let (root, file_name) =
+        path_utils::split_file_name(&toml_file).expect("path cannot be empty");
+    let toml = std::fs::read_to_string(&toml_file)?;
+
+    _ = ENVIRONMENT.set(Environment {
+        root: root.to_owned(),
+        config_file: file_name.to_owned(),
+        config: config_toml::parse_config(&toml)?,
+        build_mode,
+    });
+    Ok(())
+}
+
+#[derive(Debug, Copy, Clone, clap::ValueEnum, Default, Deserialize, Serialize)]
 pub enum FooterMode {
     #[default]
     #[serde(rename = "link")]
@@ -48,15 +92,6 @@ impl std::fmt::Display for FooterMode {
     }
 }
 
-/// Specifies the filename of the TOML configuration file (e.g., "Kodama.toml").
-pub static TOML: OnceLock<String> = OnceLock::new();
-
-/// Specifies the project root path.
-///
-/// Please note that this value should always be automatically derived from
-/// the location of the toml configuration file.
-pub static ROOT: OnceLock<Utf8PathBuf> = OnceLock::new();
-
 #[derive(Clone)]
 pub enum BuildMode {
     /// Build mode for the `kodama build` command.
@@ -65,10 +100,6 @@ pub enum BuildMode {
     /// Serve mode for the `kodama serve` command.
     Serve,
 }
-
-pub static BUILD_MODE: OnceLock<BuildMode> = OnceLock::new();
-
-pub static CONFIG_TOML: OnceLock<Config> = OnceLock::new();
 
 pub static CUSTOM_META_HTML: LazyLock<String> = LazyLock::new(|| {
     std::fs::read_to_string(root_dir().join("import-meta.html")).unwrap_or_default()
@@ -100,49 +131,49 @@ pub fn to_page_suffix(pretty_urls: bool) -> String {
     page_suffix.into()
 }
 
-pub fn root_dir() -> Utf8PathBuf {
-    ROOT.get().unwrap().clone()
+pub fn root_dir() -> &'static Utf8Path {
+    &get_environment().root
 }
 
 pub fn is_serve() -> bool {
-    matches!(BUILD_MODE.get().unwrap(), BuildMode::Serve)
+    matches!(get_environment().build_mode, BuildMode::Serve)
 }
 
 pub fn is_short_slug() -> bool {
-    CONFIG_TOML.get().unwrap().build.short_slug
+    get_config().build.short_slug
 }
 
-pub fn typst_root_dir() -> Utf8PathBuf {
-    CONFIG_TOML.get().unwrap().build.typst_root.clone().into()
+pub fn typst_root_dir() -> &'static Utf8Path {
+    Utf8Path::new(&get_config().build.typst_root)
 }
 
 pub fn trees_dir() -> Utf8PathBuf {
-    let trees = &CONFIG_TOML.get().unwrap().kodama.trees;
+    let trees = &get_environment().config.kodama.trees;
     root_dir().join(trees)
 }
 
 pub fn output_dir() -> Utf8PathBuf {
-    let output_dir = match BUILD_MODE.get().unwrap() {
-        BuildMode::Build => &CONFIG_TOML.get().unwrap().build.output,
-        BuildMode::Serve => &CONFIG_TOML.get().unwrap().serve.output,
+    let output_dir = match get_environment().build_mode {
+        BuildMode::Build => &get_config().build.output,
+        BuildMode::Serve => &get_config().serve.output,
     };
     root_dir().join(output_dir)
 }
 
-pub fn base_url() -> String {
-    CONFIG_TOML.get().unwrap().kodama.base_url.clone()
+pub fn base_url() -> &'static str {
+    &get_environment().config.kodama.base_url
 }
 
 pub fn footer_mode() -> FooterMode {
-    CONFIG_TOML.get().unwrap().build.footer_mode.clone()
+    get_config().build.footer_mode
 }
 
 pub fn inline_css() -> bool {
-    CONFIG_TOML.get().unwrap().build.inline_css
+    get_config().build.inline_css
 }
 
-pub fn editor_url() -> Option<String> {
-    CONFIG_TOML.get().unwrap().serve.edit.clone()
+pub fn editor_url() -> Option<&'static str> {
+    get_config().serve.edit.as_deref()
 }
 
 pub fn get_cache_dir() -> Utf8PathBuf {
@@ -150,7 +181,7 @@ pub fn get_cache_dir() -> Utf8PathBuf {
 }
 
 pub fn assets_dir() -> Utf8PathBuf {
-    let assets = &CONFIG_TOML.get().unwrap().kodama.assets;
+    let assets = &get_config().kodama.assets;
     root_dir().join(assets)
 }
 
@@ -166,7 +197,7 @@ pub fn full_url<P: AsRef<Utf8Path>>(path: P) -> String {
 }
 
 pub fn full_html_url(slug: Slug) -> String {
-    let pretty_urls = CONFIG_TOML.get().unwrap().build.pretty_urls;
+    let pretty_urls = get_config().build.pretty_urls;
     let page_suffix = to_page_suffix(pretty_urls);
     full_url(format!("{}{}", slug, page_suffix))
 }
@@ -185,7 +216,7 @@ pub fn create_parent_dirs<P: AsRef<Utf8Path>>(path: P) {
 }
 
 pub fn auto_create_dir_path<P: AsRef<Utf8Path>>(paths: Vec<P>) -> Utf8PathBuf {
-    let mut filepath: Utf8PathBuf = root_dir();
+    let mut filepath: Utf8PathBuf = root_dir().to_owned();
     for path in paths {
         filepath.push(path);
     }

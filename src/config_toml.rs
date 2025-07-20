@@ -5,7 +5,7 @@
 use camino::Utf8PathBuf;
 use serde::{Deserialize, Serialize};
 
-use crate::config::{self, FooterMode};
+use crate::config::FooterMode;
 
 pub const DEFAULT_CONFIG_PATH: &str = "./Kodama.toml";
 pub const DEFAULT_SOURCE_DIR: &str = "trees";
@@ -80,15 +80,8 @@ impl Default for Serve {
     }
 }
 
-fn parse_config(config: &str) -> eyre::Result<Config> {
-    let config: Config =
-        toml::from_str(config).map_err(|e| eyre::eyre!("failed to parse config file: {}", e))?;
-    Ok(config)
-}
-
-pub fn apply_config(toml_file: Utf8PathBuf) -> eyre::Result<()> {
-    // Try find toml file in the current directory or the parent directory.
-    let mut toml_file = toml_file;
+/// Try to find toml file in the current directory or the parent directory.
+pub fn find_config(mut toml_file: Utf8PathBuf) -> eyre::Result<Utf8PathBuf> {
     if !toml_file.exists() {
         let parent = toml_file.parent().unwrap().canonicalize_utf8()?;
         let parent = parent.parent().unwrap();
@@ -98,16 +91,13 @@ pub fn apply_config(toml_file: Utf8PathBuf) -> eyre::Result<()> {
             return Err(eyre::eyre!("cannot find configuration file: {}", toml_file));
         }
     }
+    Ok(toml_file)
+}
 
-    let root = toml_file
-        .parent()
-        .expect("path terminates in a root or prefix!");
-    let toml = std::fs::read_to_string(&toml_file)?;
-
-    let _ = config::ROOT.set(root.to_path_buf());
-    let _ = config::TOML.set(toml_file.file_name().unwrap().to_owned());
-    let _ = config::CONFIG_TOML.set(parse_config(&toml)?);
-    Ok(())
+pub fn parse_config(config: &str) -> eyre::Result<Config> {
+    let config: Config =
+        toml::from_str(config).map_err(|e| eyre::eyre!("failed to parse config file: {}", e))?;
+    Ok(config)
 }
 
 mod test {

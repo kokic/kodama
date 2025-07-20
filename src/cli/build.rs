@@ -4,7 +4,7 @@
 
 use std::fs;
 
-use camino::{Utf8Path, Utf8PathBuf};
+use camino::Utf8Path;
 use eyre::{eyre, WrapErr};
 
 use crate::{
@@ -21,14 +21,13 @@ pub struct BuildCommand {
     config: String,
 }
 
-/// This function invoked the [`config_toml::apply_config`] function to apply the configuration.
+/// This function invoked the [`config::init_environment`] function to initialize the environment]
 pub fn build(command: &BuildCommand) -> eyre::Result<()> {
-    build_with(command.config.clone(), BuildMode::Build)
+    build_with(&command.config, BuildMode::Build)
 }
 
-pub fn build_with(config: String, mode: BuildMode) -> eyre::Result<()> {
-    let _ = config::BUILD_MODE.set(mode);
-    config_toml::apply_config(Utf8PathBuf::from(config))?;
+pub fn build_with(config: &str, mode: BuildMode) -> eyre::Result<()> {
+    config::init_environment(config.into(), mode)?;
 
     if !config::inline_css() {
         export_css_files().wrap_err("failed to export CSS")?;

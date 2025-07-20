@@ -29,3 +29,23 @@ pub fn pretty_path(path: &Utf8Path) -> String {
     }
     segments.join("/")
 }
+
+pub fn split_file_name(path: &Utf8Path) -> Option<(&Utf8Path, &str)> {
+    let mut components = path.components();
+    let name = components.next_back();
+    let base = components.as_path();
+    Some((base, name?.as_str()))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_split_base() {
+        assert_eq!(split_file_name("a/b".into()), Some(("a".into(), "b")));
+        assert_eq!(split_file_name("a/b/c".into()), Some(("a/b".into(), "c")));
+        assert_eq!(split_file_name("/".into()), Some(("".into(), "/")));
+        assert_eq!(split_file_name("a".into()), Some(("".into(), "a")));
+    }
+}
