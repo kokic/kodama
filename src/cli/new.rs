@@ -6,7 +6,7 @@ use camino::{Utf8Path, Utf8PathBuf};
 use clap::Parser;
 use eyre::Context;
 
-use crate::{config, config_toml};
+use crate::{config, environment};
 
 #[derive(Parser)]
 pub struct NewCommandCli {
@@ -45,9 +45,9 @@ pub fn new_site(command: &NewSiteCommand) -> eyre::Result<()> {
     std::fs::create_dir_all(site_path).wrap_err("failed to create site directory")?;
     println!("Created new site at: {}", site_path);
 
-    let default_config_path = site_path.join(config_toml::DEFAULT_CONFIG_PATH);
-    let default_source_dir = site_path.join(config_toml::DEFAULT_SOURCE_DIR);
-    let default_assets_dir = site_path.join(config_toml::DEFAULT_ASSETS_DIR);
+    let default_config_path = site_path.join(config::DEFAULT_CONFIG_PATH);
+    let default_source_dir = site_path.join(config::DEFAULT_SOURCE_DIR);
+    let default_assets_dir = site_path.join(config::DEFAULT_ASSETS_DIR);
 
     // Create default config file in the new site directory
     new_config_inner(&default_config_path)?;
@@ -73,7 +73,7 @@ pub fn new_site(command: &NewSiteCommand) -> eyre::Result<()> {
 #[derive(clap::Args)]
 pub struct NewConfigCommand {
     /// Path to the new configuration file.
-    #[arg(default_value_t = config_toml::DEFAULT_CONFIG_PATH.into())]
+    #[arg(default_value_t = config::DEFAULT_CONFIG_PATH.into())]
     pub path: String,
 }
 
@@ -82,7 +82,7 @@ pub fn new_config(command: &NewConfigCommand) -> eyre::Result<()> {
 }
 
 fn new_config_inner(config_path: &Utf8PathBuf) -> Result<(), eyre::Error> {
-    let config = config_toml::Config::default();
+    let config = config::Config::default();
     let toml = toml::to_string(&config).wrap_err("failed to serialize default config")?;
 
     std::fs::write(config_path, toml).wrap_err("failed to create default config file")?;
@@ -110,7 +110,7 @@ pub struct NewPostCommand {
     pub template: String,
 
     /// Path to the configuration file (e.g., "kodama.toml").
-    #[arg(short, long, default_value_t = config_toml::DEFAULT_CONFIG_PATH.into())]
+    #[arg(short, long, default_value_t = config::DEFAULT_CONFIG_PATH.into())]
     pub config: String,
 }
 
@@ -125,7 +125,7 @@ pub fn new_section(command: &NewPostCommand) -> eyre::Result<()> {
 
 /// This function invoked the [`config::init_environment`] function to initialize the environment]
 fn new_section_inner(path: &Utf8Path, template: &str, config: &Utf8Path) -> eyre::Result<()> {
-    config::init_environment(config.to_owned(), config::BuildMode::Build)?;
+    environment::init_environment(config.to_owned(), environment::BuildMode::Build)?;
 
     let default_not_exists = template == DEFAULT_TEMPLATE && !std::fs::exists(template)?;
 
@@ -139,7 +139,7 @@ fn new_section_inner(path: &Utf8Path, template: &str, config: &Utf8Path) -> eyre
     let filestem = path.file_stem().unwrap();
     let content = content.replace("<FILE_NAME>", filestem);
 
-    let section_path = config::trees_dir().join(path);
+    let section_path = environment::trees_dir().join(path);
 
     if section_path.exists() {
         return Err(eyre::eyre!("already exists: {}", section_path));

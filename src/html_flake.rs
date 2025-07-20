@@ -5,8 +5,8 @@
 use std::ops::Not;
 
 use crate::{
-    config::{self, input_path},
     entry::{EntryMetaData, MetaData},
+    environment::{self, input_path},
     html_macro::html,
     slug::Slug,
 };
@@ -78,10 +78,10 @@ pub fn html_header(
     etc: Vec<String>,
 ) -> String {
     let slug_text = EntryMetaData::to_slug_text(slug.as_str());
-    let slug_url = config::full_html_url(*slug);
+    let slug_url = environment::full_html_url(*slug);
 
-    let editor_url = match config::editor_url() {
-        Some(prefix) if config::is_serve() => {
+    let editor_url = match environment::editor_url() {
+        Some(prefix) if environment::is_serve() => {
             // Bug: The suffix of slug is not necessarily `.md`,
             // perhaps we need to add an `ext` field for [`Slug`].
             let source_path = input_path(format!("{}.md", slug.as_str()))
@@ -114,7 +114,7 @@ pub fn catalog_item(
     taxon: &str,
     child_html: &str,
 ) -> String {
-    let slug_url = config::full_html_url(slug);
+    let slug_url = environment::full_html_url(slug);
     let title_text = format!("{} [{}]", page_title, slug);
     let onclick = format!(
         "window.location.href='#{}'",
@@ -240,10 +240,10 @@ pub fn html_doc(
 }
 
 pub fn html_css() -> String {
-    match config::inline_css() {
+    match environment::inline_css() {
         true => html!(style { (html_main_style()) (html_typst_style()) }),
         false => {
-            let base_url = config::base_url();
+            let base_url = environment::base_url();
             format!(
                 r#"<link rel="stylesheet" href="{}main.css">
 <link rel="stylesheet" href="{}typst.css">"#,
@@ -254,19 +254,19 @@ pub fn html_css() -> String {
 }
 
 pub fn html_import_meta() -> String {
-    config::CUSTOM_META_HTML.clone()
+    environment::CUSTOM_META_HTML.clone()
 }
 
 pub fn html_import_style() -> String {
-    config::CUSTOM_STYLE_HTML.clone()
+    environment::CUSTOM_STYLE_HTML.clone()
 }
 
 pub fn html_import_fonts() -> String {
-    config::CUSTOM_FONTS_HTML.clone()
+    environment::CUSTOM_FONTS_HTML.clone()
 }
 
 pub fn html_import_math() -> String {
-    config::CUSTOM_MATH_HTML.clone()
+    environment::CUSTOM_MATH_HTML.clone()
 }
 
 pub fn html_main_style() -> &'static str {

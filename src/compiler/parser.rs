@@ -9,8 +9,8 @@ use itertools::Itertools;
 use pulldown_cmark::Options;
 
 use crate::{
-    config::input_path,
     entry::HTMLMetaData,
+    environment::input_path,
     ordered_map::OrderedMap,
     process::{
         content::to_contents, embed_markdown::Embed, figure::Figure, footnote::Footnote,

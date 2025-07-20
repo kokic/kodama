@@ -7,12 +7,12 @@ use std::io::Write;
 use camino::Utf8Path;
 use notify::{Config, EventKind, RecommendedWatcher, RecursiveMode, Watcher};
 
-use crate::{cli::build::build_with, config::BuildMode, config_toml};
+use crate::{cli::build::build_with, config, environment::BuildMode};
 
 #[derive(clap::Args)]
 pub struct ServeCommand {
     /// Path to the configuration file (e.g., "kodama.toml").
-    #[arg(short, long, default_value_t = config_toml::DEFAULT_CONFIG_PATH.into())]
+    #[arg(short, long, default_value_t = config::DEFAULT_CONFIG_PATH.into())]
     config: String,
 }
 
@@ -30,7 +30,7 @@ pub fn serve(command: &ServeCommand) -> eyre::Result<()> {
 
     // TODO: custom server implementation from config file, default to miniserve.
     let mut serve = std::process::Command::new("miniserve")
-        .arg(crate::config::output_dir())
+        .arg(crate::environment::output_dir())
         .arg("--index")
         .arg("index.html")
         .arg("--pretty-urls")
@@ -58,7 +58,10 @@ pub fn serve(command: &ServeCommand) -> eyre::Result<()> {
     });
 
     watch_paths(
-        &vec![crate::config::trees_dir(), crate::config::assets_dir()],
+        &vec![
+            crate::environment::trees_dir(),
+            crate::environment::assets_dir(),
+        ],
         |_| serve_build(),
     )?;
 

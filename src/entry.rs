@@ -4,9 +4,8 @@
 
 use crate::{
     compiler::{section::HTMLContent, taxon::Taxon},
-    config,
-    config_toml::FooterMode,
-    html_flake,
+    config::FooterMode,
+    environment, html_flake,
     ordered_map::OrderedMap,
     slug::Slug,
 };
@@ -196,7 +195,7 @@ impl EntryMetaData {
             true => &slug[..slug.len() - "/index".len()],
             false => slug,
         };
-        if config::is_short_slug() {
+        if environment::is_short_slug() {
             let pos = slug_text.rfind("/").map_or(0, |n| n + 1);
             slug_text = &slug_text[pos..];
         }

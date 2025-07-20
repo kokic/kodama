@@ -8,7 +8,7 @@ use camino::Utf8PathBuf;
 use pulldown_cmark::{Event, Tag, TagEnd};
 
 use crate::{
-    config::{self, output_path},
+    environment::{self, output_path},
     html_flake::{html_figure, html_figure_code},
     path_utils,
     recorder::State,
@@ -149,7 +149,7 @@ impl<'e, E: Iterator<Item = Event<'e>>> Iterator for TypstImage<E> {
                         }
                         self.exit();
 
-                        let html = html_figure(&config::full_url(&svg_url), false, caption);
+                        let html = html_figure(&environment::full_url(&svg_url), false, caption);
                         return Some(Event::Html(html.into()));
                     }
                     State::ImageBlock => {
@@ -165,7 +165,7 @@ impl<'e, E: Iterator<Item = Event<'e>>> Iterator for TypstImage<E> {
                         }
                         self.exit();
 
-                        let html = html_figure(&config::full_url(&svg_url), true, caption);
+                        let html = html_figure(&environment::full_url(&svg_url), true, caption);
                         return Some(Event::Html(html.into()));
                     }
                     State::ImageCode => {
@@ -181,12 +181,13 @@ impl<'e, E: Iterator<Item = Event<'e>>> Iterator for TypstImage<E> {
                         }
                         self.exit();
 
-                        let root_dir = config::trees_dir();
+                        let root_dir = environment::trees_dir();
                         let full_path = root_dir.join(typst_url);
                         let code = fs::read_to_string(format!("{}.code", full_path))
                             .unwrap_or_else(|_| fs::read_to_string(full_path).unwrap());
 
-                        let html = html_figure_code(&config::full_url(&svg_url), caption, code);
+                        let html =
+                            html_figure_code(&environment::full_url(&svg_url), caption, code);
                         return Some(Event::Html(html.into()));
                     }
                     State::Shared => {

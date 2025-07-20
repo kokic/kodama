@@ -2,281 +2,168 @@
 // Released under the GPL-3.0 license as described in the file LICENSE.
 // Authors: Kokic (@kokic), Spore (@s-cerevisiae)
 
-use std::{
-    fs::{self, create_dir_all},
-    sync::{LazyLock, OnceLock},
-};
+use std::str::FromStr;
 
-use camino::{Utf8Path, Utf8PathBuf};
-use eyre::Context;
+use camino::Utf8PathBuf;
+use serde::{Deserialize, Serialize};
 
-use crate::{
-    config_toml::{self, Config, FooterMode},
-    path_utils,
-    slug::Slug,
-};
+pub const DEFAULT_CONFIG_PATH: &str = "./Kodama.toml";
+pub const DEFAULT_SOURCE_DIR: &str = "trees";
+pub const DEFAULT_ASSETS_DIR: &str = "assets";
 
-pub struct Environment {
-    /// Specifies the project root path.
-    ///
-    /// Please note that this value should always be automatically derived from
-    /// the location of the toml configuration file.
-    pub root: Utf8PathBuf,
-    /// Specifies the filename of the TOML configuration file (e.g., "Kodama.toml").
-    /// TODO: use it to implement config reloading in `serve`
-    #[allow(dead_code)]
-    pub config_file: String,
-    pub config: Config,
-    pub build_mode: BuildMode,
+#[derive(Deserialize, Debug, Default, Serialize)]
+pub struct Config {
+    #[serde(default)]
+    pub kodama: Kodama,
+
+    #[serde(default)]
+    pub build: Build,
+
+    #[serde(default)]
+    pub serve: Serve,
 }
 
-static ENVIRONMENT: OnceLock<Environment> = OnceLock::new();
-
-fn get_environment() -> &'static Environment {
-    ENVIRONMENT.get().expect("environment must be initialized")
+#[derive(Deserialize, Debug, Serialize)]
+#[serde(default, rename_all = "kebab-case")]
+pub struct Kodama {
+    pub trees: String,
+    pub assets: String,
+    pub base_url: String,
 }
 
-fn get_config() -> &'static Config {
-    &get_environment().config
-}
-
-pub fn init_environment(toml_file: Utf8PathBuf, build_mode: BuildMode) -> eyre::Result<()> {
-    let toml_file = config_toml::find_config(toml_file)?;
-
-    let (root, file_name) = path_utils::split_file_name(&toml_file).expect("path cannot be empty");
-    let toml = std::fs::read_to_string(&toml_file)?;
-
-    _ = ENVIRONMENT.set(Environment {
-        root: root.to_owned(),
-        config_file: file_name.to_owned(),
-        config: config_toml::parse_config(&toml)?,
-        build_mode,
-    });
-    Ok(())
-}
-
-#[derive(Clone)]
-pub enum BuildMode {
-    /// Build mode for the `kodama build` command.
-    Build,
-
-    /// Serve mode for the `kodama serve` command.
-    Serve,
-}
-
-pub static CUSTOM_META_HTML: LazyLock<String> = LazyLock::new(|| {
-    std::fs::read_to_string(root_dir().join("import-meta.html")).unwrap_or_default()
-});
-
-pub static CUSTOM_STYLE_HTML: LazyLock<String> = LazyLock::new(|| {
-    std::fs::read_to_string(root_dir().join("import-style.html")).unwrap_or_default()
-});
-
-pub static CUSTOM_FONTS_HTML: LazyLock<String> = LazyLock::new(|| {
-    fs::read_to_string(root_dir().join("import-fonts.html"))
-        .unwrap_or(include_str!("include/import-fonts.html").to_string())
-});
-
-pub static CUSTOM_MATH_HTML: LazyLock<String> = LazyLock::new(|| {
-    fs::read_to_string(root_dir().join("import-math.html"))
-        .unwrap_or(include_str!("include/import-math.html").to_string())
-});
-
-pub const CACHE_DIR_NAME: &str = ".cache";
-pub const HASH_DIR_NAME: &str = "hash";
-pub const ENTRY_DIR_NAME: &str = "entry";
-
-pub fn to_page_suffix(pretty_urls: bool) -> String {
-    let page_suffix = match pretty_urls {
-        true => "",
-        false => ".html",
-    };
-    page_suffix.into()
-}
-
-pub fn root_dir() -> &'static Utf8Path {
-    &get_environment().root
-}
-
-pub fn is_serve() -> bool {
-    matches!(get_environment().build_mode, BuildMode::Serve)
-}
-
-pub fn is_short_slug() -> bool {
-    get_config().build.short_slug
-}
-
-pub fn typst_root_dir() -> &'static Utf8Path {
-    Utf8Path::new(&get_config().build.typst_root)
-}
-
-pub fn trees_dir() -> Utf8PathBuf {
-    let trees = &get_environment().config.kodama.trees;
-    root_dir().join(trees)
-}
-
-pub fn output_dir() -> Utf8PathBuf {
-    let output_dir = match get_environment().build_mode {
-        BuildMode::Build => &get_config().build.output,
-        BuildMode::Serve => &get_config().serve.output,
-    };
-    root_dir().join(output_dir)
-}
-
-pub fn base_url() -> &'static str {
-    &get_environment().config.kodama.base_url
-}
-
-pub fn footer_mode() -> FooterMode {
-    get_config().build.footer_mode
-}
-
-pub fn inline_css() -> bool {
-    get_config().build.inline_css
-}
-
-pub fn editor_url() -> Option<&'static str> {
-    get_config().serve.edit.as_deref()
-}
-
-pub fn get_cache_dir() -> Utf8PathBuf {
-    root_dir().join(CACHE_DIR_NAME)
-}
-
-pub fn assets_dir() -> Utf8PathBuf {
-    let assets = &get_config().kodama.assets;
-    root_dir().join(assets)
-}
-
-/// URL keep posix style, so the type of return value is [`String`].
-pub fn full_url<P: AsRef<Utf8Path>>(path: P) -> String {
-    let path = path_utils::pretty_path(path.as_ref());
-    if let Some(stripped) = path.strip_prefix("/") {
-        return format!("{}{}", base_url(), stripped);
-    } else if let Some(stripped) = path.strip_prefix("./") {
-        return format!("{}{}", base_url(), stripped);
-    }
-    format!("{}{}", base_url(), path)
-}
-
-pub fn full_html_url(slug: Slug) -> String {
-    let pretty_urls = get_config().build.pretty_urls;
-    let page_suffix = to_page_suffix(pretty_urls);
-    full_url(format!("{}{}", slug, page_suffix))
-}
-
-pub fn input_path<P: AsRef<Utf8Path>>(path: P) -> Utf8PathBuf {
-    let mut filepath: Utf8PathBuf = trees_dir();
-    filepath.push(path);
-    filepath
-}
-
-pub fn create_parent_dirs<P: AsRef<Utf8Path>>(path: P) {
-    let parent_dir = path.as_ref().parent().unwrap();
-    if !parent_dir.exists() {
-        let _ = create_dir_all(parent_dir);
+impl Default for Kodama {
+    fn default() -> Self {
+        Self {
+            trees: DEFAULT_SOURCE_DIR.to_string(),
+            assets: DEFAULT_ASSETS_DIR.to_string(),
+            base_url: "/".to_string(),
+        }
     }
 }
 
-pub fn auto_create_dir_path<P: AsRef<Utf8Path>>(paths: Vec<P>) -> Utf8PathBuf {
-    let mut filepath: Utf8PathBuf = root_dir().to_owned();
-    for path in paths {
-        filepath.push(path);
+#[derive(Deserialize, Debug, Serialize)]
+#[serde(default, rename_all = "kebab-case")]
+pub struct Build {
+    pub typst_root: String,
+    pub short_slug: bool,
+    pub pretty_urls: bool,
+    pub footer_mode: FooterMode,
+    pub inline_css: bool,
+    pub output: String,
+}
+
+impl Default for Build {
+    fn default() -> Self {
+        Self {
+            typst_root: "./".to_string(),
+            short_slug: false,
+            pretty_urls: false,
+            footer_mode: FooterMode::default(),
+            inline_css: false,
+            output: "./publish".to_string(),
+        }
     }
-    create_parent_dirs(&filepath);
-    filepath
 }
 
-pub fn output_path<P: AsRef<Utf8Path>>(path: P) -> Utf8PathBuf {
-    auto_create_dir_path(vec![&output_dir(), path.as_ref()])
+#[derive(Deserialize, Debug, Serialize)]
+pub struct Serve {
+    pub edit: Option<String>,
+    pub output: String,
 }
 
-/// Return the output HTML path `<output_dir>/<path>.html` for the given section.
-/// e.g. `/path/to/index.md` will return `<output_dir>/path/to/index.html`.
-///
-/// If the directory does not exist, it will be created.
-#[allow(dead_code)]
-pub fn output_html_path<P: AsRef<Utf8Path>>(path: P) -> Utf8PathBuf {
-    let mut output_path = output_dir();
-    output_path.push(path);
-    output_path.set_extension("html");
-    create_parent_dirs(&output_path);
-    output_path
+#[derive(Debug, Copy, Clone, clap::ValueEnum, Default, Deserialize, Serialize)]
+pub enum FooterMode {
+    #[default]
+    #[serde(rename = "link")]
+    Link,
+
+    #[serde(rename = "embed")]
+    Embed,
 }
 
-pub fn hash_dir() -> Utf8PathBuf {
-    get_cache_dir().join(HASH_DIR_NAME)
-}
+#[derive(Debug)]
+pub struct ParseFooterModeError;
 
-/// Return the hash file path `<hash_dir>/<path>.hash` for the given file or directory.
-/// e.g. `/path/to/index.md` will return `<hash_dir>/path/to/index.md.hash`.
-///
-/// If the directory does not exist, it will be created.
-pub fn hash_file_path<P: AsRef<Utf8Path>>(path: P) -> Utf8PathBuf {
-    let mut hash_path = hash_dir();
-    hash_path.push(path);
-    hash_path.set_extension(format!("{}.hash", hash_path.extension().unwrap()));
-    create_parent_dirs(&hash_path);
-    hash_path
-}
+impl FromStr for FooterMode {
+    type Err = ParseFooterModeError;
 
-pub fn entry_dir() -> Utf8PathBuf {
-    get_cache_dir().join(ENTRY_DIR_NAME)
-}
-
-/// Return the hash file path `<hash_dir>/<path>.hash` for the given file or directory.
-/// e.g. `/path/to/index.md` will return `<entry_dir>/path/to/index.md.entry`.
-///
-/// If the directory does not exist, it will be created.
-pub fn entry_file_path<P: AsRef<Utf8Path>>(path: P) -> Utf8PathBuf {
-    let mut entry_path = entry_dir();
-    entry_path.push(path);
-    entry_path.set_extension(format!("{}.entry", entry_path.extension().unwrap()));
-    create_parent_dirs(&entry_path);
-    entry_path
-}
-
-/// Return is file modified i.e. is hash updated.
-pub fn is_hash_updated<P: AsRef<Utf8Path>>(content: &str, hash_path: P) -> (bool, u64) {
-    let mut hasher = std::hash::DefaultHasher::new();
-    std::hash::Hash::hash(&content, &mut hasher);
-    let current_hash = std::hash::Hasher::finish(&hasher);
-
-    let history_hash = std::fs::read_to_string(hash_path.as_ref())
-        .map(|s| s.parse::<u64>().expect("Invalid hash"))
-        .unwrap_or(0); // no file: 0
-
-    (current_hash != history_hash, current_hash)
-}
-
-/// Checks whether the file has been modified by comparing its current hash with the stored hash.
-/// If the file is modified, updates the stored hash to reflect the latest state.
-pub fn verify_and_file_hash<P: AsRef<Utf8Path>>(relative_path: P) -> eyre::Result<bool> {
-    let root_dir = trees_dir();
-    let full_path = root_dir.join(&relative_path);
-    let hash_path = hash_file_path(&relative_path);
-
-    let content = std::fs::read_to_string(&full_path)
-        .wrap_err_with(|| eyre::eyre!("failed to read file `{}`", full_path))?;
-    let (is_modified, current_hash) = is_hash_updated(&content, &hash_path);
-    if is_modified {
-        std::fs::write(&hash_path, current_hash.to_string())
-            .wrap_err_with(|| eyre::eyre!("failed to write file `{}`", hash_path))?;
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "link" => Ok(FooterMode::Link),
+            "embed" => Ok(FooterMode::Embed),
+            _ => Err(ParseFooterModeError),
+        }
     }
-    Ok(is_modified)
 }
 
-/// Checks whether the content has been modified by comparing its current hash with the stored hash.
-/// If the content is modified, updates the stored hash to reflect the latest state.
-pub fn verify_update_hash<P: AsRef<Utf8Path>>(
-    path: P,
-    content: &str,
-) -> Result<bool, std::io::Error> {
-    let hash_path = hash_file_path(path.as_ref());
-    let (is_modified, current_hash) = is_hash_updated(content, &hash_path);
-    if is_modified {
-        std::fs::write(&hash_path, current_hash.to_string())?;
+impl std::fmt::Display for FooterMode {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            FooterMode::Link => write!(f, "link"),
+            FooterMode::Embed => write!(f, "embed"),
+        }
+    }
+}
+
+impl Default for Serve {
+    fn default() -> Self {
+        Self {
+            edit: Some("vscode://file/".to_string()),
+            output: "./.cache/publish".to_string(),
+        }
+    }
+}
+
+/// Try to find toml file in the current directory or the parent directory.
+pub fn find_config(mut toml_file: Utf8PathBuf) -> eyre::Result<Utf8PathBuf> {
+    if !toml_file.exists() {
+        let parent = toml_file.parent().unwrap().canonicalize_utf8()?;
+        let parent = parent.parent().unwrap();
+
+        toml_file = parent.join(DEFAULT_CONFIG_PATH);
+        if !toml_file.exists() {
+            return Err(eyre::eyre!("cannot find configuration file: {}", toml_file));
+        }
+    }
+    Ok(toml_file)
+}
+
+pub fn parse_config(config: &str) -> eyre::Result<Config> {
+    let config: Config =
+        toml::from_str(config).map_err(|e| eyre::eyre!("failed to parse config file: {}", e))?;
+    Ok(config)
+}
+
+mod test {
+
+    #[test]
+    fn test_empty_toml() {
+        let config = crate::config::parse_config("").unwrap();
+        assert_eq!(config.kodama.trees, "trees");
+        assert_eq!(config.kodama.assets, "assets");
+        assert_eq!(config.kodama.base_url, "/");
+        assert!(!config.build.short_slug);
+        assert!(!config.build.pretty_urls);
+        assert!(!config.build.inline_css);
+        assert_eq!(config.serve.edit, None);
     }
 
-    Ok(is_modified)
+    #[test]
+    fn test_simple_toml() {
+        let config = crate::config::parse_config(
+            r#"
+            [kodama]
+            trees = ["source"]
+            assets = ["assets", "static"]
+            url = "https://example.com/"
+
+            [build]
+            short-slug = true
+            inline-css = true
+            "#,
+        )
+        .unwrap();
+
+        println!("{:#?}", config)
+    }
 }

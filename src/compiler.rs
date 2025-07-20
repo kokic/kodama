@@ -23,7 +23,7 @@ use walkdir::WalkDir;
 use writer::Writer;
 
 use crate::{
-    config::{self, verify_and_file_hash},
+    environment::{self, verify_and_file_hash},
     path_utils,
     slug::{Ext, Slug},
 };
@@ -34,13 +34,13 @@ pub fn compile(workspace: Workspace) -> eyre::Result<()> {
     for (&slug, &ext) in &workspace.slug_exts {
         let relative_path = format!("{}.{}", slug, ext);
 
-        let is_modified = match config::is_serve() {
+        let is_modified = match environment::is_serve() {
             true => verify_and_file_hash(&relative_path)
                 .wrap_err_with(|| eyre!("failed to verify hash of `{relative_path}`"))?,
             false => true,
         };
 
-        let entry_path = config::entry_file_path(&relative_path);
+        let entry_path = environment::entry_file_path(&relative_path);
         let shallow = if !is_modified && entry_path.exists() {
             let entry_file = BufReader::new(
                 File::open(&entry_path)
@@ -53,7 +53,7 @@ pub fn compile(workspace: Workspace) -> eyre::Result<()> {
             let shallow = match ext {
                 Ext::Markdown => parse_markdown(slug)
                     .wrap_err_with(|| eyre!("failed to parse markdown file `{slug}.{ext}`"))?,
-                Ext::Typst => parse_typst(slug, config::typst_root_dir())
+                Ext::Typst => parse_typst(slug, environment::typst_root_dir())
                     .wrap_err_with(|| eyre!("failed to parse typst file `{slug}.{ext}`"))?,
             };
             let serialized = serde_json::to_string(&shallow).unwrap();

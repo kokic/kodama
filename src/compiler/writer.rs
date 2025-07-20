@@ -6,9 +6,9 @@ use std::{collections::HashSet, ops::Not};
 
 use crate::{
     compiler::counter::Counter,
-    config::{self, verify_update_hash},
-    config_toml::FooterMode,
+    config::FooterMode,
     entry::MetaData,
+    environment::{self, verify_update_hash},
     html_flake,
     slug::Slug,
 };
@@ -26,9 +26,9 @@ impl Writer {
     pub fn write(section: &Section, state: &CompileState) {
         let (html, page_title) = Writer::html_doc(section, state);
         let html_url = format!("{}.html", section.slug());
-        let filepath = crate::config::output_path(&html_url);
+        let filepath = crate::environment::output_path(&html_url);
 
-        let relative_path = config::output_dir().join(&html_url);
+        let relative_path = environment::output_dir().join(&html_url);
         if verify_update_hash(&relative_path, &html).expect("failed to verify update hash") {
             match std::fs::write(&filepath, html) {
                 Ok(()) => println!("[build] {:?} {}", page_title, filepath),
@@ -103,7 +103,7 @@ impl Writer {
             .get(&parent)
             .unwrap_or_else(|| panic!("missing slug `{:?}`", parent));
 
-        let href = config::full_html_url(parent);
+        let href = environment::full_html_url(parent);
         let title = section.metadata.title().map_or("", |s| s);
         let page_title = section.metadata.page_title().map_or("", |s| s);
         html_flake::html_header_nav(title, page_title, &href)
@@ -170,7 +170,7 @@ impl Writer {
     }
 
     fn footer_section_to_html(page_option: Option<FooterMode>, section: &Section) -> String {
-        let footer_mode = page_option.clone().unwrap_or(config::footer_mode());
+        let footer_mode = page_option.clone().unwrap_or(environment::footer_mode());
 
         match footer_mode {
             FooterMode::Link => {

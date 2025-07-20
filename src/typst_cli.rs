@@ -7,7 +7,7 @@ use std::{fs, io::Write, process::Command};
 use camino::Utf8Path;
 
 use crate::{
-    config::{self, verify_and_file_hash},
+    environment::{self, verify_and_file_hash},
     html_flake, path_utils,
 };
 
@@ -22,7 +22,7 @@ pub fn write_to_inline_html<P: AsRef<Utf8Path>>(
         return Ok(existed_html);
     }
 
-    let root_dir = config::trees_dir();
+    let root_dir = environment::trees_dir();
     let html = to_html_string(typst_path.as_ref(), &root_dir)?;
     let html_body = html_to_body_content(&html);
 
@@ -99,7 +99,7 @@ fn to_html_string<P: AsRef<Utf8Path>>(rel_path: P, root_dir: P) -> eyre::Result<
 }
 
 fn source_to_svg(src: &str) -> eyre::Result<String> {
-    let root_dir = config::trees_dir();
+    let root_dir = environment::trees_dir();
 
     let mut typst = Command::new("typst")
         .arg("c")
@@ -137,7 +137,7 @@ pub fn write_svg<P: AsRef<Utf8Path>>(typst_path: P, svg_path: P) -> eyre::Result
         return Ok(());
     }
 
-    let root_dir = config::trees_dir();
+    let root_dir = environment::trees_dir();
     let full_path = root_dir.join(typst_path);
     let output = Command::new("typst")
         .arg("c")
