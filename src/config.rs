@@ -10,6 +10,7 @@ use serde::{Deserialize, Serialize};
 pub const DEFAULT_CONFIG_PATH: &str = "./Kodama.toml";
 pub const DEFAULT_SOURCE_DIR: &str = "trees";
 pub const DEFAULT_ASSETS_DIR: &str = "assets";
+pub const DEFAULT_BASE_URL: &str = "/";
 
 #[derive(Deserialize, Debug, Default, Serialize)]
 pub struct Config {
@@ -36,7 +37,7 @@ impl Default for Kodama {
         Self {
             trees: DEFAULT_SOURCE_DIR.to_string(),
             assets: DEFAULT_ASSETS_DIR.to_string(),
-            base_url: "/".to_string(),
+            base_url: DEFAULT_BASE_URL.to_string(),
         }
     }
 }
@@ -138,24 +139,28 @@ mod test {
 
     #[test]
     fn test_empty_toml() {
+        let serve = crate::config::Serve::default();
         let config = crate::config::parse_config("").unwrap();
+
         assert_eq!(config.kodama.trees, "trees");
         assert_eq!(config.kodama.assets, "assets");
         assert_eq!(config.kodama.base_url, "/");
         assert!(!config.build.short_slug);
         assert!(!config.build.pretty_urls);
         assert!(!config.build.inline_css);
-        assert_eq!(config.serve.edit, None);
+        assert_eq!(config.serve.edit, serve.edit);
+        assert_eq!(config.serve.output, serve.output);
     }
 
     #[test]
     fn test_simple_toml() {
+        let serve = crate::config::Serve::default();
         let config = crate::config::parse_config(
             r#"
             [kodama]
-            trees = ["source"]
-            assets = ["assets", "static"]
-            url = "https://example.com/"
+            trees = "source"
+            assets = "assets"
+            base-url = "https://example.com/"
 
             [build]
             short-slug = true
@@ -164,6 +169,12 @@ mod test {
         )
         .unwrap();
 
-        println!("{:#?}", config)
+        assert_eq!(config.kodama.trees, "source");
+        assert_eq!(config.kodama.assets, "assets");
+        assert_eq!(config.kodama.base_url, "https://example.com/");
+        assert!(config.build.short_slug);
+        assert!(config.build.inline_css);
+        assert_eq!(config.serve.edit, serve.edit);
+        assert_eq!(config.serve.output, serve.output);
     }
 }

@@ -11,7 +11,7 @@ use camino::{Utf8Path, Utf8PathBuf};
 use eyre::Context;
 
 use crate::{
-    config::{self, Config, FooterMode},
+    config::{self, Config, FooterMode, DEFAULT_BASE_URL},
     path_utils,
     slug::Slug,
 };
@@ -124,7 +124,11 @@ pub fn output_dir() -> Utf8PathBuf {
 }
 
 pub fn base_url() -> &'static str {
-    &get_environment().config.kodama.base_url
+    let env = get_environment();
+    match env.build_mode {
+        BuildMode::Build => &env.config.kodama.base_url,
+        BuildMode::Serve => DEFAULT_BASE_URL,
+    }
 }
 
 pub fn footer_mode() -> FooterMode {
