@@ -122,7 +122,7 @@ impl Writer {
             .iter()
             .map(|slug| {
                 let section = state.compiled().get(slug).unwrap();
-                Writer::footer_section_to_html(page_option.clone(), section)
+                Writer::footer_section_to_html(page_option, section)
             })
             .reduce(|s, t| s + &t)
             .map(|s| html_flake::html_footer_section("References", &s))
@@ -137,7 +137,7 @@ impl Writer {
                     .copied()
                     .map(|slug| {
                         let section = state.compiled().get(&slug).unwrap();
-                        Writer::footer_section_to_html(page_option.clone(), section)
+                        Writer::footer_section_to_html(page_option, section)
                     })
                     .reduce(|s, t| s + &t)
                     .map(|s| html_flake::html_footer_section("Backlinks", &s))
@@ -170,7 +170,7 @@ impl Writer {
     }
 
     fn footer_section_to_html(page_option: Option<FooterMode>, section: &Section) -> String {
-        let footer_mode = page_option.clone().unwrap_or(environment::footer_mode());
+        let footer_mode = page_option.unwrap_or(environment::footer_mode());
 
         match footer_mode {
             FooterMode::Link => {
@@ -186,7 +186,7 @@ impl Writer {
                     true => section
                         .children
                         .iter()
-                        .map(|c| Writer::footer_content_to_html(page_option.clone(), c))
+                        .map(|c| Writer::footer_content_to_html(page_option, c))
                         .reduce(|s, t| s + &t)
                         .unwrap(),
                 };

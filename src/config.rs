@@ -70,6 +70,7 @@ impl Default for Build {
 pub struct Serve {
     pub edit: Option<String>,
     pub output: String,
+    pub command: Vec<String>,
 }
 
 #[derive(Debug, Copy, Clone, clap::ValueEnum, Default, Deserialize, Serialize)]
@@ -111,6 +112,16 @@ impl Default for Serve {
         Self {
             edit: Some("vscode://file/".to_string()),
             output: "./.cache/publish".to_string(),
+            command: [
+                "miniserve",
+                "$output",
+                "--index",
+                "index.html",
+                "--pretty-urls",
+            ]
+            .iter()
+            .map(|s| s.to_string())
+            .collect(),
         }
     }
 }

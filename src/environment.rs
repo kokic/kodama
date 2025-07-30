@@ -143,6 +143,10 @@ pub fn editor_url() -> Option<&'static str> {
     get_config().serve.edit.as_deref()
 }
 
+pub fn serve_command() -> Vec<String> {
+    get_config().serve.command.clone()
+}
+
 pub fn get_cache_dir() -> Utf8PathBuf {
     root_dir().join(CACHE_DIR_NAME)
 }

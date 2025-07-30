@@ -88,7 +88,7 @@ pub fn html_header(
                 .canonicalize()
                 .unwrap();
             let source_url = url::Url::from_file_path(source_path).unwrap();
-            let base = url::Url::parse(&prefix).unwrap();
+            let base = url::Url::parse(prefix).unwrap();
             let editor_url = base.join(source_url.path()).unwrap();
             html!(a class="slug" href={editor_url.to_string()} { "[edit]" })
         }

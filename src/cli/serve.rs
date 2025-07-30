@@ -4,10 +4,10 @@
 
 use std::io::Write;
 
-use camino::Utf8Path;
+use camino::{Utf8Path, Utf8PathBuf};
 use notify::{Config, EventKind, RecommendedWatcher, RecursiveMode, Watcher};
 
-use crate::{cli::build::build_with, config, environment::BuildMode};
+use crate::{cli::build::build_with, config, environment::{self, BuildMode}};
 
 #[derive(clap::Args)]
 pub struct ServeCommand {
@@ -28,12 +28,7 @@ pub fn serve(command: &ServeCommand) -> eyre::Result<()> {
     print!("\x1B[2J\x1B[H");
     std::io::stdout().flush()?;
 
-    // TODO: custom server implementation from config file, default to miniserve.
-    let mut serve = std::process::Command::new("miniserve")
-        .arg(crate::environment::output_dir())
-        .arg("--index")
-        .arg("index.html")
-        .arg("--pretty-urls")
+    let mut serve = parse_command(&environment::serve_command(), crate::environment::output_dir())?
         .stdout(std::process::Stdio::piped())
         .stderr(std::process::Stdio::piped())
         .spawn()?;
@@ -69,6 +64,18 @@ pub fn serve(command: &ServeCommand) -> eyre::Result<()> {
     let _ = serve.kill();
 
     Ok(())
+}
+
+fn parse_command(command: &[String], output: Utf8PathBuf) -> eyre::Result<std::process::Command> {
+    let mut serve = std::process::Command::new(&command[0]);
+    for arg in &command[1..] {
+        if arg == "<output>" {
+            serve.arg(&output);
+            continue;
+        }
+        serve.arg(arg);
+    }
+    Ok(serve)
 }
 
 /// from: https://github.com/notify-rs/notify/blob/main/examples/monitor_raw.rs#L18
