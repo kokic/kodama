@@ -2,29 +2,34 @@
 // Released under the GPL-3.0 license as described in the file LICENSE.
 // Authors: Kokic (@kokic), Spore (@s-cerevisiae)
 
-use std::{fs, io::Write, path::Path, process::Command};
+use std::{fs, io::Write, process::Command};
+
+use camino::Utf8Path;
 
 use crate::{
-    config::{self, verify_and_file_hash},
-    html_flake,
+    environment::{self, verify_and_file_hash},
+    html_flake, path_utils,
 };
 
-pub fn write_to_inline_html<P: AsRef<Path>>(typst_path: P, html_path: P) -> eyre::Result<String> {
-    if !verify_and_file_hash(typst_path.as_ref())? && Path::new(html_path.as_ref()).exists() {
-        let existed_html = fs::read_to_string(html_path)?;
+pub fn write_to_inline_html<P: AsRef<Utf8Path>>(
+    typst_path: P,
+    html_path: P,
+) -> eyre::Result<String> {
+    if !verify_and_file_hash(typst_path.as_ref())? && html_path.as_ref().exists() {
+        let existed_html = fs::read_to_string(html_path.as_ref())?;
         let existed_html = html_to_body_content(&existed_html);
-        println!("Skip: {}", crate::slug::pretty_path(typst_path.as_ref()));
+        println!("Skip: {}", path_utils::pretty_path(typst_path.as_ref()));
         return Ok(existed_html);
     }
 
-    let root_dir = config::trees_dir();
+    let root_dir = environment::trees_dir();
     let html = to_html_string(typst_path.as_ref(), &root_dir)?;
     let html_body = html_to_body_content(&html);
 
-    fs::write(&html_path, html)?;
+    fs::write(html_path.as_ref(), html)?;
     println!(
         "Compiled to HTML: {}",
-        crate::slug::pretty_path(html_path.as_ref())
+        path_utils::pretty_path(html_path.as_ref())
     );
 
     Ok(html_body)
@@ -66,7 +71,7 @@ pub fn file_to_html(rel_path: &str, root_dir: &str) -> eyre::Result<String> {
     to_html_string(rel_path, root_dir).map(|s| html_to_body_content(&s))
 }
 
-fn to_html_string<P: AsRef<Path>>(rel_path: P, root_dir: P) -> eyre::Result<String> {
+fn to_html_string<P: AsRef<Utf8Path>>(rel_path: P, root_dir: P) -> eyre::Result<String> {
     let root_dir = root_dir.as_ref();
     let rel_path = rel_path.as_ref();
     let full_path = root_dir.join(rel_path);
@@ -75,8 +80,8 @@ fn to_html_string<P: AsRef<Path>>(rel_path: P, root_dir: P) -> eyre::Result<Stri
         .arg("c")
         .arg("-f=html")
         .arg("--features=html")
-        .arg(format!("--root={}", root_dir.to_string_lossy()))
-        .args(["--input", &format!("path={}", rel_path.to_string_lossy())])
+        .arg(format!("--root={}", root_dir))
+        .args(["--input", &format!("path={}", rel_path)])
         .args(["--input", &format!("random={}", fastrand::i64(0..))])
         .arg(full_path)
         .arg("-")
@@ -88,22 +93,18 @@ fn to_html_string<P: AsRef<Path>>(rel_path: P, root_dir: P) -> eyre::Result<Stri
         stdout.to_string()
     } else {
         let stderr = String::from_utf8_lossy(&output.stderr);
-        failed_in_file(
-            concat!(file!(), '#', line!()),
-            rel_path.to_str().unwrap(),
-            stderr,
-        );
+        failed_in_file(concat!(file!(), '#', line!()), rel_path.as_str(), stderr);
         String::new()
     })
 }
 
 fn source_to_svg(src: &str) -> eyre::Result<String> {
-    let root_dir = config::trees_dir();
+    let root_dir = environment::trees_dir();
 
     let mut typst = Command::new("typst")
         .arg("c")
         .arg("-f=svg")
-        .arg(format!("--root={}", root_dir.to_string_lossy()))
+        .arg(format!("--root={}", root_dir))
         .arg("-")
         .arg("-")
         .stdin(std::process::Stdio::piped())
@@ -127,21 +128,21 @@ fn source_to_svg(src: &str) -> eyre::Result<String> {
     })
 }
 
-pub fn write_svg<P: AsRef<Path>>(typst_path: P, svg_path: P) -> eyre::Result<()> {
+pub fn write_svg<P: AsRef<Utf8Path>>(typst_path: P, svg_path: P) -> eyre::Result<()> {
     let typst_path = typst_path.as_ref();
     let svg_path = svg_path.as_ref();
 
     if !verify_and_file_hash(typst_path)? && svg_path.exists() {
-        println!("Skip: {}", crate::slug::pretty_path(typst_path));
+        println!("Skip: {}", path_utils::pretty_path(typst_path));
         return Ok(());
     }
 
-    let root_dir = config::trees_dir();
+    let root_dir = environment::trees_dir();
     let full_path = root_dir.join(typst_path);
     let output = Command::new("typst")
         .arg("c")
         .arg("-f=svg")
-        .arg(format!("--root={}", root_dir.to_string_lossy()))
+        .arg(format!("--root={}", root_dir))
         .arg(&full_path)
         .arg(svg_path)
         .output()?;
@@ -149,15 +150,11 @@ pub fn write_svg<P: AsRef<Path>>(typst_path: P, svg_path: P) -> eyre::Result<()>
     if output.status.success() {
         println!(
             "Compiled to SVG: {}",
-            crate::slug::pretty_path(Path::new(svg_path))
+            path_utils::pretty_path(Utf8Path::new(svg_path))
         );
     } else {
         let stderr = String::from_utf8_lossy(&output.stderr);
-        failed_in_file(
-            concat!(file!(), '#', line!()),
-            full_path.to_str().unwrap(),
-            stderr,
-        );
+        failed_in_file(concat!(file!(), '#', line!()), full_path.as_str(), stderr);
     }
     Ok(())
 }

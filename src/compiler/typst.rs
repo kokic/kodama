@@ -2,6 +2,7 @@
 // Released under the GPL-3.0 license as described in the file LICENSE.
 // Authors: Alias Qli (@AliasQli), Spore (@s-cerevisiae), Kokic (@kokic)
 
+use camino::Utf8Path;
 use eyre::{eyre, WrapErr};
 
 use super::html_parser::{HTMLParser, HTMLTagKind};
@@ -14,7 +15,6 @@ use crate::process::embed_markdown;
 use crate::slug::Slug;
 use crate::typst_cli;
 use std::borrow::Cow;
-use std::path::Path;
 use std::str;
 
 fn parse_bool(m: Option<&Cow<'_, str>>, def: bool) -> bool {
@@ -95,8 +95,8 @@ fn parse_typst_html(
     Ok(builder.build())
 }
 
-pub fn parse_typst<P: AsRef<Path>>(slug: Slug, root_dir: P) -> eyre::Result<ShallowSection> {
-    let typst_root_dir = root_dir.as_ref().to_string_lossy();
+pub fn parse_typst<P: AsRef<Utf8Path>>(slug: Slug, root_dir: P) -> eyre::Result<ShallowSection> {
+    let typst_root_dir = root_dir.as_ref();
     let relative_path = format!("{}.typst", slug);
     let html_str = typst_cli::file_to_html(&relative_path, typst_root_dir.as_ref())
         .wrap_err_with(|| eyre!("failed to compile typst file `{relative_path}` to html"))?;

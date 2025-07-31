@@ -4,13 +4,12 @@
 
 use crate::{
     compiler::{section::HTMLContent, taxon::Taxon},
-    config::{self, FooterMode},
-    html_flake,
+    config::FooterMode,
+    environment, html_flake,
     ordered_map::OrderedMap,
     slug::Slug,
 };
 use serde::{Deserialize, Serialize};
-use std::str::FromStr;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct HTMLMetaData(pub OrderedMap<String, HTMLContent>);
@@ -196,7 +195,7 @@ impl EntryMetaData {
             true => &slug[..slug.len() - "/index".len()],
             false => slug,
         };
-        if config::is_short_slug() {
+        if environment::is_short_slug() {
             let pos = slug_text.rfind("/").map_or(0, |n| n + 1);
             slug_text = &slug_text[pos..];
         }
@@ -209,7 +208,8 @@ impl EntryMetaData {
 
     pub fn footer_mode(&self) -> Option<FooterMode> {
         self.get_str(KEY_FOOTER_MODE).map(|s| {
-            FooterMode::from_str(s).expect("footer-mode must be either `embed` or `link`.")
+            s.parse()
+                .expect("footer-mode must be either `embed` or `link`.")
         })
     }
 }

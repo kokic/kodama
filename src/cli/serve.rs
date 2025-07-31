@@ -1,24 +1,25 @@
 // Copyright (c) 2025 Kodama Project. All rights reserved.
 // Released under the GPL-3.0 license as described in the file LICENSE.
-// Authors: Kokic (@kokic)
+// Authors: Kokic (@kokic), Spore (@s-cerevisiae)
 
-use std::{io::Write, path::Path};
+use std::io::Write;
 
+use camino::{Utf8Path, Utf8PathBuf};
 use notify::{Config, EventKind, RecommendedWatcher, RecursiveMode, Watcher};
 
-use crate::{cli::build::build_with, config::BuildMode, config_toml};
+use crate::{cli::build::build_with, config, environment::{self, BuildMode}};
 
 #[derive(clap::Args)]
 pub struct ServeCommand {
     /// Path to the configuration file (e.g., "kodama.toml").
-    #[arg(short, long, default_value_t = config_toml::DEFAULT_CONFIG_PATH.into())]
+    #[arg(short, long, default_value_t = config::DEFAULT_CONFIG_PATH.into())]
     config: String,
 }
 
-/// This function invoked the [`config_toml::apply_config`] function to apply the configuration.
+/// This function invoked the [`config::init_environment`] function to initialize the environment]
 pub fn serve(command: &ServeCommand) -> eyre::Result<()> {
     let serve_build = || -> eyre::Result<()> {
-        build_with(command.config.clone(), BuildMode::Serve)?;
+        build_with(&command.config, BuildMode::Serve)?;
         Ok(())
     };
 
@@ -27,12 +28,7 @@ pub fn serve(command: &ServeCommand) -> eyre::Result<()> {
     print!("\x1B[2J\x1B[H");
     std::io::stdout().flush()?;
 
-    // TODO: custom server implementation from config file, default to miniserve.
-    let mut serve = std::process::Command::new("miniserve")
-        .arg(crate::config::output_dir())
-        .arg("--index")
-        .arg("index.html")
-        .arg("--pretty-urls")
+    let mut serve = parse_command(&environment::serve_command(), crate::environment::output_dir())?
         .stdout(std::process::Stdio::piped())
         .stderr(std::process::Stdio::piped())
         .spawn()?;
@@ -57,7 +53,10 @@ pub fn serve(command: &ServeCommand) -> eyre::Result<()> {
     });
 
     watch_paths(
-        &vec![crate::config::trees_dir(), crate::config::assets_dir()],
+        &vec![
+            crate::environment::trees_dir(),
+            crate::environment::assets_dir(),
+        ],
         |_| serve_build(),
     )?;
 
@@ -67,10 +66,22 @@ pub fn serve(command: &ServeCommand) -> eyre::Result<()> {
     Ok(())
 }
 
+fn parse_command(command: &[String], output: Utf8PathBuf) -> eyre::Result<std::process::Command> {
+    let mut serve = std::process::Command::new(&command[0]);
+    for arg in &command[1..] {
+        if arg == "<output>" {
+            serve.arg(&output);
+            continue;
+        }
+        serve.arg(arg);
+    }
+    Ok(serve)
+}
+
 /// from: https://github.com/notify-rs/notify/blob/main/examples/monitor_raw.rs#L18
-fn watch_paths<P: AsRef<Path>, F>(watched_paths: &Vec<P>, action: F) -> eyre::Result<()>
+fn watch_paths<P: AsRef<Utf8Path>, F>(watched_paths: &Vec<P>, action: F) -> eyre::Result<()>
 where
-    F: Fn(&Path) -> eyre::Result<()>,
+    F: Fn(&Utf8Path) -> eyre::Result<()>,
 {
     let (tx, rx) = std::sync::mpsc::channel();
 
@@ -87,13 +98,13 @@ where
         if !watched_path.exists() {
             eprintln!(
                 "[watch] Warning: Path \"{}\" does not exist, skipping.",
-                watched_path.to_string_lossy()
+                watched_path
             );
             continue;
         }
 
-        watcher.watch(watched_path, RecursiveMode::Recursive)?;
-        print!("\"{}\"  ", watched_path.to_string_lossy());
+        watcher.watch(watched_path.as_std_path(), RecursiveMode::Recursive)?;
+        print!("\"{}\"  ", watched_path);
     }
     println!("\n\nPress Ctrl+C to stop watching.\n");
 
@@ -107,7 +118,9 @@ where
                     for path in event.paths {
                         println!("[watch] Change: {path:?}");
                         std::io::stdout().flush()?;
-                        action(&path)?;
+                        if let Ok(p) = path.as_path().try_into() {
+                            action(p)?;
+                        }
                     }
                 }
             }

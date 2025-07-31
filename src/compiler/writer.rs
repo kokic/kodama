@@ -6,8 +6,9 @@ use std::{collections::HashSet, ops::Not};
 
 use crate::{
     compiler::counter::Counter,
-    config::{self, verify_update_hash, FooterMode},
+    config::FooterMode,
     entry::MetaData,
+    environment::{self, verify_update_hash},
     html_flake,
     slug::Slug,
 };
@@ -25,12 +26,12 @@ impl Writer {
     pub fn write(section: &Section, state: &CompileState) {
         let (html, page_title) = Writer::html_doc(section, state);
         let html_url = format!("{}.html", section.slug());
-        let filepath = crate::config::output_path(&html_url);
+        let filepath = crate::environment::output_path(&html_url);
 
-        let relative_path = config::output_dir().join(&html_url);
+        let relative_path = environment::output_dir().join(&html_url);
         if verify_update_hash(&relative_path, &html).expect("failed to verify update hash") {
             match std::fs::write(&filepath, html) {
-                Ok(()) => println!("[build] {:?} {}", page_title, filepath.display()), 
+                Ok(()) => println!("[build] {:?} {}", page_title, filepath),
                 Err(err) => eprintln!("{:?}", err),
             }
         }
@@ -67,7 +68,12 @@ impl Writer {
         let html_header = Writer::header(state, slug);
 
         let callback = state.callback().0.get(&slug);
-        let footer_html = Writer::footer(section.metadata.footer_mode(), state, &section.references, callback);
+        let footer_html = Writer::footer(
+            section.metadata.footer_mode(),
+            state,
+            &section.references,
+            callback,
+        );
         let page_title = section.metadata.page_title().map_or("", |s| s.as_str());
 
         let html = crate::html_flake::html_doc(
@@ -96,15 +102,15 @@ impl Writer {
             .compiled()
             .get(&parent)
             .unwrap_or_else(|| panic!("missing slug `{:?}`", parent));
-        
-        let href = config::full_html_url(parent);
+
+        let href = environment::full_html_url(parent);
         let title = section.metadata.title().map_or("", |s| s);
         let page_title = section.metadata.page_title().map_or("", |s| s);
         html_flake::html_header_nav(title, page_title, &href)
     }
 
     fn footer(
-        page_option: Option<FooterMode>, 
+        page_option: Option<FooterMode>,
         state: &CompileState,
         references: &HashSet<Slug>,
         callback: Option<&CallbackValue>,
@@ -116,7 +122,7 @@ impl Writer {
             .iter()
             .map(|slug| {
                 let section = state.compiled().get(slug).unwrap();
-                Writer::footer_section_to_html(page_option.clone(), section)
+                Writer::footer_section_to_html(page_option, section)
             })
             .reduce(|s, t| s + &t)
             .map(|s| html_flake::html_footer_section("References", &s))
@@ -131,7 +137,7 @@ impl Writer {
                     .copied()
                     .map(|slug| {
                         let section = state.compiled().get(&slug).unwrap();
-                        Writer::footer_section_to_html(page_option.clone(), section)
+                        Writer::footer_section_to_html(page_option, section)
                     })
                     .reduce(|s, t| s + &t)
                     .map(|s| html_flake::html_footer_section("Backlinks", &s))
@@ -164,21 +170,23 @@ impl Writer {
     }
 
     fn footer_section_to_html(page_option: Option<FooterMode>, section: &Section) -> String {
-        let footer_mode = page_option.clone().unwrap_or(config::footer_mode());
+        let footer_mode = page_option.unwrap_or(environment::footer_mode());
 
         match footer_mode {
-            config::FooterMode::Link => {
+            FooterMode::Link => {
                 let summary = section.metadata.to_header(None, None);
                 let data_taxon = section.metadata.data_taxon().map_or("", |s| s);
-                format!(r#"<section class="block" data-taxon="{data_taxon}" style="margin-bottom: 0.4em;">{summary}</section>"#)
+                format!(
+                    r#"<section class="block" data-taxon="{data_taxon}" style="margin-bottom: 0.4em;">{summary}</section>"#
+                )
             }
-            config::FooterMode::Embed => {
+            FooterMode::Embed => {
                 let contents = match !section.children.is_empty() {
                     false => String::new(),
                     true => section
                         .children
                         .iter()
-                        .map(|c| Writer::footer_content_to_html(page_option.clone(), c))
+                        .map(|c| Writer::footer_content_to_html(page_option, c))
                         .reduce(|s, t| s + &t)
                         .unwrap(),
                 };

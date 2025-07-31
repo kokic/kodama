@@ -12,9 +12,10 @@ pub mod taxon;
 pub mod typst;
 pub mod writer;
 
-use std::{collections::HashMap, fs::File, io::BufReader, path::Path};
+use std::{collections::HashMap, fs::File, io::BufReader};
 
-use eyre::{bail, eyre, Ok, WrapErr};
+use camino::{Utf8Path, Utf8PathBuf};
+use eyre::{bail, eyre, WrapErr};
 use parser::parse_markdown;
 use section::{HTMLContent, ShallowSection};
 use typst::parse_typst;
@@ -22,8 +23,9 @@ use walkdir::WalkDir;
 use writer::Writer;
 
 use crate::{
-    config::{self, verify_and_file_hash},
-    slug::{self, Ext, Slug},
+    environment::{self, verify_and_file_hash},
+    path_utils,
+    slug::{Ext, Slug},
 };
 
 pub fn compile(workspace: Workspace) -> eyre::Result<()> {
@@ -32,35 +34,27 @@ pub fn compile(workspace: Workspace) -> eyre::Result<()> {
     for (&slug, &ext) in &workspace.slug_exts {
         let relative_path = format!("{}.{}", slug, ext);
 
-        let is_modified = match config::is_serve() {
-            true => verify_and_file_hash(&relative_path)
-            .wrap_err_with(|| eyre!("failed to verify hash of `{relative_path}`"))?,
-            false => true,
-        };
-        
-        let entry_path = config::entry_file_path(&relative_path);
+        let is_modified = verify_and_file_hash(&relative_path)
+            .wrap_err_with(|| eyre!("failed to verify hash of `{relative_path}`"))?;
+        let entry_path = environment::entry_file_path(&relative_path);
         let shallow = if !is_modified && entry_path.exists() {
-            let entry_file = BufReader::new(File::open(&entry_path).wrap_err_with(|| {
-                eyre!("failed to open entry file at `{}`", entry_path.display())
-            })?);
-            let shallow: ShallowSection =
-                serde_json::from_reader(entry_file).wrap_err_with(|| {
-                    eyre!(
-                        "failed to deserialize entry file at `{}`",
-                        entry_path.display()
-                    )
-                })?;
+            let entry_file = BufReader::new(
+                File::open(&entry_path)
+                    .wrap_err_with(|| eyre!("failed to open entry file at `{}`", entry_path))?,
+            );
+            let shallow: ShallowSection = serde_json::from_reader(entry_file)
+                .wrap_err_with(|| eyre!("failed to deserialize entry file at `{}`", entry_path))?;
             shallow
         } else {
             let shallow = match ext {
                 Ext::Markdown => parse_markdown(slug)
                     .wrap_err_with(|| eyre!("failed to parse markdown file `{slug}.{ext}`"))?,
-                Ext::Typst => parse_typst(slug, config::typst_root_dir())
+                Ext::Typst => parse_typst(slug, environment::typst_root_dir())
                     .wrap_err_with(|| eyre!("failed to parse typst file `{slug}.{ext}`"))?,
             };
             let serialized = serde_json::to_string(&shallow).unwrap();
             std::fs::write(&entry_path, serialized)
-                .wrap_err_with(|| eyre!("failed to write entry to `{}`", entry_path.display()))?;
+                .wrap_err_with(|| eyre!("failed to write entry to `{}`", entry_path))?;
 
             shallow
         };
@@ -74,46 +68,45 @@ pub fn compile(workspace: Workspace) -> eyre::Result<()> {
     Ok(())
 }
 
-pub fn should_ignored_file(path: &Path) -> bool {
+pub fn should_ignored_file(path: &Utf8Path) -> bool {
     let name = path.file_name().unwrap();
     name == "README.md"
 }
 
-pub fn should_ignored_dir(path: &Path) -> bool {
-    let name = path.file_name().unwrap();
-    name.to_str()
-        .is_some_and(|s| s.starts_with('.') || s.starts_with('_'))
+pub fn should_ignored_dir(path: &Utf8Path) -> bool {
+    path.file_name().unwrap().starts_with(['.', '_'])
 }
 
-fn to_slug_ext(source_dir: &Path, p: &Path) -> Option<(Slug, Ext)> {
+fn to_slug_ext(source_dir: &Utf8Path, p: &Utf8Path) -> Option<(Slug, Ext)> {
     let p = p.strip_prefix(source_dir).unwrap_or(p);
-    let ext = p.extension()?.to_str()?.parse().ok()?;
-    let slug = Slug::new(slug::pretty_path(&p.with_extension("")));
+    let ext = p.extension()?.parse().ok()?;
+    let slug = Slug::new(path_utils::pretty_path(&p.with_extension("")));
     Some((slug, ext))
 }
 
 /// Collect all source file paths in workspace dir.
 ///
 /// It includes all `.md` and `.typ` files in the `trees_dir`.
-pub fn all_trees_source(trees_dir: &Path) -> eyre::Result<Workspace> {
+pub fn all_trees_source(trees_dir: &Utf8Path) -> eyre::Result<Workspace> {
     let mut slug_exts = HashMap::new();
 
-    let failed_to_read_dir = |dir: &Path| eyre!("failed to read directory `{}`", dir.display());
-    let file_collide = |p: &Path, e: Ext| {
+    let failed_to_read_dir = |dir: &Utf8Path| eyre!("failed to read directory `{}`", dir);
+    let file_collide = |p: &Utf8Path, e: Ext| {
         eyre!(
             "`{}` collides with `{}`",
-            p.display(),
-            p.with_extension(e.to_string()).display(),
+            p,
+            p.with_extension(e.to_string()),
         )
     };
 
-    let mut collect_files = |source_dir: &Path| {
-        for entry in
-            std::fs::read_dir(source_dir).wrap_err_with(|| failed_to_read_dir(source_dir))?
+    let mut collect_files = |source_dir: &Utf8Path| {
+        for entry in source_dir
+            .read_dir_utf8()
+            .wrap_err_with(|| failed_to_read_dir(source_dir))?
         {
             let path = entry
                 .wrap_err_with(|| failed_to_read_dir(source_dir))?
-                .path();
+                .into_path();
             if path.is_file() && !should_ignored_file(&path) {
                 let Some((slug, ext)) = to_slug_ext(source_dir, &path) else {
                     continue;
@@ -126,13 +119,15 @@ pub fn all_trees_source(trees_dir: &Path) -> eyre::Result<Workspace> {
                     .follow_links(true)
                     .into_iter()
                     .filter_entry(|e| {
-                        let path = e.path();
-                        path.is_file() || !should_ignored_dir(path)
+                        Utf8Path::from_path(e.path())
+                            .is_some_and(|p| p.is_file() || !should_ignored_dir(p))
                     })
                 {
-                    let path = entry
+                    let path: Utf8PathBuf = entry
                         .wrap_err_with(|| failed_to_read_dir(&path))?
-                        .into_path();
+                        .into_path()
+                        .try_into()
+                        .expect("non-UTF-8 paths are filtered out");
                     if path.is_file() {
                         let Some((slug, ext)) = to_slug_ext(source_dir, &path) else {
                             continue;
@@ -150,7 +145,7 @@ pub fn all_trees_source(trees_dir: &Path) -> eyre::Result<Workspace> {
     if !trees_dir.exists() {
         eprintln!(
             "Warning: Source directory `{}` does not exist, skipping.",
-            trees_dir.display()
+            trees_dir
         );
     }
 

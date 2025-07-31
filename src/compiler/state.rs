@@ -7,8 +7,8 @@ use std::collections::{BTreeSet, HashMap, HashSet};
 use eyre::OptionExt;
 
 use crate::{
-    config,
     entry::{EntryMetaData, HTMLMetaData, MetaData, KEY_SLUG, KEY_TITLE},
+    environment,
     ordered_map::OrderedMap,
     path_utils,
     slug::{self, Slug},
@@ -144,7 +144,7 @@ impl CompileState {
                             let text = local_link.unwrap_or(article_title.to_string());
 
                             let html = crate::html_flake::html_link(
-                                &config::full_html_url(link_slug),
+                                &environment::full_html_url(link_slug),
                                 &format!("{} [{}]", page_title, link_slug),
                                 &text,
                                 crate::recorder::State::LocalLink.strify(),
