@@ -102,6 +102,10 @@ pub fn is_serve() -> bool {
     matches!(get_environment().build_mode, BuildMode::Serve)
 }
 
+pub fn is_build() -> bool {
+    matches!(get_environment().build_mode, BuildMode::Build)
+}
+
 pub fn is_short_slug() -> bool {
     get_config().build.short_slug
 }
@@ -260,6 +264,10 @@ pub fn is_hash_updated<P: AsRef<Utf8Path>>(content: &str, hash_path: P) -> (bool
 /// Checks whether the file has been modified by comparing its current hash with the stored hash.
 /// If the file is modified, updates the stored hash to reflect the latest state.
 pub fn verify_and_file_hash<P: AsRef<Utf8Path>>(relative_path: P) -> eyre::Result<bool> {
+    if crate::environment::is_build() {
+        return Ok(true);
+    }
+
     let root_dir = trees_dir();
     let full_path = root_dir.join(&relative_path);
     let hash_path = hash_file_path(&relative_path);
@@ -280,6 +288,10 @@ pub fn verify_update_hash<P: AsRef<Utf8Path>>(
     path: P,
     content: &str,
 ) -> Result<bool, std::io::Error> {
+    if crate::environment::is_build() {
+        return Ok(true);
+    }
+
     let hash_path = hash_file_path(path.as_ref());
     let (is_modified, current_hash) = is_hash_updated(content, &hash_path);
     if is_modified {

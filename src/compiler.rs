@@ -34,12 +34,8 @@ pub fn compile(workspace: Workspace) -> eyre::Result<()> {
     for (&slug, &ext) in &workspace.slug_exts {
         let relative_path = format!("{}.{}", slug, ext);
 
-        let is_modified = match environment::is_serve() {
-            true => verify_and_file_hash(&relative_path)
-                .wrap_err_with(|| eyre!("failed to verify hash of `{relative_path}`"))?,
-            false => true,
-        };
-
+        let is_modified = verify_and_file_hash(&relative_path)
+            .wrap_err_with(|| eyre!("failed to verify hash of `{relative_path}`"))?;
         let entry_path = environment::entry_file_path(&relative_path);
         let shallow = if !is_modified && entry_path.exists() {
             let entry_file = BufReader::new(
