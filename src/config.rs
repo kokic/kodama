@@ -114,7 +114,7 @@ impl Default for Serve {
             output: "./.cache/publish".to_string(),
             command: [
                 "miniserve",
-                "$output",
+                "<output>",
                 "--index",
                 "index.html",
                 "--pretty-urls",
