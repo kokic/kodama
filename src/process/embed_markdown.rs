@@ -176,5 +176,8 @@ fn is_external_link(url: &str) -> bool {
 }
 
 fn is_local_link(url: &str) -> bool {
-    !super::typst_image::is_inline_typst(url) && !is_external_link(url) && !url.contains(":")
+    !url.ends_with("/")
+        && !super::typst_image::is_inline_typst(url)
+        && !is_external_link(url)
+        && !url.contains(":")
 }
