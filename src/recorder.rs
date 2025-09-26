@@ -10,6 +10,9 @@ pub enum State {
     /// Embeded contents
     Embed,
 
+    /// Include contents
+    Include, 
+
     /// Shared for inline typst
     Shared,
 
@@ -37,6 +40,7 @@ impl State {
         match self {
             State::None => "none",
             State::Embed => "embed",
+            State::Include => "include",
             State::Shared => "shared",
             State::Html => "html",
             State::InlineTypst => "inline",

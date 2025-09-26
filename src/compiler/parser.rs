@@ -82,14 +82,27 @@ mod tests {
         let mocked_slug = Slug::new("-");
 
         let events = pulldown_cmark::Parser::new_ext(source, OPTIONS);
-
         let events = Footnote::process(events, mocked_slug);
         let events = Figure::process(events);
         let events = TypstImage::process(events, mocked_slug);
         let events = Embed::process(events);
 
         let content = normalize_html_content(to_contents(events));
-
         assert_eq!(content.as_str().unwrap(), "<table><thead><tr><th>a</th><th>b</th></tr></thead><tbody>\n<tr><td>c</td><td>d</td></tr>\n</tbody></table>\n");
+    }
+
+    #[test]
+    fn test_code_block() {
+        let source = "```rs\nlet x = 1;\n```";
+        let mocked_slug = Slug::new("-");
+
+        let events = pulldown_cmark::Parser::new_ext(source, OPTIONS);
+        let events = Footnote::process(events, mocked_slug);
+        let events = Figure::process(events);
+        let events = TypstImage::process(events, mocked_slug);
+        let events = Embed::process(events);
+
+        let content = normalize_html_content(to_contents(events));
+        assert_eq!(content.as_str().unwrap(), "<pre><code class=\"language-rs\">let x = 1;\n</code></pre>\n");
     }
 }

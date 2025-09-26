@@ -3,11 +3,12 @@
 // Authors: Kokic (@kokic), Spore (@s-cerevisiae)
 
 use super::{content::EventExtended, processer::url_action};
-use std::mem;
+use std::{fs, mem};
 
 use crate::{
     compiler::section::{EmbedContent, LocalLink, SectionOption},
-    html_flake::html_link,
+    environment::root_dir,
+    html_flake::{html_code_block, html_link},
     recorder::State,
 };
 use pulldown_cmark::{html, Event, Tag, TagEnd};
@@ -49,6 +50,9 @@ impl<'e, E: Iterator<Item = Event<'e>>> Iterator for Embed<'e, E> {
                     if action == State::Embed.strify() {
                         self.state = State::Embed;
                         self.url = Some(url); // [0]
+                    } else if action == State::Include.strify() {
+                        self.state = State::Include;
+                        self.url = Some(url);
                     } else if is_external_link(&url) {
                         self.state = State::ExternalLink;
                         self.url = Some(url);
@@ -83,6 +87,22 @@ impl<'e, E: Iterator<Item = Event<'e>>> Iterator for Embed<'e, E> {
                         };
                         let title = title.filter(|t| !t.is_empty());
                         return Some(EmbedContent { title, url, option }.into());
+                    }
+                    State::Include => {
+                        let (url, content) = self.exit();
+                        let language_tag = if content.is_empty() {
+                            Some("plain".to_string())
+                        } else {
+                            let mut text = String::new();
+                            html::push_html(&mut text, content.into_iter());
+                            Some(text)
+                        };
+
+                        let content = fs::read_to_string(root_dir().join(&url))
+                            .unwrap_or_else(|_| format!("failed to include file: {url}"));
+                        let escaped = htmlize::escape_attribute(content);
+                        let html = html_code_block(&escaped, &language_tag.unwrap_or_default());
+                        return Some(Event::Html(html.into()).into());
                     }
                     State::LocalLink => {
                         let (url, content) = self.exit();
@@ -157,7 +177,10 @@ fn parse_embed_text(embed_text: &str) -> (SectionOption, String) {
 }
 
 fn allow_inline(state: &State) -> bool {
-    *state == State::Embed || *state == State::LocalLink || *state == State::ExternalLink
+    *state == State::Embed
+        || *state == State::Include
+        || *state == State::LocalLink
+        || *state == State::ExternalLink
 }
 
 pub fn display_taxon(s: &str) -> String {
