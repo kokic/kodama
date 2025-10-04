@@ -5,6 +5,8 @@
 
 A [Typst](https://github.com/typst/typst)-friendly static Zettelkästen site generator.
 
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/kokic/kodama)
+
 ## Features
 
 - Single binary, command-line program.
