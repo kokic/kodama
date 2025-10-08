@@ -7,8 +7,9 @@ use std::{fs, mem};
 
 use crate::{
     compiler::section::{EmbedContent, LocalLink, SectionOption},
-    environment::root_dir,
+    environment::{assets_dir, root_dir},
     html_flake::{html_code_block, html_link},
+    process::typst_image::is_inline_typst,
     recorder::State,
 };
 use pulldown_cmark::{html, Event, Tag, TagEnd};
@@ -62,6 +63,9 @@ impl<'e, E: Iterator<Item = Event<'e>>> Iterator for Embed<'e, E> {
                         if url.ends_with(".md") {
                             url.truncate(url.len() - 3);
                         }
+                        self.url = Some(url);
+                    } else if is_assets_file(&url) {
+                        self.state = State::AssetFile;
                         self.url = Some(url);
                     } else {
                         return Some(e.into());
@@ -129,12 +133,19 @@ impl<'e, E: Iterator<Item = Event<'e>>> Iterator for Embed<'e, E> {
                         let html = html_link(&url, title, &text, State::ExternalLink.strify());
                         return Some(Event::Html(html.into()).into());
                     }
+                    State::AssetFile => {
+                        let (url, content) = self.exit();
+                        let mut text = String::new();
+                        html::push_html(&mut text, content.into_iter());
+                        let html = html_link(&url, &text, &text, State::AssetFile.strify());
+                        return Some(Event::Html(html.into()).into());
+                    }
                     _ => return Some(e.into()),
                 },
-                Event::Text(_) if allow_inline(&self.state) => self.content.push(e),
+                Event::Text(_) if is_inline_allowed(&self.state) => self.content.push(e),
                 Event::InlineMath(ref math) => {
                     let replaced = Event::Text(format!("${math}$").into());
-                    if allow_inline(&self.state) {
+                    if is_inline_allowed(&self.state) {
                         self.content.push(replaced);
                     } else {
                         return Some(replaced.into());
@@ -144,7 +155,7 @@ impl<'e, E: Iterator<Item = Event<'e>>> Iterator for Embed<'e, E> {
                 Event::DisplayMath(ref math) => {
                     return Some(Event::Text(format!("$${math}$$").into()).into())
                 }
-                Event::Code(_) if allow_inline(&self.state) => {
+                Event::Code(_) if is_inline_allowed(&self.state) => {
                     self.content.push(e);
                 }
                 _ => return Some(e.into()),
@@ -176,11 +187,13 @@ fn parse_embed_text(embed_text: &str) -> (SectionOption, String) {
     (option, inline_title.to_owned())
 }
 
-fn allow_inline(state: &State) -> bool {
+/// Returns `true` if the current state allows inline elements such as `Text`, `Code`, and `InlineMath` to be included in the content buffer. 
+fn is_inline_allowed(state: &State) -> bool {
     *state == State::Embed
         || *state == State::Include
         || *state == State::LocalLink
         || *state == State::ExternalLink
+        || *state == State::AssetFile
 }
 
 pub fn display_taxon(s: &str) -> String {
@@ -198,9 +211,66 @@ fn is_external_link(url: &str) -> bool {
     url.starts_with("http://") || url.starts_with("https://") || url.starts_with("www.")
 }
 
+/// Returns `true` if the URL represents a static asset file in the configured assets directory (check via [`assets_dir`]).
+fn is_assets_file(url: &str) -> bool {
+    let assets_dir = assets_dir();
+    let assets_dir_str = assets_dir.as_str(); // to "./<assets_dir>"
+    std::path::Path::new(&format!(".{}", url)).starts_with(assets_dir_str)
+        || std::path::Path::new(&format!("./{}", url)).starts_with(assets_dir_str)
+}
+
+/// Returns `true` if the URL represents a local wiki link.  
+///  
+/// A URL is considered a local link if it satisfies all of the following:  
+/// - Does not end with `/` (not a directory reference)  
+/// - Is not inline Typst syntax (checked via [`is_inline_typst`])  
+/// - Is not an external link (no `http://`, `https://`, or `www.` prefix, checked via  [`is_external_link`])  
+/// - Contains no `:` character (no URI scheme or special action syntax, e.g., `#:embed`, checked via [`url_action`])  
+/// - Does not start with the configured assets directory path  (e.g., `assets`, checked via [`assets_dir`]), as this is reserved for static assets
+///  
+/// Local links are processed into `LocalLink` events during markdown parsing,  
+/// with `.md` extensions automatically stripped.  
 fn is_local_link(url: &str) -> bool {
     !url.ends_with("/")
-        && !super::typst_image::is_inline_typst(url)
+        && !is_inline_typst(url)
         && !is_external_link(url)
+        && !is_assets_file(url)
         && !url.contains(":")
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_is_assets_file() {
+        crate::environment::mock_environment().unwrap();
+
+        assert!(is_assets_file("assets/image.png"));
+        assert!(is_assets_file("/assets/image.png"));
+        assert!(is_assets_file("\\assets\\image.png"));
+
+        assert!(!is_assets_file("image.png"));
+        assert!(!is_assets_file("path/to/assets/image.png"));
+        assert!(!is_assets_file("/path/to/image.png"));
+    }
+
+    #[test]
+    fn test_is_local_link() {
+        crate::environment::mock_environment().unwrap();
+
+        assert!(is_local_link("./0AB7"));
+        assert!(is_local_link("./0AB7.md"));
+        assert!(is_local_link("/path/to/0AB7"));
+
+        assert!(!is_local_link("http://example.com"));
+        assert!(!is_local_link("https://example.com"));
+        assert!(!is_local_link("www.example.com"));
+        assert!(!is_local_link("external:page"));
+        assert!(!is_local_link("inline"));
+        assert!(!is_local_link("inline-0pt-0pt"));
+        assert!(!is_local_link("assets/image.png"));
+        assert!(!is_local_link("/assets/image.png"));
+        assert!(!is_local_link("local-dir/"));
+    }
 }

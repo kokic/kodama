@@ -347,6 +347,14 @@ a.bullet:hover,
   text-decoration: underline;
 }
 
+.link.asset {
+  text-decoration: underline;
+}
+
+.link.asset::before {
+  content: "🗎 ";
+}
+
 a.link.local,
 .link.local a,
 a.slug {
