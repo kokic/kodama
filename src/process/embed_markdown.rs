@@ -100,7 +100,7 @@ impl<'e, E: Iterator<Item = Event<'e>>> Iterator for Embed<'e, E> {
 
                         let content = fs::read_to_string(root_dir().join(&url))
                             .unwrap_or_else(|_| format!("failed to include file: {url}"));
-                        let escaped = htmlize::escape_attribute(content);
+                        let escaped = htmlize::escape_text(content);
                         let html = html_code_block(&escaped, &language_tag.unwrap_or_default());
                         return Some(Event::Html(html.into()).into());
                     }
