@@ -50,6 +50,7 @@ pub struct Build {
     pub pretty_urls: bool,
     pub footer_mode: FooterMode,
     pub inline_css: bool,
+    pub asref: bool, 
     pub output: String,
 }
 
@@ -61,6 +62,7 @@ impl Default for Build {
             pretty_urls: false,
             footer_mode: FooterMode::default(),
             inline_css: false,
+            asref: false,
             output: "./publish".to_string(),
         }
     }

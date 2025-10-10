@@ -122,8 +122,8 @@ where
         self.get_bool(KEY_COLLECT).unwrap_or(false)
     }
 
-    fn is_asref(&self) -> bool {
-        self.get_bool(KEY_ASREF).unwrap_or(false)
+    fn is_asref(&self) -> Option<bool> {
+        self.get_bool(KEY_ASREF)
     }
 }
 

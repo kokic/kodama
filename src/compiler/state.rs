@@ -226,7 +226,7 @@ fn is_reference(shallows: &Shallows, slug: Slug) -> bool {
         .get(&slug)
         .map(|s| {
             let metadata = &s.metadata;
-            metadata.is_asref()
+            metadata.is_asref().unwrap_or(environment::asref())
                 || Taxon::is_reference(metadata.data_taxon().map_or("", String::as_str))
         })
         .unwrap_or(false)

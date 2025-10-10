@@ -149,6 +149,10 @@ pub fn inline_css() -> bool {
     get_config().build.inline_css
 }
 
+pub fn asref() -> bool {
+    get_config().build.asref
+}
+
 pub fn editor_url() -> Option<&'static str> {
     get_config().serve.edit.as_deref()
 }
