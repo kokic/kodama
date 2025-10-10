@@ -32,6 +32,10 @@ pub const KEY_PAGE_TITLE: &str = "page-title";
 /// Controls whether the current page displays backlinks.
 pub const KEY_BACKLINKS: &str = "backlinks";
 
+/// `backlinks: bool`:
+/// Controls whether the current page displays references.
+pub const KEY_REFERENCES: &str = "references";
+
 /// `collect: bool`:
 /// Controls whether the current page is a collection page.
 /// A collection page displays metadata of child entries.
@@ -44,7 +48,7 @@ pub const KEY_ASREF: &str = "asref";
 /// `footer-mode: embed | link`
 pub const KEY_FOOTER_MODE: &str = "footer-mode";
 
-const PRESET_METADATA: [&str; 10] = [
+const PRESET_METADATA: [&str; 11] = [
     KEY_TITLE,
     KEY_SLUG,
     KEY_TAXON,
@@ -52,6 +56,7 @@ const PRESET_METADATA: [&str; 10] = [
     KEY_PARENT,
     KEY_PAGE_TITLE,
     KEY_BACKLINKS,
+    KEY_REFERENCES, 
     KEY_COLLECT,
     KEY_ASREF,
     KEY_FOOTER_MODE,
@@ -116,6 +121,10 @@ where
 
     fn is_enable_backlinks(&self) -> bool {
         self.get_bool(KEY_BACKLINKS).unwrap_or(true)
+    }
+
+    fn is_enable_references(&self) -> bool {
+        self.get_bool(KEY_REFERENCES).unwrap_or(true)
     }
 
     fn is_collect(&self) -> bool {
