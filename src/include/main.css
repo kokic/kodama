@@ -121,6 +121,20 @@ pre>code {
   border: 1px solid var(--target-color);
 }
 
+.footnote-reference::before,
+.footnote-definition-label::before {
+  content: "[";
+}
+
+.footnote-reference::after,
+.footnote-definition-label::after {
+  content: "]";
+}
+
+p:has(span.katex-html:empty) {
+  display: none;
+}
+
 .display-none {
   display: none;
 }
@@ -345,6 +359,14 @@ a.bullet:hover,
 
 .link.external {
   text-decoration: underline;
+}
+
+.link.asset {
+  text-decoration: underline;
+}
+
+.link.asset::before {
+  content: "🗎 ";
 }
 
 a.link.local,

@@ -189,6 +189,11 @@ pub fn html_link(href: &str, title: &str, text: &str, class_name: &str) -> Strin
     })
 }
 
+/// Also see [`kodama::compiler::parser::tests::test_code_block`]
+pub fn html_code_block(code: &str, language: &str) -> String {
+    html!(pre { code class={format!("language-{}", language)} { (code) } })
+}
+
 pub fn html_header_nav(title: &str, page_title: &str, href: &str) -> String {
     let onclick = format!("window.location.href='{}'", href);
     html!(header class="header" {

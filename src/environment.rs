@@ -22,10 +22,6 @@ pub struct Environment {
     /// Please note that this value should always be automatically derived from
     /// the location of the toml configuration file.
     pub root: Utf8PathBuf,
-    /// Specifies the filename of the TOML configuration file (e.g., "Kodama.toml").
-    /// TODO: use it to implement config reloading in `serve`
-    #[allow(dead_code)]
-    pub config_file: String,
     pub config: Config,
     pub build_mode: BuildMode,
 }
@@ -43,14 +39,24 @@ fn get_config() -> &'static Config {
 pub fn init_environment(toml_file: Utf8PathBuf, build_mode: BuildMode) -> eyre::Result<()> {
     let toml_file = config::find_config(toml_file)?;
 
-    let (root, file_name) = path_utils::split_file_name(&toml_file).expect("path cannot be empty");
+    let (root, _file_name) = path_utils::split_file_name(&toml_file).expect("path cannot be empty");
     let toml = std::fs::read_to_string(&toml_file)?;
 
     _ = ENVIRONMENT.set(Environment {
         root: root.to_owned(),
-        config_file: file_name.to_owned(),
         config: config::parse_config(&toml)?,
         build_mode,
+    });
+    Ok(())
+}
+
+/// Mock environment for testing purposes.
+#[allow(dead_code)]
+pub fn mock_environment() -> eyre::Result<()> {
+    _ = ENVIRONMENT.set(Environment {
+        root: "./".into(),
+        config: Config::default(),
+        build_mode: BuildMode::Build,
     });
     Ok(())
 }

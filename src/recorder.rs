@@ -10,6 +10,9 @@ pub enum State {
     /// Embeded contents
     Embed,
 
+    /// Include contents
+    Include, 
+
     /// Shared for inline typst
     Shared,
 
@@ -30,6 +33,7 @@ pub enum State {
 
     LocalLink,
     ExternalLink,
+    AssetFile, 
 }
 
 impl State {
@@ -37,6 +41,7 @@ impl State {
         match self {
             State::None => "none",
             State::Embed => "embed",
+            State::Include => "include",
             State::Shared => "shared",
             State::Html => "html",
             State::InlineTypst => "inline",
@@ -45,6 +50,7 @@ impl State {
             State::ImageCode => "code",
             State::LocalLink => "local",       // style class name
             State::ExternalLink => "external", // style class name
+            State::AssetFile => "asset",       // style class name
         }
     }
 }
