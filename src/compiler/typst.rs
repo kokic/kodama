@@ -9,7 +9,7 @@ use super::html_parser::{HTMLParser, HTMLTagKind};
 use super::section::{EmbedContent, LocalLink, SectionOption};
 use super::section::{HTMLContent, HTMLContentBuilder, LazyContent};
 use super::ShallowSection;
-use crate::entry::HTMLMetaData;
+use crate::entry::{HTMLMetaData, KEY_EXT, KEY_SLUG};
 use crate::ordered_map::OrderedMap;
 use crate::process::embed_markdown;
 use crate::slug::Slug;
@@ -83,7 +83,7 @@ fn parse_typst_html(
                 }))
             }
             HTMLTagKind::Local { span: _ } => {
-                let url = attr("slug")?.to_string();
+                let url = attr(KEY_SLUG)?.to_string();
                 let text = value();
                 builder.push(LazyContent::Local(LocalLink { url, text }))
             }
@@ -102,7 +102,8 @@ pub fn parse_typst<P: AsRef<Utf8Path>>(slug: Slug, root_dir: P) -> eyre::Result<
         .wrap_err_with(|| eyre!("failed to compile typst file `{relative_path}` to html"))?;
 
     let mut metadata: OrderedMap<String, HTMLContent> = OrderedMap::new();
-    metadata.insert("slug".to_string(), HTMLContent::Plain(slug.to_string()));
+    metadata.insert(KEY_SLUG.to_string(), HTMLContent::Plain(slug.to_string()));
+    metadata.insert(KEY_EXT.to_string(), HTMLContent::Plain("typst".to_string()));
 
     let content = parse_typst_html(&html_str, &mut metadata)?;
 

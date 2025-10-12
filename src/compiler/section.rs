@@ -190,6 +190,10 @@ impl ShallowSection {
     pub fn slug(&self) -> Slug {
         self.metadata.slug().unwrap()
     }
+
+    pub fn ext(&self) -> &str {
+        self.metadata.ext().unwrap()
+    }
 }
 
 pub type SectionContents = Vec<SectionContent>;

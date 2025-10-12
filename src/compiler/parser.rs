@@ -9,7 +9,7 @@ use itertools::Itertools;
 use pulldown_cmark::Options;
 
 use crate::{
-    entry::HTMLMetaData,
+    entry::{HTMLMetaData, KEY_EXT, KEY_SLUG},
     environment::input_path,
     ordered_map::OrderedMap,
     process::{
@@ -27,10 +27,12 @@ pub const OPTIONS: Options = Options::ENABLE_MATH
     .union(Options::ENABLE_SMART_PUNCTUATION)
     .union(Options::ENABLE_FOOTNOTES);
 
+/// For Typst cases, see [`crate::compiler::typst::parse_typst`]
 pub fn initialize(slug: Slug) -> eyre::Result<(String, OrderedMap<String, HTMLContent>)> {
     let mut metadata: OrderedMap<String, HTMLContent> = OrderedMap::new();
     let fullname = format!("{}.md", slug);
-    metadata.insert("slug".to_string(), HTMLContent::Plain(slug.to_string()));
+    metadata.insert(KEY_SLUG.to_string(), HTMLContent::Plain(slug.to_string()));
+    metadata.insert(KEY_EXT.to_string(), HTMLContent::Plain("md".to_string()));
 
     let markdown_path = input_path(&fullname);
     std::fs::read_to_string(&markdown_path)

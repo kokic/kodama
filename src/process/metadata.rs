@@ -3,9 +3,7 @@
 // Authors: Kokic (@kokic), Spore (@s-cerevisiae)
 
 use crate::{
-    compiler::{parser::parse_spanned_markdown, section::HTMLContent},
-    ordered_map::OrderedMap,
-    slug::Slug,
+    compiler::{parser::parse_spanned_markdown, section::HTMLContent}, entry::KEY_SLUG, ordered_map::OrderedMap, slug::Slug
 };
 use eyre::eyre;
 use pulldown_cmark::{Event, Tag, TagEnd};
@@ -70,7 +68,7 @@ fn parse_metadata(s: &str, metadata: &mut OrderedMap<String, HTMLContent>) -> ey
 
             let res = parse_spanned_markdown(
                 val,
-                Slug::new(metadata.get("slug").unwrap().as_str().unwrap()),
+                Slug::new(metadata.get(KEY_SLUG).unwrap().as_str().unwrap()),
             );
             let mut val = res;
 

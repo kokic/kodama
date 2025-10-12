@@ -74,6 +74,7 @@ pub fn html_header(
     title: &str,
     taxon: &str,
     slug: &Slug,
+    ext: &str, 
     span_class: String,
     etc: Vec<String>,
 ) -> String {
@@ -82,9 +83,7 @@ pub fn html_header(
 
     let editor_url = match environment::editor_url() {
         Some(prefix) if environment::is_serve() => {
-            // Bug: The suffix of slug is not necessarily `.md`,
-            // perhaps we need to add an `ext` field for [`Slug`].
-            let source_path = input_path(format!("{}.md", slug.as_str()))
+            let source_path = input_path(format!("{}.{}", slug.as_str(), ext))
                 .canonicalize()
                 .unwrap();
             let source_url = url::Url::from_file_path(source_path).unwrap();

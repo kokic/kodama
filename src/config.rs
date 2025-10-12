@@ -57,7 +57,7 @@ pub struct Build {
 impl Default for Build {
     fn default() -> Self {
         Self {
-            typst_root: "./".to_string(),
+            typst_root: "trees".to_string(),
             short_slug: false,
             pretty_urls: false,
             footer_mode: FooterMode::default(),
