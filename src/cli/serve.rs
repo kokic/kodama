@@ -11,7 +11,7 @@ use crate::{cli::build::build_with, config, environment::{self, BuildMode}};
 
 #[derive(clap::Args)]
 pub struct ServeCommand {
-    /// Path to the configuration file (e.g., "kodama.toml").
+    /// Path to the configuration file (e.g., "Kodama.toml").
     #[arg(short, long, default_value_t = config::DEFAULT_CONFIG_PATH.into())]
     config: String,
 }

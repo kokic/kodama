@@ -53,11 +53,11 @@ pub fn new_site(command: &NewSiteCommand) -> eyre::Result<()> {
     new_config_inner(&default_config_path)?;
 
     // Create the default source directory `trees`
-    std::fs::create_dir(default_source_dir)
+    std::fs::create_dir(&default_source_dir)
         .wrap_err("failed to create default source directory")?;
 
     // Create the default assets directory `assets`
-    std::fs::create_dir(default_assets_dir)
+    std::fs::create_dir(&default_assets_dir)
         .wrap_err("failed to create default assets directory")?;
 
     // Create the `index.md` section in the new site directory
@@ -65,6 +65,17 @@ pub fn new_site(command: &NewSiteCommand) -> eyre::Result<()> {
         &Utf8PathBuf::from(DEFAULT_SECTION_PATH),
         DEFAULT_TEMPLATE,
         &default_config_path,
+    )?;
+
+    let default_lib_dir = default_source_dir.join("_lib");
+
+    // Create the default Typst library directory `trees/_lib`
+    std::fs::create_dir(&default_lib_dir)
+        .wrap_err("failed to create default _lib directory")?;
+
+    std::fs::write(
+        default_lib_dir.join("kodama.typ"),
+        include_str!("../../typst/kodama.typ"),
     )?;
 
     Ok(())
@@ -109,7 +120,7 @@ pub struct NewPostCommand {
     #[arg(short, long, default_value_t = DEFAULT_TEMPLATE.to_string())]
     pub template: String,
 
-    /// Path to the configuration file (e.g., "kodama.toml").
+    /// Path to the configuration file (e.g., "Kodama.toml").
     #[arg(short, long, default_value_t = config::DEFAULT_CONFIG_PATH.into())]
     pub config: String,
 }
