@@ -1,0 +1,19 @@
+
+#import "_lib/kodama.typ": *
+
+#meta("title", "Title (Globally)")
+#meta("author", "Anonymous")
+#meta("date", "October 12, 2025")
+
+#let elem-frame(content, attrs: (:), tag: "div") = html.elem(tag, html.frame(content), attrs: attrs)
+
+#show math.equation.where(block: false): it => elem-frame(tag: "span", attrs: (class: "inline-typst"), it)
+#show math.equation.where(block: true): it => elem-frame(tag: "div", it, attrs: (style: "text-align: center;"))
+
+#set text(size: 15.427pt, top-edge: "bounds", bottom-edge: "bounds");
+
+#let spaces(c) = $space #c space$
+
+#lorem(10) $ZZ \/p^n ZZ$ #lorem(10) $(X+Y)/(X^2 + X Y + Y^2)$
+
+$ 0 spaces(>) - integral_S "Poincare metric" spaces(=) 4pi(1-g) $

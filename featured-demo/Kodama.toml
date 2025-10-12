@@ -1,0 +1,18 @@
+[kodama]
+trees = "trees"
+assets = "assets"
+base-url = "/"
+
+[build]
+typst-root = "trees"
+short-slug = false
+pretty-urls = false
+footer-mode = "link"
+inline-css = false
+asref = false
+output = "./publish"
+
+[serve]
+edit = "vscode://file/"
+output = "./.cache/publish"
+command = ["miniserve", "<output>", "--index", "index.html", "--pretty-urls"]
