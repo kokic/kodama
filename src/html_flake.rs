@@ -162,9 +162,9 @@ pub fn html_image_color_invert(image_src: &str) -> String {
     html_image(image_src, "color-invert")
 }
 
-pub fn html_figure(image_src: &str, center: bool, caption: String) -> String {
-    if !center {
-        return html_image_color_invert(image_src);
+pub fn html_figure(image_src: &str, is_block: bool, caption: String) -> String {
+    if !is_block {
+        return html!(span class="inline-typst" { (html_image_color_invert(image_src)) });
     }
     let mut caption = caption;
     if !caption.is_empty() {

@@ -137,12 +137,12 @@ pub fn write_svg<P: AsRef<Utf8Path>>(typst_path: P, svg_path: P) -> eyre::Result
         return Ok(());
     }
 
-    let root_dir = environment::trees_dir();
-    let full_path = root_dir.join(typst_path);
+    let trees_dir = environment::trees_dir();
+    let full_path = trees_dir.join(typst_path);
     let output = Command::new("typst")
         .arg("c")
         .arg("-f=svg")
-        .arg(format!("--root={}", root_dir))
+        .arg(format!("--root={}", trees_dir))
         .arg(&full_path)
         .arg(svg_path)
         .output()?;
