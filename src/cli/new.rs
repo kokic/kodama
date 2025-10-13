@@ -45,6 +45,10 @@ pub fn new_site(command: &NewSiteCommand) -> eyre::Result<()> {
     std::fs::create_dir_all(site_path).wrap_err("failed to create site directory")?;
     println!("Created new site at: {}", site_path);
 
+    Ok(())
+}
+
+pub fn add_project_files(site_path: &Utf8Path) -> eyre::Result<()> {
     let default_config_path = site_path.join(config::DEFAULT_CONFIG_PATH);
     let default_source_dir = site_path.join(config::DEFAULT_SOURCE_DIR);
     let default_assets_dir = site_path.join(config::DEFAULT_ASSETS_DIR);
@@ -70,8 +74,7 @@ pub fn new_site(command: &NewSiteCommand) -> eyre::Result<()> {
     let default_lib_dir = default_source_dir.join("_lib");
 
     // Create the default Typst library directory `trees/_lib`
-    std::fs::create_dir(&default_lib_dir)
-        .wrap_err("failed to create default _lib directory")?;
+    std::fs::create_dir(&default_lib_dir).wrap_err("failed to create default _lib directory")?;
 
     std::fs::write(
         default_lib_dir.join("kodama.typ"),
@@ -92,7 +95,7 @@ pub fn new_config(command: &NewConfigCommand) -> eyre::Result<()> {
     new_config_inner(&Utf8PathBuf::from(&command.path))
 }
 
-fn new_config_inner(config_path: &Utf8PathBuf) -> Result<(), eyre::Error> {
+pub fn new_config_inner(config_path: &Utf8PathBuf) -> Result<(), eyre::Error> {
     let config = config::Config::default();
     let toml = toml::to_string(&config).wrap_err("failed to serialize default config")?;
 
