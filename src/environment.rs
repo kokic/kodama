@@ -11,7 +11,7 @@ use camino::{Utf8Path, Utf8PathBuf};
 use eyre::Context;
 
 use crate::{
-    config::{self, Config, FooterMode, DEFAULT_BASE_URL},
+    config::{self, Config, FooterMode, TocPlacement, DEFAULT_BASE_URL},
     path_utils,
     slug::Slug,
 };
@@ -139,6 +139,17 @@ pub fn base_url() -> &'static str {
         BuildMode::Build => &env.config.kodama.base_url,
         BuildMode::Serve => DEFAULT_BASE_URL,
     }
+}
+
+pub fn is_toc_left() -> bool {
+    match get_config().toc.placement {
+        TocPlacement::Left => true,
+        TocPlacement::Right => false,
+    }
+}
+
+pub fn is_toc_sticky() -> bool {
+    get_config().toc.sticky
 }
 
 pub fn footer_mode() -> FooterMode {

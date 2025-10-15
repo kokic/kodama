@@ -75,11 +75,11 @@ fn normalize_html_content(mut content: Vec<LazyContent>) -> HTMLContent {
 }
 
 #[cfg(test)]
-mod tests {
+pub mod tests {
     use super::*;
 
     #[test]
-    fn test_table_td() {
+    pub fn test_table_td() {
         let source = "| a | b |\n| - | - |\n| c | d |";
         let mocked_slug = Slug::new("-");
 
@@ -94,7 +94,7 @@ mod tests {
     }
 
     #[test]
-    fn test_code_block() {
+    pub fn test_code_block() {
         let source = "```rs\nlet x = 1;\n```";
         let mocked_slug = Slug::new("-");
 
@@ -109,7 +109,7 @@ mod tests {
     }
 
     #[test]
-    fn test_reference_link() {
+    pub fn test_reference_link() {
         let source = "---\nlink: [Alice][example]\n---\n\n[Bob][example]\n\n[example]: https://example.com";
         let mocked_slug = Slug::new("-");
 

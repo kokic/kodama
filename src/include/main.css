@@ -2,6 +2,7 @@
   color-scheme: light dark;
   --content-gap: 15px;
   --radius: 5px;
+  --article-max-width: 90ex;
 
   --text-color: black;
   --background-color: white;
@@ -389,13 +390,8 @@ body>header {
 }
 
 #grid-wrapper>article {
-  max-width: 90ex;
+  max-width: var(--article-max-width);
   margin-right: auto;
-  grid-column: 1;
-}
-
-#grid-wrapper>nav {
-  grid-column: 2;
 }
 
 @media only screen and (max-width: 1000px) {
@@ -421,7 +417,7 @@ body>header {
 
   #grid-wrapper {
     display: grid;
-    grid-template-columns: 90ex;
+    grid-auto-flow: column;
   }
 }
 
@@ -453,4 +449,12 @@ nav#toc a.bullet {
   padding-left: 0.2em;
   padding-right: 0.2em;
   text-decoration: none;
+}
+
+.sticky-nav {
+  position: sticky;
+  top: 0px;
+  max-height: calc(100vh - 0px);
+  overflow-y: auto;
+  scrollbar-width: thin;
 }

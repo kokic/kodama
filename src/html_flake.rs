@@ -74,7 +74,7 @@ pub fn html_header(
     title: &str,
     taxon: &str,
     slug: &Slug,
-    ext: &str, 
+    ext: &str,
     span_class: String,
     etc: Vec<String>,
 ) -> String {
@@ -188,7 +188,7 @@ pub fn html_link(href: &str, title: &str, text: &str, class_name: &str) -> Strin
     })
 }
 
-/// Also see [`kodama::compiler::parser::tests::test_code_block`]
+/// Also see [`crate::compiler::parser::tests::test_code_block`]
 pub fn html_code_block(code: &str, language: &str) -> String {
     html!(pre { code class={format!("language-{}", language)} { (code) } })
 }
@@ -213,18 +213,24 @@ pub fn html_doc(
     footer_html: &str,
     catalog_html: &str,
 ) -> String {
+    let mut toc_class: Vec<&str> = vec![];
+    if environment::is_toc_sticky() {
+        toc_class.push("sticky-nav");
+    }
+
     let doc_type = "<!DOCTYPE html>";
     let toc_html = catalog_html
         .is_empty()
         .not()
-        .then(|| html!(nav id="toc" { (catalog_html) }))
+        .then(|| html!(nav id="toc" class={toc_class.join(" ")} { (catalog_html) }))
         .unwrap_or_default();
 
-    let body_inner = html!(div id="grid-wrapper" {
-      article { (article_inner) (footer_html) }
-      "\n\n"
-      (toc_html)
-    });
+    let body_inner = if environment::is_toc_left() {
+        html!((toc_html) "\n\n" article { (article_inner) (footer_html) })
+    } else {
+        html!(article { (article_inner) (footer_html) } "\n\n" (toc_html))
+    };
+    let body_inner = html!(div id="grid-wrapper" { (body_inner) });
 
     let html = html!(html lang="en-US" {
         head {
@@ -233,7 +239,7 @@ pub fn html_doc(
 <meta name="viewport" content="width=device-width">"#
             (format!("<title>{page_title}</title>"))
             (html_import_meta())
-            (html_css())
+            (html_static_css())
             (html_import_style())
             (html_import_fonts())
             (html_import_math())
@@ -243,7 +249,7 @@ pub fn html_doc(
     format!("{}\n{}", doc_type, html)
 }
 
-pub fn html_css() -> String {
+pub fn html_static_css() -> String {
     match environment::inline_css() {
         true => html!(style { (html_main_style()) (html_typst_style()) }),
         false => {
