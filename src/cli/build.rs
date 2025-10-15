@@ -17,7 +17,7 @@ use crate::{
 
 #[derive(clap::Args)]
 pub struct BuildCommand {
-    /// Path to the configuration file (e.g., "kodama.toml").
+    /// Path to the configuration file (e.g., "Kodama.toml").
     #[arg(short, long, default_value_t = config::DEFAULT_CONFIG_PATH.into())]
     config: String,
 }

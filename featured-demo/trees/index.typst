@@ -1,0 +1,10 @@
+
+#import "_lib/kodama.typ": *
+
+#meta("title", "Kodama project without markdown")
+#meta("author", "Anonymous")
+#meta("date", "October 12, 2025")
+
+#lorem(32)
+
+#embed("./0AFE.typst", "Title (Locally)", numbering: true)

@@ -20,9 +20,7 @@ mod typst_cli;
 use clap::Parser;
 
 use crate::cli::{
-    build::BuildCommand,
-    new::{NewCommand, NewCommandCli},
-    serve::ServeCommand,
+    build::BuildCommand, init::InitCommand, new::{NewCommand, NewCommandCli}, serve::ServeCommand
 };
 
 #[derive(Parser)]
@@ -34,17 +32,21 @@ struct Cli {
 
 #[derive(clap::Subcommand)]
 enum Command {
-    /// Create a new kodama site.
+    /// Create a new kodama site / config / post.
     #[command(visible_alias = "n")]
     New(NewCommandCli),
+
+    /// Create a new kodama site in an existing directory. 
+    #[command(visible_alias = "i")]
+    Init(InitCommand),
 
     /// Compile current workspace dir to HTMLs.
     #[command(visible_alias = "b")]
     Build(BuildCommand),
 
-    /// Serve a forest at http://localhost:8080, and rebuilds it on changes.
+    /// Serve a forest at http://localhost:<port>, and rebuilds it on changes.
     ///
-    /// Server temporarily depends on the miniserve program in the user's environment.
+    /// Server by default depends on the miniserve program in the user's environment.
     #[command(visible_alias = "s")]
     Serve(ServeCommand),
 }
@@ -57,6 +59,7 @@ fn main() -> eyre::Result<()> {
             NewCommand::Post(command) => crate::cli::new::new_section(command)?,
             NewCommand::Config(command) => crate::cli::new::new_config(command)?,
         },
+        Command::Init(command) => crate::cli::init::init(command)?,
         Command::Serve(command) => crate::cli::serve::serve(command)?,
         Command::Build(command) => crate::cli::build::build(command)?,
     };

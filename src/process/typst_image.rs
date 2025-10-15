@@ -13,7 +13,7 @@ use crate::{
     path_utils,
     recorder::State,
     slug::Slug,
-    typst_cli::{self, write_svg, write_to_inline_html, InlineConfig},
+    typst_cli::{self, write_to_inline_html, InlineConfig},
 };
 
 use super::processer::url_action;
@@ -140,13 +140,7 @@ impl<'e, E: Iterator<Item = Event<'e>>> Iterator for TypstImage<E> {
                         let typst_url =
                             typst_path(self.current_slug, &self.url.take().unwrap_or_default());
                         let caption = self.content.take().unwrap_or_default();
-
                         let svg_url = typst_url.with_extension("svg");
-                        let svg_path = output_path(&svg_url);
-
-                        if let Err(err) = write_svg(typst_url, svg_path) {
-                            eprintln!("{:?} at {}", err, self.current_slug)
-                        }
                         self.exit();
 
                         let html = html_figure(&environment::full_url(&svg_url), false, caption);
@@ -156,13 +150,7 @@ impl<'e, E: Iterator<Item = Event<'e>>> Iterator for TypstImage<E> {
                         let typst_url =
                             typst_path(self.current_slug, &self.url.take().unwrap_or_default());
                         let caption = self.content.take().unwrap_or_default();
-
                         let svg_url = typst_url.with_extension("svg");
-                        let svg_path = output_path(&svg_url);
-
-                        if let Err(err) = write_svg(typst_url, svg_path) {
-                            eprintln!("{:?} at {}", err, self.current_slug)
-                        }
                         self.exit();
 
                         let html = html_figure(&environment::full_url(&svg_url), true, caption);
@@ -172,13 +160,7 @@ impl<'e, E: Iterator<Item = Event<'e>>> Iterator for TypstImage<E> {
                         let typst_url =
                             typst_path(self.current_slug, &self.url.take().unwrap_or_default());
                         let caption = self.content.take().unwrap_or_default();
-
                         let svg_url = typst_url.with_extension("svg");
-                        let svg_path = output_path(&svg_url);
-
-                        if let Err(err) = write_svg(&typst_url, &svg_path) {
-                            eprintln!("{:?} at {}", err, self.current_slug)
-                        }
                         self.exit();
 
                         let root_dir = environment::trees_dir();

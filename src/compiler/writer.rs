@@ -70,6 +70,7 @@ impl Writer {
         let callback = state.callback().0.get(&slug);
         let footer_html = Writer::footer(
             section.metadata.footer_mode(),
+            section.metadata.is_enable_references(), 
             state,
             &section.references,
             callback,
@@ -110,7 +111,8 @@ impl Writer {
     }
 
     fn footer(
-        page_option: Option<FooterMode>,
+        footer_mode: Option<FooterMode>,
+        enable_references: bool,
         state: &CompileState,
         references: &HashSet<Slug>,
         callback: Option<&CallbackValue>,
@@ -118,15 +120,19 @@ impl Writer {
         let mut references: Vec<Slug> = references.iter().copied().collect();
         references.sort();
 
-        let references_html = references
-            .iter()
-            .map(|slug| {
-                let section = state.compiled().get(slug).unwrap();
-                Writer::footer_section_to_html(page_option, section)
-            })
-            .reduce(|s, t| s + &t)
-            .map(|s| html_flake::html_footer_section("References", &s))
-            .unwrap_or_default();
+        let references_html = if enable_references {
+            references
+                .iter()
+                .map(|slug| {
+                    let section = state.compiled().get(slug).unwrap();
+                    Writer::footer_section_to_html(footer_mode, section)
+                })
+                .reduce(|s, t| s + &t)
+                .map(|s| html_flake::html_footer_section("References", &s))
+                .unwrap_or_default()
+        } else {
+            String::default()
+        };
 
         let backlinks_html = callback
             .map(|s| {
@@ -137,7 +143,7 @@ impl Writer {
                     .copied()
                     .map(|slug| {
                         let section = state.compiled().get(&slug).unwrap();
-                        Writer::footer_section_to_html(page_option, section)
+                        Writer::footer_section_to_html(footer_mode, section)
                     })
                     .reduce(|s, t| s + &t)
                     .map(|s| html_flake::html_footer_section("Backlinks", &s))

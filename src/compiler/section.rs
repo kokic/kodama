@@ -190,6 +190,10 @@ impl ShallowSection {
     pub fn slug(&self) -> Slug {
         self.metadata.slug().unwrap()
     }
+
+    pub fn ext(&self) -> &str {
+        self.metadata.ext().expect("the field `ext` does not exist. Please update kodama to v0.3.3 or above and delete the expired '.cache' folder.")
+    }
 }
 
 pub type SectionContents = Vec<SectionContent>;

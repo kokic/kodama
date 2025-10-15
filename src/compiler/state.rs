@@ -7,7 +7,7 @@ use std::collections::{BTreeSet, HashMap, HashSet};
 use eyre::OptionExt;
 
 use crate::{
-    entry::{EntryMetaData, HTMLMetaData, MetaData, KEY_SLUG, KEY_TITLE},
+    entry::{EntryMetaData, HTMLMetaData, MetaData, KEY_EXT, KEY_SLUG, KEY_TITLE},
     environment,
     ordered_map::OrderedMap,
     path_utils,
@@ -76,6 +76,7 @@ impl CompileState {
 
     fn compile_shallow(&mut self, shallows: &Shallows, spanned: &ShallowSection) -> &Section {
         let slug = spanned.slug();
+        let ext = spanned.ext();
         let mut children: SectionContents = vec![];
         let mut references: HashSet<Slug> = HashSet::new();
 
@@ -161,13 +162,15 @@ impl CompileState {
         // compile metadata
         let mut metadata = EntryMetaData(OrderedMap::new());
         metadata.update(KEY_SLUG.to_string(), slug.to_string());
+        metadata.update(KEY_EXT.to_string(), ext.to_string());
+
         spanned.metadata.keys().for_each(|key| {
             // Obviously, the slug must be a pure string, so we do not perform compilation.
-            if key == KEY_SLUG {
+            if key == KEY_SLUG || key == KEY_EXT {
                 return;
             }
             let value = spanned.metadata.get(key).unwrap();
-            let spanned: ShallowSection = Self::metadata_to_section(value, slug);
+            let spanned: ShallowSection = Self::metadata_to_section(value, slug, ext);
             let compiled = self.compile_shallow(shallows, &spanned);
             let html = compiled.spanned();
             metadata.update(key.to_string(), html);
@@ -181,11 +184,19 @@ impl CompileState {
         self.compiled.get(&slug).unwrap()
     }
 
-    fn metadata_to_section(content: &HTMLContent, current_slug: Slug) -> ShallowSection {
+    fn metadata_to_section(
+        content: &HTMLContent,
+        current_slug: Slug,
+        current_ext: &str,
+    ) -> ShallowSection {
         let mut metadata = OrderedMap::new();
         metadata.insert(
             KEY_SLUG.to_string(),
             HTMLContent::Plain(current_slug.to_string()),
+        );
+        metadata.insert(
+            KEY_EXT.to_string(),
+            HTMLContent::Plain(current_ext.to_string()),
         );
 
         ShallowSection {
@@ -226,7 +237,7 @@ fn is_reference(shallows: &Shallows, slug: Slug) -> bool {
         .get(&slug)
         .map(|s| {
             let metadata = &s.metadata;
-            metadata.is_asref()
+            metadata.is_asref().unwrap_or(environment::asref())
                 || Taxon::is_reference(metadata.data_taxon().map_or("", String::as_str))
         })
         .unwrap_or(false)

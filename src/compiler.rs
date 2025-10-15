@@ -84,9 +84,9 @@ fn to_slug_ext(source_dir: &Utf8Path, p: &Utf8Path) -> Option<(Slug, Ext)> {
     Some((slug, ext))
 }
 
-/// Collect all source file paths in workspace dir.
+/// Collect all source file paths in `<trees>` dir.
 ///
-/// It includes all `.md` and `.typ` files in the `trees_dir`.
+/// **Side effect: update the `.hash` & `.svg` file of all modified `.typ` files.**
 pub fn all_trees_source(trees_dir: &Utf8Path) -> eyre::Result<Workspace> {
     let mut slug_exts = HashMap::new();
 
@@ -107,10 +107,22 @@ pub fn all_trees_source(trees_dir: &Utf8Path) -> eyre::Result<Workspace> {
             let path = entry
                 .wrap_err_with(|| failed_to_read_dir(source_dir))?
                 .into_path();
+
             if path.is_file() && !should_ignored_file(&path) {
                 let Some((slug, ext)) = to_slug_ext(source_dir, &path) else {
+                    // Hashable files only include `.md` and `.typ` currently.
+                    if let Some("typ") = path.extension() {
+                        let relative = path.strip_prefix(source_dir)?;
+
+                        let svg_url = relative.with_extension("svg");
+                        let svg_path = environment::output_path(&svg_url);
+                        if let Err(err) = crate::typst_cli::write_svg(relative, &svg_path) {
+                            eprintln!("{:?} at {}", err, path)
+                        }
+                    }
                     continue;
                 };
+
                 if let Some(ext) = slug_exts.insert(slug, ext) {
                     bail!(file_collide(&path, ext));
                 };

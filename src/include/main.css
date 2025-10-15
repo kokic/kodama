@@ -2,6 +2,8 @@
   color-scheme: light dark;
   --content-gap: 15px;
   --radius: 5px;
+  --article-max-width: 90ex;
+  --toc-max-width: 90ex;
 
   --text-color: black;
   --background-color: white;
@@ -225,6 +227,10 @@ article>section>details>summary>header>h1>.taxon {
   padding-bottom: 5pt;
 }
 
+article>section>details>summary>header>h1>.taxon:empty {
+  display: none;
+}
+
 section.block>details {
   margin-bottom: 0.4em;
 }
@@ -389,13 +395,9 @@ body>header {
 }
 
 #grid-wrapper>article {
-  max-width: 90ex;
+  max-width: var(--article-max-width);
   margin-right: auto;
-  grid-column: 1;
-}
-
-#grid-wrapper>nav {
-  grid-column: 2;
+  grid-area: article;
 }
 
 @media only screen and (max-width: 1000px) {
@@ -407,7 +409,6 @@ body>header {
   }
 
   #grid-wrapper>nav {
-    display: none;
     transition: ease all .2s;
   }
 }
@@ -421,7 +422,20 @@ body>header {
 
   #grid-wrapper {
     display: grid;
-    grid-template-columns: 90ex;
+    grid-auto-flow: column;
+  }
+
+  .sticky-nav {
+    position: sticky;
+    top: 0px;
+    max-height: calc(100vh - 0px);
+    overflow-y: auto;
+    scrollbar-width: thin;
+    margin-top: -2em;
+  }
+
+  .sticky-nav>div.block {
+    margin-top: 2em;
   }
 }
 
@@ -440,6 +454,10 @@ nav#toc li>ul {
 nav#toc,
 nav#toc a {
   color: light-dark(#555, white);
+}
+
+nav#toc {
+  grid-area: toc;
 }
 
 nav {

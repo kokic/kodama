@@ -74,6 +74,7 @@ pub fn html_header(
     title: &str,
     taxon: &str,
     slug: &Slug,
+    ext: &str,
     span_class: String,
     etc: Vec<String>,
 ) -> String {
@@ -82,9 +83,7 @@ pub fn html_header(
 
     let editor_url = match environment::editor_url() {
         Some(prefix) if environment::is_serve() => {
-            // Bug: The suffix of slug is not necessarily `.md`,
-            // perhaps we need to add an `ext` field for [`Slug`].
-            let source_path = input_path(format!("{}.md", slug.as_str()))
+            let source_path = input_path(format!("{}.{}", slug.as_str(), ext))
                 .canonicalize()
                 .unwrap();
             let source_url = url::Url::from_file_path(source_path).unwrap();
@@ -137,7 +136,9 @@ pub fn catalog_item(
 }
 
 pub fn html_catalog_block(items: &str) -> String {
-    html!(div class="block" { h1 { "Table of Contents" } (items) })
+    html!(div class="block" {
+        details open="" { summary { h1 { "Table of Contents" } } (items) }
+    })
 }
 
 pub fn html_inline_typst_span(svg: &str) -> String {
@@ -162,9 +163,9 @@ pub fn html_image_color_invert(image_src: &str) -> String {
     html_image(image_src, "color-invert")
 }
 
-pub fn html_figure(image_src: &str, center: bool, caption: String) -> String {
-    if !center {
-        return html_image_color_invert(image_src);
+pub fn html_figure(image_src: &str, is_block: bool, caption: String) -> String {
+    if !is_block {
+        return html!(span class="inline-typst" { (html_image_color_invert(image_src)) });
     }
     let mut caption = caption;
     if !caption.is_empty() {
@@ -189,7 +190,7 @@ pub fn html_link(href: &str, title: &str, text: &str, class_name: &str) -> Strin
     })
 }
 
-/// Also see [`kodama::compiler::parser::tests::test_code_block`]
+/// Also see [`crate::compiler::parser::tests::test_code_block`]
 pub fn html_code_block(code: &str, language: &str) -> String {
     html!(pre { code class={format!("language-{}", language)} { (code) } })
 }
@@ -214,17 +215,20 @@ pub fn html_doc(
     footer_html: &str,
     catalog_html: &str,
 ) -> String {
+    let mut toc_class: Vec<&str> = vec![];
+    if environment::is_toc_sticky() {
+        toc_class.push("sticky-nav");
+    }
+
     let doc_type = "<!DOCTYPE html>";
     let toc_html = catalog_html
         .is_empty()
         .not()
-        .then(|| html!(nav id="toc" { (catalog_html) }))
+        .then(|| html!(nav id="toc" class={toc_class.join(" ")} { (catalog_html) }))
         .unwrap_or_default();
 
-    let body_inner = html!(div id="grid-wrapper" {
-      article { (article_inner) (footer_html) }
-      "\n\n"
-      (toc_html)
+    let body_inner = html!(div id="grid-wrapper" style={grid_wrapper_style()} {
+        (toc_html) "\n\n" article { (article_inner) (footer_html) }
     });
 
     let html = html!(html lang="en-US" {
@@ -234,28 +238,55 @@ pub fn html_doc(
 <meta name="viewport" content="width=device-width">"#
             (format!("<title>{page_title}</title>"))
             (html_import_meta())
-            (html_css())
+            (html_static_css())
+            (html_dynamic_css())
             (html_import_style())
             (html_import_fonts())
             (html_import_math())
+            (html_scripts())
         }
         body { (header_html) (body_inner) }
     });
     format!("{}\n{}", doc_type, html)
 }
 
-pub fn html_css() -> String {
-    match environment::inline_css() {
-        true => html!(style { (html_main_style()) (html_typst_style()) }),
-        false => {
-            let base_url = environment::base_url();
-            format!(
-                r#"<link rel="stylesheet" href="{}main.css">
-<link rel="stylesheet" href="{}typst.css">"#,
-                base_url, base_url
-            )
-        }
+pub fn grid_wrapper_style() -> &'static str {
+    if environment::is_toc_left() {
+        "grid-template-areas: 'toc article';"
+    } else {
+        "grid-template-areas: 'article toc';"
     }
+}
+
+pub fn html_static_css() -> String {
+    if environment::inline_css() {
+        html!(style { (html_main_style()) (html_typst_style()) })
+    } else {
+        let base_url = environment::base_url();
+        format!(
+            r#"<link rel="stylesheet" href="{}main.css">
+<link rel="stylesheet" href="{}typst.css">"#,
+            base_url, base_url
+        )
+    }
+}
+
+pub fn html_dynamic_css() -> String {
+    let toc_max_width = environment::toc_max_width();
+    let grid_columns_value = if environment::is_toc_left() {
+        "max-content var(--article-max-width)"
+    } else {
+        "var(--toc-max-width) var(--article-max-width)"
+    };
+
+    let grid_wrapper = format!(
+        r#"@media only screen and (min-width: 1000px) {{
+  #grid-wrapper {{ grid-template-columns: {grid_columns_value}; }}
+  nav#toc {{ max-width: {toc_max_width}; }}
+}}"#
+    );
+
+    format!("<style>\n{grid_wrapper}\n</style>")
 }
 
 pub fn html_import_meta() -> String {
@@ -272,6 +303,10 @@ pub fn html_import_fonts() -> String {
 
 pub fn html_import_math() -> String {
     environment::CUSTOM_MATH_HTML.clone()
+}
+
+pub fn html_scripts() -> &'static str {
+    include_str!("include/mobile-toc.html")
 }
 
 pub fn html_main_style() -> &'static str {

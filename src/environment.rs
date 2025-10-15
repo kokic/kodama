@@ -11,7 +11,7 @@ use camino::{Utf8Path, Utf8PathBuf};
 use eyre::Context;
 
 use crate::{
-    config::{self, Config, FooterMode, DEFAULT_BASE_URL},
+    config::{self, Config, FooterMode, TocPlacement, DEFAULT_BASE_URL},
     path_utils,
     slug::Slug,
 };
@@ -141,12 +141,31 @@ pub fn base_url() -> &'static str {
     }
 }
 
+pub fn is_toc_left() -> bool {
+    match get_config().toc.placement {
+        TocPlacement::Left => true,
+        TocPlacement::Right => false,
+    }
+}
+
+pub fn is_toc_sticky() -> bool {
+    get_config().toc.sticky
+}
+
+pub fn toc_max_width() -> String {
+    get_config().toc.max_width.clone()
+}
+
 pub fn footer_mode() -> FooterMode {
     get_config().build.footer_mode
 }
 
 pub fn inline_css() -> bool {
     get_config().build.inline_css
+}
+
+pub fn asref() -> bool {
+    get_config().build.asref
 }
 
 pub fn editor_url() -> Option<&'static str> {
