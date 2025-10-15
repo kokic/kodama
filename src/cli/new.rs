@@ -45,6 +45,7 @@ pub fn new_site(command: &NewSiteCommand) -> eyre::Result<()> {
     std::fs::create_dir_all(site_path).wrap_err("failed to create site directory")?;
     println!("Created new site at: {}", site_path);
 
+    add_project_files(site_path)?;
     Ok(())
 }
 

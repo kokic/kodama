@@ -84,9 +84,7 @@ fn to_slug_ext(source_dir: &Utf8Path, p: &Utf8Path) -> Option<(Slug, Ext)> {
     Some((slug, ext))
 }
 
-/// Collect all source file paths in workspace dir.
-///
-/// It includes all `.md` and `.typ` files in the `trees_dir`.
+/// Collect all source file paths in `<trees>` dir.
 ///
 /// **Side effect: update the `.hash` & `.svg` file of all modified `.typ` files.**
 pub fn all_trees_source(trees_dir: &Utf8Path) -> eyre::Result<Workspace> {
