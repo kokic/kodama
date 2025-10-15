@@ -60,6 +60,7 @@ pub enum TocPlacement {
 pub struct Toc {
     pub placement: TocPlacement,
     pub sticky: bool,
+    pub max_width: String, 
 }
 
 impl Default for Toc {
@@ -67,6 +68,7 @@ impl Default for Toc {
         Self {
             placement: TocPlacement::Right,
             sticky: true,
+            max_width: "45ex".to_string(),
         }
     }
 }

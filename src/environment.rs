@@ -152,6 +152,10 @@ pub fn is_toc_sticky() -> bool {
     get_config().toc.sticky
 }
 
+pub fn toc_max_width() -> String {
+    get_config().toc.max_width.clone()
+}
+
 pub fn footer_mode() -> FooterMode {
     get_config().build.footer_mode
 }

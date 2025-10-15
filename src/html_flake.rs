@@ -239,9 +239,11 @@ pub fn html_doc(
             (format!("<title>{page_title}</title>"))
             (html_import_meta())
             (html_static_css())
+            (html_dynamic_css())
             (html_import_style())
             (html_import_fonts())
             (html_import_math())
+            (html_scripts())
         }
         body { (header_html) (body_inner) }
     });
@@ -257,17 +259,34 @@ pub fn grid_wrapper_style() -> &'static str {
 }
 
 pub fn html_static_css() -> String {
-    match environment::inline_css() {
-        true => html!(style { (html_main_style()) (html_typst_style()) }),
-        false => {
-            let base_url = environment::base_url();
-            format!(
-                r#"<link rel="stylesheet" href="{}main.css">
+    if environment::inline_css() {
+        html!(style { (html_main_style()) (html_typst_style()) })
+    } else {
+        let base_url = environment::base_url();
+        format!(
+            r#"<link rel="stylesheet" href="{}main.css">
 <link rel="stylesheet" href="{}typst.css">"#,
-                base_url, base_url
-            )
-        }
+            base_url, base_url
+        )
     }
+}
+
+pub fn html_dynamic_css() -> String {
+    let toc_max_width = environment::toc_max_width();
+    let grid_columns_value = if environment::is_toc_left() {
+        "max-content 90ex"
+    } else {
+        "90ex 90ex"
+    };
+
+    let grid_wrapper = format!(
+        r#"@media only screen and (min-width: 1000px) {{
+  #grid-wrapper {{ grid-template-columns: {grid_columns_value}; }}
+  nav#toc {{ max-width: {toc_max_width}; }}
+}}"#
+    );
+
+    format!("<style>\n{grid_wrapper}\n</style>")
 }
 
 pub fn html_import_meta() -> String {
@@ -284,6 +303,10 @@ pub fn html_import_fonts() -> String {
 
 pub fn html_import_math() -> String {
     environment::CUSTOM_MATH_HTML.clone()
+}
+
+pub fn html_scripts() -> &'static str {
+    include_str!("include/mobile-toc.html")
 }
 
 pub fn html_main_style() -> &'static str {
