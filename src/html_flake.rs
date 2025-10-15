@@ -274,9 +274,9 @@ pub fn html_static_css() -> String {
 pub fn html_dynamic_css() -> String {
     let toc_max_width = environment::toc_max_width();
     let grid_columns_value = if environment::is_toc_left() {
-        "max-content 90ex"
+        "max-content var(--article-max-width)"
     } else {
-        "90ex 90ex"
+        "var(--toc-max-width) var(--article-max-width)"
     };
 
     let grid_wrapper = format!(
