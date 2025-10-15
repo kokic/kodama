@@ -136,7 +136,9 @@ pub fn catalog_item(
 }
 
 pub fn html_catalog_block(items: &str) -> String {
-    html!(div class="block" { h1 { "Table of Contents" } (items) })
+    html!(div class="block" {
+        details open="" { summary { h1 { "Table of Contents" } } (items) }
+    })
 }
 
 pub fn html_inline_typst_span(svg: &str) -> String {
@@ -225,12 +227,9 @@ pub fn html_doc(
         .then(|| html!(nav id="toc" class={toc_class.join(" ")} { (catalog_html) }))
         .unwrap_or_default();
 
-    let body_inner = if environment::is_toc_left() {
-        html!((toc_html) "\n\n" article { (article_inner) (footer_html) })
-    } else {
-        html!(article { (article_inner) (footer_html) } "\n\n" (toc_html))
-    };
-    let body_inner = html!(div id="grid-wrapper" { (body_inner) });
+    let body_inner = html!(div id="grid-wrapper" style={grid_wrapper_style()} {
+        (toc_html) "\n\n" article { (article_inner) (footer_html) }
+    });
 
     let html = html!(html lang="en-US" {
         head {
@@ -247,6 +246,14 @@ pub fn html_doc(
         body { (header_html) (body_inner) }
     });
     format!("{}\n{}", doc_type, html)
+}
+
+pub fn grid_wrapper_style() -> &'static str {
+    if environment::is_toc_left() {
+        "grid-template-areas: 'toc article';"
+    } else {
+        "grid-template-areas: 'article toc';"
+    }
 }
 
 pub fn html_static_css() -> String {
