@@ -46,7 +46,7 @@ enum Command {
 
     /// Serve a forest at http://localhost:<port>, and rebuilds it on changes.
     ///
-    /// Server defaultly depends on the miniserve program in the user's environment.
+    /// Server by default depends on the miniserve program in the user's environment.
     #[command(visible_alias = "s")]
     Serve(ServeCommand),
 }
