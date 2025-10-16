@@ -100,6 +100,20 @@ pub fn all_trees_source(trees_dir: &Utf8Path) -> eyre::Result<Workspace> {
     };
 
     let mut collect_files = |source_dir: &Utf8Path| {
+        let compile_typst_svg = |path: &Utf8PathBuf| -> eyre::Result<()> {
+            // Hashable files only include `.md` and `.typ` currently.
+            if let Some("typ") = path.extension() {
+                let relative = path.strip_prefix(source_dir)?;
+
+                let svg_url = relative.with_extension("svg");
+                let svg_path = environment::output_path(&svg_url);
+                if let Err(err) = crate::typst_cli::write_svg(relative, &svg_path) {
+                    eprintln!("{:?} at {}", err, path)
+                }
+            }
+            Ok(())
+        };
+
         for entry in source_dir
             .read_dir_utf8()
             .wrap_err_with(|| failed_to_read_dir(source_dir))?
@@ -110,16 +124,7 @@ pub fn all_trees_source(trees_dir: &Utf8Path) -> eyre::Result<Workspace> {
 
             if path.is_file() && !should_ignored_file(&path) {
                 let Some((slug, ext)) = to_slug_ext(source_dir, &path) else {
-                    // Hashable files only include `.md` and `.typ` currently.
-                    if let Some("typ") = path.extension() {
-                        let relative = path.strip_prefix(source_dir)?;
-
-                        let svg_url = relative.with_extension("svg");
-                        let svg_path = environment::output_path(&svg_url);
-                        if let Err(err) = crate::typst_cli::write_svg(relative, &svg_path) {
-                            eprintln!("{:?} at {}", err, path)
-                        }
-                    }
+                    compile_typst_svg(&path)?;
                     continue;
                 };
 
@@ -142,6 +147,7 @@ pub fn all_trees_source(trees_dir: &Utf8Path) -> eyre::Result<Workspace> {
                         .expect("non-UTF-8 paths are filtered out");
                     if path.is_file() {
                         let Some((slug, ext)) = to_slug_ext(source_dir, &path) else {
+                            compile_typst_svg(&path)?;
                             continue;
                         };
                         if let Some(ext) = slug_exts.insert(slug, ext) {
