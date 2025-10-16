@@ -219,6 +219,9 @@ pub fn html_doc(
     if environment::is_toc_sticky() {
         toc_class.push("sticky-nav");
     }
+    if environment::is_toc_mobile_sticky() {
+        toc_class.push("mobile-sticky-nav");
+    }
 
     let doc_type = "<!DOCTYPE html>";
     let toc_html = catalog_html

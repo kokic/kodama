@@ -411,6 +411,18 @@ body>header {
   #grid-wrapper>nav {
     transition: ease all .2s;
   }
+
+  .mobile-sticky-nav {
+    position: sticky;
+    top: 0px;
+    max-height: calc(100vh - 0px);
+    overflow-y: auto;
+    scrollbar-width: thin;
+    
+    background-color: var(--background-color);
+    z-index: 7;
+    border-bottom: solid var(--text-color);
+  }
 }
 
 @media only screen and (min-width: 1000px) {
