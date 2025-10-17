@@ -172,6 +172,10 @@ pub fn asref() -> bool {
     get_config().build.asref
 }
 
+pub fn deploy_edit_url() -> Option<&'static str> {
+    get_config().build.edit.as_deref()
+}
+
 pub fn editor_url() -> Option<&'static str> {
     get_config().serve.edit.as_deref()
 }

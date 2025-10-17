@@ -3,6 +3,12 @@ trees = "trees"
 assets = "assets"
 base-url = "/"
 
+[toc]
+placement = "right"
+sticky = true
+mobile-sticky = true
+max-width = "max-content"
+
 [build]
 typst-root = "trees"
 short-slug = false

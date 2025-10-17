@@ -109,6 +109,7 @@ pub struct Build {
     pub inline_css: bool,
     pub asref: bool,
     pub output: String,
+    pub edit: Option<String>,
 }
 
 impl Default for Build {
@@ -121,6 +122,7 @@ impl Default for Build {
             inline_css: false,
             asref: false,
             output: "./publish".to_string(),
+            edit: None, 
         }
     }
 }
