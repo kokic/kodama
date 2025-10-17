@@ -78,12 +78,14 @@ pub fn html_header(
     span_class: String,
     etc: Vec<String>,
 ) -> String {
-    let slug_text = EntryMetaData::to_slug_text(slug.as_str());
-    let slug_url = environment::full_html_url(*slug);
+    let slug_str = slug.as_str();
+    let is_serve = environment::is_serve();
+    let serve_edit = environment::editor_url();
+    let deploy_edit = environment::deploy_edit_url();
 
-    let editor_url = match environment::editor_url() {
-        Some(prefix) if environment::is_serve() => {
-            let source_path = input_path(format!("{}.{}", slug.as_str(), ext))
+    let edit_url = match (is_serve, serve_edit, deploy_edit) {
+        (true, Some(prefix), _) => {
+            let source_path = input_path(format!("{}.{}", slug_str, ext))
                 .canonicalize()
                 .unwrap();
             let source_url = url::Url::from_file_path(source_path).unwrap();
@@ -91,15 +93,23 @@ pub fn html_header(
             let editor_url = base.join(source_url.path()).unwrap();
             html!(a class="slug" href={editor_url.to_string()} { "[edit]" })
         }
+        (false, _, Some(prefix)) => {
+            let source_path = format!("{}.{}", slug_str, ext);
+            let editor_url = format!("{}{}", prefix, source_path);
+            html!(a class="slug" href={editor_url.to_string()} { "[edit]" })
+        }
         _ => String::default(),
     };
+
+    let slug_text = EntryMetaData::to_slug_text(slug_str);
+    let slug_url = environment::full_html_url(*slug);
 
     html!(header {
         h1 {
             span class={span_class} { (taxon) }
             (title) " "
             a class="slug" href={slug_url} { "["(slug_text)"]" }
-            (editor_url)
+            (edit_url)
         }
         (html_header_metadata(etc))
     })
