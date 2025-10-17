@@ -75,7 +75,7 @@ pub fn compile(workspace: Workspace) -> eyre::Result<()> {
         .wrap_err_with(|| eyre!("failed to serialize indexes to JSON"))?;
     let indexes_path = environment::output_dir().join("kodama.json");
     std::fs::write(&indexes_path, serialized)
-        .wrap_err_with(|| eyre!("failed to write entry to `{}`", indexes_path))?;
+        .wrap_err_with(|| eyre!("failed to write indexes to `{}`", indexes_path))?;
 
     Ok(())
 }
