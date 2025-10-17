@@ -279,7 +279,7 @@ pub fn html_dynamic_css() -> String {
     let grid_columns_value = if environment::is_toc_left() {
         "max-content var(--article-max-width)"
     } else {
-        "var(--toc-max-width) var(--article-max-width)"
+        "var(--article-max-width) var(--toc-max-width)"
     };
 
     let grid_wrapper = format!(
