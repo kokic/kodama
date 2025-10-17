@@ -24,6 +24,7 @@ use writer::Writer;
 
 use crate::{
     environment::{self, verify_and_file_hash},
+    ordered_map::OrderedMap,
     path_utils,
     slug::{Ext, Slug},
 };
@@ -62,8 +63,18 @@ pub fn compile(workspace: Workspace) -> eyre::Result<()> {
         shallows.insert(slug, shallow);
     }
 
+    let indexes: HashMap<Slug, OrderedMap<String, HTMLContent>> = shallows
+        .iter()
+        .map(|(slug, section)| (*slug, section.metadata.0.clone()))
+        .collect();
+
     let state = state::compile_all(shallows)?;
     Writer::write_needed_slugs(workspace.slug_exts.into_iter().map(|x| x.0), &state);
+
+    let serialized = serde_json::to_string(&indexes).unwrap();
+    let indexes_path = environment::output_dir().join("kodama.json");
+    std::fs::write(&indexes_path, serialized)
+        .wrap_err_with(|| eyre!("failed to write entry to `{}`", indexes_path))?;
 
     Ok(())
 }
