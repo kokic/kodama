@@ -20,7 +20,10 @@ mod typst_cli;
 use clap::Parser;
 
 use crate::cli::{
-    build::BuildCommand, init::InitCommand, new::{NewCommand, NewCommandCli}, serve::ServeCommand
+    build::BuildCommand,
+    init::InitCommand,
+    new::{NewCommand, NewCommandCli},
+    serve::ServeCommand,
 };
 
 #[derive(Parser)]
@@ -36,7 +39,7 @@ enum Command {
     #[command(visible_alias = "n")]
     New(NewCommandCli),
 
-    /// Create a new kodama site in an existing directory. 
+    /// Create a new kodama site in an existing directory.
     #[command(visible_alias = "i")]
     Init(InitCommand),
 

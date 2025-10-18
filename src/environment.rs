@@ -11,7 +11,7 @@ use camino::{Utf8Path, Utf8PathBuf};
 use eyre::Context;
 
 use crate::{
-    config::{self, Config, FooterMode, TocPlacement, DEFAULT_BASE_URL},
+    config::{self, build::FooterMode, kodama, toc, Config},
     path_utils,
     slug::Slug,
 };
@@ -137,14 +137,14 @@ pub fn base_url() -> &'static str {
     let env = get_environment();
     match env.build_mode {
         BuildMode::Build => &env.config.kodama.base_url,
-        BuildMode::Serve => DEFAULT_BASE_URL,
+        BuildMode::Serve => kodama::DEFAULT_BASE_URL,
     }
 }
 
 pub fn is_toc_left() -> bool {
     match get_config().toc.placement {
-        TocPlacement::Left => true,
-        TocPlacement::Right => false,
+        toc::TocPlacement::Left => true,
+        toc::TocPlacement::Right => false,
     }
 }
 
@@ -158,6 +158,22 @@ pub fn is_toc_mobile_sticky() -> bool {
 
 pub fn toc_max_width() -> String {
     get_config().toc.max_width.clone()
+}
+
+pub fn get_edit_text() -> String {
+    get_config().text.edit.clone()
+}
+
+pub fn get_toc_text() -> String {
+    get_config().text.toc.clone()
+}
+
+pub fn get_footer_references_text() -> String {
+    get_config().text.references.clone()
+}
+
+pub fn get_footer_backlinks_text() -> String {
+    get_config().text.backlinks.clone()
 }
 
 pub fn footer_mode() -> FooterMode {

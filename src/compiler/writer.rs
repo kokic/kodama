@@ -6,7 +6,7 @@ use std::{collections::HashSet, ops::Not};
 
 use crate::{
     compiler::counter::Counter,
-    config::FooterMode,
+    config::build::FooterMode,
     entry::MetaData,
     environment::{self, verify_update_hash},
     html_flake,
@@ -70,7 +70,7 @@ impl Writer {
         let callback = state.callback().0.get(&slug);
         let footer_html = Writer::footer(
             section.metadata.footer_mode(),
-            section.metadata.is_enable_references(), 
+            section.metadata.is_enable_references(),
             state,
             &section.references,
             callback,
@@ -120,6 +120,7 @@ impl Writer {
         let mut references: Vec<Slug> = references.iter().copied().collect();
         references.sort();
 
+        let references_text = environment::get_footer_references_text();
         let references_html = if enable_references {
             references
                 .iter()
@@ -128,12 +129,13 @@ impl Writer {
                     Writer::footer_section_to_html(footer_mode, section)
                 })
                 .reduce(|s, t| s + &t)
-                .map(|s| html_flake::html_footer_section("References", &s))
+                .map(|s| html_flake::html_footer_section(&references_text, &s))
                 .unwrap_or_default()
         } else {
             String::default()
         };
 
+        let backlinks_text = environment::get_footer_backlinks_text();
         let backlinks_html = callback
             .map(|s| {
                 let mut backlinks: Vec<Slug> = s.backlinks.iter().copied().collect();
@@ -146,7 +148,7 @@ impl Writer {
                         Writer::footer_section_to_html(footer_mode, section)
                     })
                     .reduce(|s, t| s + &t)
-                    .map(|s| html_flake::html_footer_section("Backlinks", &s))
+                    .map(|s| html_flake::html_footer_section(&backlinks_text, &s))
                     .unwrap_or_default()
             })
             .unwrap_or_default();

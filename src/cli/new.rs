@@ -6,7 +6,10 @@ use camino::{Utf8Path, Utf8PathBuf};
 use clap::Parser;
 use eyre::Context;
 
-use crate::{config, environment};
+use crate::{
+    config::{self, kodama},
+    environment,
+};
 
 #[derive(Parser)]
 pub struct NewCommandCli {
@@ -51,8 +54,8 @@ pub fn new_site(command: &NewSiteCommand) -> eyre::Result<()> {
 
 pub fn add_project_files(site_path: &Utf8Path) -> eyre::Result<()> {
     let default_config_path = site_path.join(config::DEFAULT_CONFIG_PATH);
-    let default_source_dir = site_path.join(config::DEFAULT_SOURCE_DIR);
-    let default_assets_dir = site_path.join(config::DEFAULT_ASSETS_DIR);
+    let default_source_dir = site_path.join(kodama::DEFAULT_SOURCE_DIR);
+    let default_assets_dir = site_path.join(kodama::DEFAULT_ASSETS_DIR);
 
     // Create default config file in the new site directory
     new_config_inner(&default_config_path)?;

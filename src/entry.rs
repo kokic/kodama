@@ -4,7 +4,7 @@
 
 use crate::{
     compiler::{section::HTMLContent, taxon::Taxon},
-    config::FooterMode,
+    config::build::FooterMode,
     environment, html_flake,
     ordered_map::OrderedMap,
     slug::Slug,
@@ -57,13 +57,13 @@ pub const KEY_FOOTER_MODE: &str = "footer-mode";
 const PRESET_METADATA: [&str; 12] = [
     KEY_TITLE,
     KEY_SLUG,
-    KEY_EXT, 
+    KEY_EXT,
     KEY_TAXON,
     KEY_DATA_TAXON,
     KEY_PARENT,
     KEY_PAGE_TITLE,
     KEY_BACKLINKS,
-    KEY_REFERENCES, 
+    KEY_REFERENCES,
     KEY_COLLECT,
     KEY_ASREF,
     KEY_FOOTER_MODE,
