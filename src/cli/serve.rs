@@ -7,7 +7,11 @@ use std::io::Write;
 use camino::{Utf8Path, Utf8PathBuf};
 use notify::{Config, EventKind, RecommendedWatcher, RecursiveMode, Watcher};
 
-use crate::{cli::build::build_with, config, environment::{self, BuildMode}};
+use crate::{
+    cli::build::build_with,
+    config,
+    environment::{self, BuildMode},
+};
 
 #[derive(clap::Args)]
 pub struct ServeCommand {
@@ -28,10 +32,13 @@ pub fn serve(command: &ServeCommand) -> eyre::Result<()> {
     print!("\x1B[2J\x1B[H");
     std::io::stdout().flush()?;
 
-    let mut serve = parse_command(&environment::serve_command(), crate::environment::output_dir())?
-        .stdout(std::process::Stdio::piped())
-        .stderr(std::process::Stdio::piped())
-        .spawn()?;
+    let mut serve = parse_command(
+        &environment::serve_command(),
+        crate::environment::output_dir(),
+    )?
+    .stdout(std::process::Stdio::piped())
+    .stderr(std::process::Stdio::piped())
+    .spawn()?;
 
     let serve_stdout = serve.stdout.take().unwrap();
     let serve_stderr = serve.stderr.take().unwrap();

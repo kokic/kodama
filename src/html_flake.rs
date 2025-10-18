@@ -82,6 +82,7 @@ pub fn html_header(
     let is_serve = environment::is_serve();
     let serve_edit = environment::editor_url();
     let deploy_edit = environment::deploy_edit_url();
+    let edit_text = environment::get_edit_text();
 
     let edit_url = match (is_serve, serve_edit, deploy_edit) {
         (true, Some(prefix), _) => {
@@ -91,12 +92,12 @@ pub fn html_header(
             let source_url = url::Url::from_file_path(source_path).unwrap();
             let base = url::Url::parse(prefix).unwrap();
             let editor_url = base.join(source_url.path()).unwrap();
-            html!(a class="slug" href={editor_url.to_string()} { "[edit]" })
+            html!(a class="slug" href={editor_url.to_string()} { (edit_text) })
         }
         (false, _, Some(prefix)) => {
             let source_path = format!("{}.{}", slug_str, ext);
             let editor_url = format!("{}{}", prefix, source_path);
-            html!(a class="slug" href={editor_url.to_string()} { "[edit]" })
+            html!(a class="slug" href={editor_url.to_string()} { (edit_text) })
         }
         _ => String::default(),
     };
@@ -146,8 +147,9 @@ pub fn catalog_item(
 }
 
 pub fn html_catalog_block(items: &str) -> String {
+    let toc_text = environment::get_toc_text();
     html!(div class="block" {
-        details open="" { summary { h1 { "Table of Contents" } } (items) }
+        details open="" { summary { h1 { (toc_text) } } (items) }
     })
 }
 
