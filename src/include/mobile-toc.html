@@ -1,7 +1,9 @@
 <script>
    function toggleDetailsOpen() {
       const details = document.querySelector("#toc>div>details");
-      if (window.matchMedia("(max-width: 1000px)").matches && details) {
+      if (!details) return;
+
+      if (window.matchMedia("(max-width: 1000px)").matches) {
          details.removeAttribute("open");
       } else {
          details.setAttribute("open", "");
