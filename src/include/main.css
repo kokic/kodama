@@ -478,6 +478,7 @@ nav#toc ul {
 }
 
 nav#toc li > ul {
+  margin: 0;
   padding-left: 1em;
 }
 
