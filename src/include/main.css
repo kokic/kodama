@@ -1,164 +1,164 @@
 :root {
-    color-scheme: light dark;
-    --content-gap: 15px;
-    --radius: 5px;
-    --article-max-width: 90ex;
-    --toc-max-width: 90ex;
+  color-scheme: light dark;
+  --content-gap: 15px;
+  --radius: 5px;
+  --article-max-width: 90ex;
+  --toc-max-width: 90ex;
 
-    --text-color: black;
-    --background-color: white;
+  --text-color: black;
+  --background-color: white;
 
-    --background-color-pre: rgba(0, 100, 100, 0.04);
-    --background-color-code: rgba(0, 100, 100, 0.04);
+  --background-color-pre: rgba(0, 100, 100, 0.04);
+  --background-color-code: rgba(0, 100, 100, 0.04);
 
-    --hover-color-block: rgba(0, 100, 255, 0.04);
-    --hover-color-link: rgba(0, 100, 255, 0.1);
-    --target-color: rgb(67, 92, 255);
+  --hover-color-block: rgba(0, 100, 255, 0.04);
+  --hover-color-link: rgba(0, 100, 255, 0.1);
+  --target-color: rgb(67, 92, 255);
 
-    --link-color: black;
-    --slug-color: gray;
-    --logo-color: #666;
-    --logo-hover-color: #aaa;
-    --span-taxon-color: #444;
-    --article-taxon-color: #888;
-    --mark-color: rgb(255, 255, 151);
+  --link-color: black;
+  --slug-color: gray;
+  --logo-color: #666;
+  --logo-hover-color: #aaa;
+  --span-taxon-color: #444;
+  --article-taxon-color: #888;
+  --mark-color: rgb(255, 255, 151);
 }
 
 @media (prefers-color-scheme: dark) {
-    :root {
-        --text-color: white;
-        --background-color: #2f2f2f;
+  :root {
+    --text-color: white;
+    --background-color: #2f2f2f;
 
-        --background-color-pre: rgba(100, 100, 100, 0.2);
-        --background-color-code: rgba(150, 150, 150, 0.2);
+    --background-color-pre: rgba(100, 100, 100, 0.2);
+    --background-color-code: rgba(150, 150, 150, 0.2);
 
-        --hover-color-block: rgba(100, 162, 255, 0.06);
-        --hover-color-link: rgba(100, 162, 255, 0.2);
-        --target-color: rgb(255, 255, 151);
+    --hover-color-block: rgba(100, 162, 255, 0.06);
+    --hover-color-link: rgba(100, 162, 255, 0.2);
+    --target-color: rgb(255, 255, 151);
 
-        --link-color: white;
-        --slug-color: #aeaeae;
-        --logo-color: #999;
-        --logo-hover-color: #eee;
-        --span-taxon-color: #bbb;
-    }
+    --link-color: white;
+    --slug-color: #aeaeae;
+    --logo-color: #999;
+    --logo-hover-color: #eee;
+    --span-taxon-color: #bbb;
+  }
 }
 
 body {
-    font-optical-sizing: auto;
-    hyphens: auto;
-    background-color: var(--background-color);
+  font-optical-sizing: auto;
+  hyphens: auto;
+  background-color: var(--background-color);
 }
 
 pre,
 code {
-    font-optical-sizing: auto;
+  font-optical-sizing: auto;
 }
 
 p,
 pre {
-    line-height: 1.55;
+  line-height: 1.55;
 }
 
 pre {
-    border-radius: var(--radius);
-    background-color: var(--background-color-pre);
-    padding: 0.5em;
-    font-size: 11pt;
-    margin-top: 0em;
-    overflow-x: auto;
-    white-space: pre-wrap;
-    white-space: -moz-pre-wrap;
-    white-space: -pre-wrap;
-    white-space: -o-pre-wrap;
-    word-wrap: break-word;
+  border-radius: var(--radius);
+  background-color: var(--background-color-pre);
+  padding: 0.5em;
+  font-size: 11pt;
+  margin-top: 0em;
+  overflow-x: auto;
+  white-space: pre-wrap;
+  white-space: -moz-pre-wrap;
+  white-space: -pre-wrap;
+  white-space: -o-pre-wrap;
+  word-wrap: break-word;
 }
 
 code {
-    border-radius: var(--radius);
-    background-color: var(--background-color-code);
-    padding: 0.2em;
-    font-size: 0.9em;
+  border-radius: var(--radius);
+  background-color: var(--background-color-code);
+  padding: 0.2em;
+  font-size: 0.9em;
 }
 
 /* !forest */
 table {
-    text-align: left;
+  text-align: left;
 }
 
 /* !forest */
 th {
-    font-weight: normal;
-    padding: 0 1rem;
+  font-weight: normal;
+  padding: 0 1rem;
 }
 
 /* !forest */
 pre > code {
-    border-radius: 0;
-    background-color: transparent;
-    padding: 0;
+  border-radius: 0;
+  background-color: transparent;
+  padding: 0;
 }
 
 /* !forest */
 .footnote-definition:last-child {
-    margin-bottom: 1em;
+  margin-bottom: 1em;
 }
 
 /* !forest */
 .footnote-definition > p {
-    display: inline;
+  display: inline;
 }
 
 /* !forest */
 .footnote-definition-label {
-    margin-right: 4px;
+  margin-right: 4px;
 }
 
 /* !forest */
 .footnote-reference:target {
-    border: 1px solid var(--target-color);
+  border: 1px solid var(--target-color);
 }
 
 .footnote-definition:target > .footnote-definition-label {
-    border: 1px solid var(--target-color);
+  border: 1px solid var(--target-color);
 }
 
 .footnote-reference::before,
 .footnote-definition-label::before {
-    content: "[";
+  content: "[";
 }
 
 .footnote-reference::after,
 .footnote-definition-label::after {
-    content: "]";
+  content: "]";
 }
 
 p:has(span.katex-html:empty) {
-    display: none;
+  display: none;
 }
 
 .display-none {
-    display: none;
+  display: none;
 }
 
 blockquote {
-    font-style: italic;
+  font-style: italic;
 }
 
 blockquote {
-    display: block;
-    margin-block-start: 1em;
-    margin-block-end: 1em;
-    margin-inline-start: 40px;
-    margin-inline-end: 40px;
-    unicode-bidi: isolate;
+  display: block;
+  margin-block-start: 1em;
+  margin-block-end: 1em;
+  margin-inline-start: 40px;
+  margin-inline-end: 40px;
+  unicode-bidi: isolate;
 }
 
 h1,
 h2,
 h3,
 h4 {
-    margin-top: 0.5em;
+  margin-top: 0.5em;
 }
 
 h1,
@@ -167,338 +167,338 @@ h3,
 h4,
 h5,
 h6 {
-    font-weight: normal;
-    font-weight: 500;
-    margin-bottom: 0;
+  font-weight: normal;
+  font-weight: 500;
+  margin-bottom: 0;
 }
 
 h5,
 h6,
 p {
-    margin-top: 0;
+  margin-top: 0;
 }
 
 details > summary {
-    list-style-type: none;
-    outline: none;
+  list-style-type: none;
+  outline: none;
 }
 
 details > summary > header {
-    display: inline;
+  display: inline;
 }
 
 /* no effect */
 details > summary::marker,
 details > summary::-webkit-details-marker {
-    display: none;
+  display: none;
 }
 
 details h1 {
-    font-size: 1.2em;
-    display: inline;
+  font-size: 1.2em;
+  display: inline;
 }
 
 details > summary {
-    list-style-type: none;
+  list-style-type: none;
 }
 
 span.taxon {
-    color: var(--span-taxon-color);
-    font-weight: 500;
+  color: var(--span-taxon-color);
+  font-weight: 500;
 }
 
 section .block[data-taxon] details > summary > header > h1 {
-    font-size: 13pt;
+  font-size: 13pt;
 }
 
 article > section > details > summary > header > h1 {
-    font-size: 1.5em;
+  font-size: 1.5em;
 }
 
 article > section > details > summary > header {
-    display: block;
-    margin-bottom: 0.5em;
+  display: block;
+  margin-bottom: 0.5em;
 }
 
 article > section > details > summary > header > h1 > .taxon {
-    display: block;
-    font-size: 0.9em;
-    color: var(--article-taxon-color);
-    padding-bottom: 5pt;
+  display: block;
+  font-size: 0.9em;
+  color: var(--article-taxon-color);
+  padding-bottom: 5pt;
 }
 
 article > section > details > summary > header > h1 > .taxon:empty {
-    display: none;
+  display: none;
 }
 
 section.block > details {
-    margin-bottom: 0.4em;
+  margin-bottom: 0.4em;
 }
 
 section.block > details[open] {
-    margin-bottom: 1em;
+  margin-bottom: 1em;
 }
 
 .link-list > section.block > details {
-    margin-bottom: 0.25em;
+  margin-bottom: 0.25em;
 }
 
 /* class */
 .inline-typst {
-    display: inline-block;
-    margin: 0 0;
-    line-height: 1em;
-    vertical-align: middle;
+  display: inline-block;
+  margin: 0 0;
+  line-height: 1em;
+  vertical-align: middle;
 }
 
 .block {
-    padding-left: 5px;
-    padding-right: 10px;
-    padding-bottom: 2px;
-    border-radius: 5px;
+  padding-left: 5px;
+  padding-right: 10px;
+  padding-bottom: 2px;
+  border-radius: 5px;
 }
 
 .block {
-    /* width: fit-content; */
-    border-radius: var(--radius);
+  /* width: fit-content; */
+  border-radius: var(--radius);
 }
 
 .block:hover {
-    background-color: var(--hover-color-block);
+  background-color: var(--hover-color-block);
 }
 
 .block.hide-metadata > details > summary > header > .metadata {
-    display: none;
+  display: none;
 }
 
 img {
-    object-fit: cover;
-    max-width: 100%;
+  object-fit: cover;
+  max-width: 100%;
 }
 
 figure {
-    text-align: center;
+  text-align: center;
 }
 
 figcaption {
-    font-style: italic;
-    padding: 3px;
+  font-style: italic;
+  padding: 3px;
 }
 
 mark {
-    background-color: var(--mark-color);
+  background-color: var(--mark-color);
 }
 
 hr {
-    margin-top: 10px;
-    margin-bottom: 20px;
-    background-color: gray;
-    border: 0 none;
-    width: 100%;
-    height: 1pt;
+  margin-top: 10px;
+  margin-bottom: 20px;
+  background-color: gray;
+  border: 0 none;
+  width: 100%;
+  height: 1pt;
 }
 
 ul,
 ol {
-    margin-top: 1em;
-    margin-bottom: 1em;
+  margin-top: 1em;
+  margin-bottom: 1em;
 }
 
 .logo > span {
-    color: var(--logo-color);
-    text-decoration: none;
+  color: var(--logo-color);
+  text-decoration: none;
 }
 
 .logo > span:hover {
-    color: var(--logo-hover-color);
+  color: var(--logo-hover-color);
 }
 
 .logo {
-    font-weight: 600;
-    font-size: 24px;
+  font-weight: 600;
+  font-size: 24px;
 }
 
 section
-    section[data-taxon="Reference"]
-    > details
-    > summary
-    > header
-    > h1
-    > .taxon,
+  section[data-taxon="Reference"]
+  > details
+  > summary
+  > header
+  > h1
+  > .taxon,
 section
-    section[data-taxon="Person"]
-    > details
-    > summary
-    > header
-    > h1
-    > .taxon {
-    display: none;
+  section[data-taxon="Person"]
+  > details
+  > summary
+  > header
+  > h1
+  > .taxon {
+  display: none;
 }
 
 section .block[data-taxon] > header > h1,
 section .block[data-taxon] details > summary > header > h1 {
-    font-size: 13pt;
+  font-size: 13pt;
 }
 
 footer > section {
-    margin-bottom: 1em;
+  margin-bottom: 1em;
 }
 
 footer h2 {
-    font-size: 14pt;
+  font-size: 14pt;
 }
 
 .metadata ul {
-    padding-left: 0;
-    display: inline;
+  padding-left: 0;
+  display: inline;
 }
 
 .metadata li::after {
-    content: " · ";
+  content: " · ";
 }
 
 .metadata li:last-child::after {
-    content: "";
+  content: "";
 }
 
 .metadata * {
-    display: inline;
+  display: inline;
 }
 
 .link {
-    cursor: pointer;
+  cursor: pointer;
 }
 
 a {
-    color: var(--link-color);
-    text-decoration: inherit;
+  color: var(--link-color);
+  text-decoration: inherit;
 }
 
 a.slug:hover,
 a.bullet:hover,
 .edit-button:hover,
 .link:hover {
-    background-color: var(--hover-color-link);
+  background-color: var(--hover-color-link);
 }
 
 .link.external {
-    text-decoration: underline;
+  text-decoration: underline;
 }
 
 .link.asset {
-    text-decoration: underline;
+  text-decoration: underline;
 }
 
 .link.asset::before {
-    content: "[F] ";
+  content: "[F] ";
 }
 
 a.link.local,
 .link.local a,
 a.slug {
-    box-shadow: none;
-    text-decoration-line: underline;
-    text-decoration-style: dotted;
+  box-shadow: none;
+  text-decoration-line: underline;
+  text-decoration-style: dotted;
 }
 
 .slug,
 .doi,
 .orcid {
-    color: var(--slug-color);
-    font-weight: 200;
+  color: var(--slug-color);
+  font-weight: 200;
 }
 
 body > header {
-    margin-bottom: 0.5em;
+  margin-bottom: 0.5em;
 }
 
 #grid-wrapper > article {
-    max-width: var(--article-max-width);
-    margin-right: auto;
-    grid-area: article;
+  max-width: var(--article-max-width);
+  margin-right: auto;
+  grid-area: article;
 }
 
 @media only screen and (max-width: 1000px) {
-    body {
-        margin-top: 1em;
-        margin-left: 0.5em;
-        margin-right: 0.5em;
-        transition: ease all 0.2s;
-    }
+  body {
+    margin-top: 1em;
+    margin-left: 0.5em;
+    margin-right: 0.5em;
+    transition: ease all 0.2s;
+  }
 
-    #grid-wrapper > nav {
-        transition: ease all 0.2s;
-    }
+  #grid-wrapper > nav {
+    transition: ease all 0.2s;
+  }
 
-    .mobile-sticky-nav {
-        position: sticky;
-        top: 0px;
-        max-height: calc(100vh - 0px);
-        overflow-y: auto;
-        scrollbar-width: thin;
+  .mobile-sticky-nav {
+    position: sticky;
+    top: 0px;
+    max-height: calc(100vh - 0px);
+    overflow-y: auto;
+    scrollbar-width: thin;
 
-        background-color: var(--background-color);
-        z-index: 7;
-        border-bottom: solid var(--text-color);
-    }
+    background-color: var(--background-color);
+    z-index: 7;
+    border-bottom: solid var(--text-color);
+  }
 }
 
 @media only screen and (min-width: 1000px) {
-    body {
-        margin-top: 2em;
-        margin-left: 2em;
-        transition: ease all 0.2s;
-    }
+  body {
+    margin-top: 2em;
+    margin-left: 2em;
+    transition: ease all 0.2s;
+  }
 
-    #grid-wrapper {
-        display: grid;
-        grid-auto-flow: column;
-    }
+  #grid-wrapper {
+    display: grid;
+    grid-auto-flow: column;
+  }
 
-    .sticky-nav {
-        position: sticky;
-        top: 0px;
-        max-height: calc(100vh - 0px);
-        overflow-y: auto;
-        scrollbar-width: thin;
-        margin-top: -2em;
-    }
+  .sticky-nav {
+    position: sticky;
+    top: 0px;
+    max-height: calc(100vh - 0px);
+    overflow-y: auto;
+    scrollbar-width: thin;
+    margin-top: -2em;
+  }
 
-    .sticky-nav > div.block {
-        margin-top: 2em;
-    }
+  .sticky-nav > div.block {
+    margin-top: 2em;
+  }
 }
 
 nav#toc li.item-summary li {
-    display: none;
+  display: none;
 }
 
 nav#toc ul {
-    list-style-type: none;
+  list-style-type: none;
 }
 
 nav#toc li > ul {
-    padding-left: 1em;
+  padding-left: 1em;
 }
 
 nav#toc,
 nav#toc a {
-    color: light-dark(#555, white);
+  color: light-dark(#555, white);
 }
 
 nav#toc {
-    grid-area: toc;
+  grid-area: toc;
 }
 
 nav {
-    font-optical-sizing: auto;
+  font-optical-sizing: auto;
 }
 
 nav#toc a.bullet {
-    opacity: 0.7;
-    margin-left: 0.4em;
-    margin-right: 0.3em;
-    padding-left: 0.2em;
-    padding-right: 0.2em;
-    text-decoration: none;
+  opacity: 0.7;
+  margin-left: 0.4em;
+  margin-right: 0.3em;
+  padding-left: 0.2em;
+  padding-right: 0.2em;
+  text-decoration: none;
 }
