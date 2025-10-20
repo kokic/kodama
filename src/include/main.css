@@ -144,6 +144,7 @@ p:has(span.katex-html:empty) {
 
 .katex-display {
   overflow-x: auto;
+  overflow-y: hidden;
 }
 
 .display-none {

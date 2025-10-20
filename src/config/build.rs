@@ -26,7 +26,7 @@ impl Default for Build {
             short_slug: false,
             pretty_urls: false,
             footer_mode: FooterMode::default(),
-            inline_css: false,
+            inline_css: true,
             asref: false,
             output: "./publish".to_string(),
             edit: None,
