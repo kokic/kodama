@@ -211,13 +211,14 @@ pub fn assets_dir() -> Utf8PathBuf {
 
 /// URL keep posix style, so the type of return value is [`String`].
 pub fn full_url<P: AsRef<Utf8Path>>(path: P) -> String {
+    let base_url = base_url();
     let path = path_utils::pretty_path(path.as_ref());
     if let Some(stripped) = path.strip_prefix("/") {
-        return format!("{}{}", base_url(), stripped);
+        return format!("{}{}", base_url, stripped);
     } else if let Some(stripped) = path.strip_prefix("./") {
-        return format!("{}{}", base_url(), stripped);
+        return format!("{}{}", base_url, stripped);
     }
-    format!("{}{}", base_url(), path)
+    format!("{}{}", base_url, path)
 }
 
 pub fn full_html_url(slug: Slug) -> String {
