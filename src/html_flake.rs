@@ -245,6 +245,7 @@ pub fn html_doc(
     let body_inner = html!(div id="grid-wrapper" style={grid_wrapper_style()} {
         (toc_html) "\n\n" article { (article_inner) (footer_html) }
     });
+    let base_url = environment::base_url();
 
     let html = html!(html lang="en-US" {
         head {
@@ -252,6 +253,7 @@ pub fn html_doc(
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
 <meta name="viewport" content="width=device-width">"#
             (format!("<title>{page_title}</title>"))
+            (format!(r#"<link rel="icon" href="{}assets/favicon.ico" />"#, base_url))
             (html_import_meta())
             (html_static_css())
             (html_dynamic_css())

@@ -471,11 +471,6 @@ body > header {
     max-height: calc(100vh - 0px);
     overflow-y: auto;
     scrollbar-width: thin;
-    margin-top: -2em;
-  }
-
-  .sticky-nav > div.block {
-    margin-top: 2em;
   }
 }
 
