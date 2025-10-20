@@ -78,18 +78,23 @@ code {
   border-radius: var(--radius);
   background-color: var(--background-color-code);
   padding: 0.2em;
-  font-size: 0.9em;
+  font-size: 1em;
 }
 
-/* !forest */
 table {
-  text-align: left;
+  border-collapse: collapse;
 }
 
 /* !forest */
 th {
   font-weight: normal;
-  padding: 0 1rem;
+  text-align: left;
+}
+
+th,
+td {
+  padding: 0 15px;
+  vertical-align: top;
 }
 
 /* !forest */
@@ -135,6 +140,11 @@ pre > code {
 
 p:has(span.katex-html:empty) {
   display: none;
+}
+
+.katex-display {
+  overflow-x: auto;
+  overflow-y: hidden;
 }
 
 .display-none {
