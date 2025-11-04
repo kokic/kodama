@@ -261,6 +261,7 @@ pub fn html_doc(
             (html_import_fonts())
             (html_import_math())
             (html_scripts())
+            (html_import_theme())
         }
         body { (header_html) (body_inner) }
     });
@@ -324,6 +325,24 @@ pub fn html_import_math() -> String {
 
 pub fn html_scripts() -> &'static str {
     include_str!("include/mobile-toc.html")
+}
+
+pub fn html_import_theme() -> String {
+    match environment::theme_path() {
+        Some(theme_path) => {
+            match std::fs::read_to_string(&theme_path) {
+                Ok(content) => content,
+                Err(err) => {
+                    eprintln!(
+                        "Warning: Failed to read theme file at '{}': {}",
+                        theme_path, err
+                    );
+                    String::new()
+                }
+            }
+        }
+        None => String::new(),
+    }
 }
 
 pub fn html_main_style() -> &'static str {

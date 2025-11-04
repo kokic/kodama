@@ -125,6 +125,15 @@ pub fn trees_dir() -> Utf8PathBuf {
     root_dir().join(trees)
 }
 
+pub fn theme_path() -> Option<Utf8PathBuf> {
+    get_environment()
+        .config
+        .kodama
+        .theme
+        .as_ref()
+        .map(|theme| root_dir().join(theme))
+}
+
 pub fn output_dir() -> Utf8PathBuf {
     let output_dir = match get_environment().build_mode {
         BuildMode::Build => &get_config().build.output,
