@@ -1,4 +1,4 @@
-:root {
+:root body {
   color-scheme: light dark;
   --content-gap: 15px;
   --radius: 5px;
@@ -26,7 +26,7 @@
 }
 
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root body {
     --text-color: white;
     --toc-link-color: white;
     --background-color: #2f2f2f;
@@ -46,11 +46,8 @@
   }
 }
 
-html {
-  color: var(--text-color);
-}
-
 body {
+  color: var(--text-color);
   font-optical-sizing: auto;
   hyphens: auto;
   background-color: var(--background-color);
