@@ -235,17 +235,13 @@ pub fn html_doc(
         toc_class.push("mobile-sticky-nav");
     }
 
+    let base_url = environment::base_url();
     let doc_type = "<!DOCTYPE html>";
-    let toc_html = catalog_html
+    let nav_html = catalog_html
         .is_empty()
         .not()
-        .then(|| html!(nav id="toc" class={toc_class.join(" ")} { (catalog_html) }))
+        .then(|| html_nav(toc_class, catalog_html))
         .unwrap_or_default();
-
-    let body_inner = html!(div id="grid-wrapper" style={grid_wrapper_style()} {
-        (toc_html) "\n\n" article { (article_inner) (footer_html) }
-    });
-    let base_url = environment::base_url();
 
     let html = html!(html lang="en-US" {
         head {
@@ -261,11 +257,19 @@ pub fn html_doc(
             (html_import_fonts())
             (html_import_math())
             (html_scripts())
-            (html_import_theme())
         }
-        body { (header_html) (body_inner) }
+        body {
+            (header_html)
+            (html_body_inner(&nav_html, article_inner, footer_html))
+        }
     });
     format!("{}\n{}", doc_type, html)
+}
+
+fn html_body_inner(nav: &str, article_inner: &str, footer: &str) -> String {
+    html!(div id="grid-wrapper" style={grid_wrapper_style()} {
+        (nav) "\n\n" article { (article_inner) (footer) }
+    })
 }
 
 pub fn grid_wrapper_style() -> &'static str {
@@ -327,22 +331,30 @@ pub fn html_scripts() -> &'static str {
     include_str!("include/mobile-toc.html")
 }
 
-pub fn html_import_theme() -> String {
-    match environment::theme_path() {
-        Some(theme_path) => {
-            match std::fs::read_to_string(&theme_path) {
-                Ok(content) => content,
-                Err(err) => {
-                    eprintln!(
-                        "Warning: Failed to read theme file at '{}': {}",
-                        theme_path, err
-                    );
-                    String::new()
-                }
+fn html_import_theme() -> String {
+    environment::theme_paths()
+        .iter()
+        .map(|theme_path| match std::fs::read_to_string(&theme_path) {
+            Ok(content) => content,
+            Err(err) => {
+                eprintln!(
+                    "Warning: Failed to read theme file at '{}': {}",
+                    theme_path, err
+                );
+                String::new()
             }
-        }
-        None => String::new(),
-    }
+        })
+        .collect()
+}
+
+fn html_themes() -> String {
+    html!(div id="theme-options" { (html_import_theme()) })
+}
+
+pub fn html_nav(toc_class: Vec<&str>, catalog_html: &str) -> String {
+    html!(nav id="toc" class={toc_class.join(" ")} {
+        (html_themes()) (catalog_html)
+    })
 }
 
 pub fn html_main_style() -> &'static str {

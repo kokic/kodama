@@ -125,13 +125,14 @@ pub fn trees_dir() -> Utf8PathBuf {
     root_dir().join(trees)
 }
 
-pub fn theme_path() -> Option<Utf8PathBuf> {
+pub fn theme_paths() -> Vec<Utf8PathBuf> {
     get_environment()
         .config
         .kodama
-        .theme
-        .as_ref()
+        .themes
+        .iter()
         .map(|theme| root_dir().join(theme))
+        .collect()
 }
 
 pub fn output_dir() -> Utf8PathBuf {

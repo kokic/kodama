@@ -23,6 +23,7 @@
   --span-taxon-color: #444;
   --article-taxon-color: #888;
   --mark-color: rgb(255, 255, 151);
+  --em-color: var(--text-color);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -84,6 +85,10 @@ code {
   font-size: 1em;
 }
 
+em {
+  color: var(--em-color);
+}
+
 table {
   border-collapse: collapse;
 }
@@ -101,7 +106,7 @@ td {
 }
 
 /* !forest */
-pre > code {
+pre>code {
   border-radius: 0;
   background-color: transparent;
   padding: 0;
@@ -113,7 +118,7 @@ pre > code {
 }
 
 /* !forest */
-.footnote-definition > p {
+.footnote-definition>p {
   display: inline;
 }
 
@@ -127,7 +132,7 @@ pre > code {
   border: 1px solid var(--target-color);
 }
 
-.footnote-definition:target > .footnote-definition-label {
+.footnote-definition:target>.footnote-definition-label {
   border: 1px solid var(--target-color);
 }
 
@@ -191,18 +196,18 @@ p {
   margin-top: 0;
 }
 
-details > summary {
+details>summary {
   list-style-type: none;
   outline: none;
 }
 
-details > summary > header {
+details>summary>header {
   display: inline;
 }
 
 /* no effect */
-details > summary::marker,
-details > summary::-webkit-details-marker {
+details>summary::marker,
+details>summary::-webkit-details-marker {
   display: none;
 }
 
@@ -211,7 +216,7 @@ details h1 {
   display: inline;
 }
 
-details > summary {
+details>summary {
   list-style-type: none;
 }
 
@@ -220,39 +225,39 @@ span.taxon {
   font-weight: 500;
 }
 
-section .block[data-taxon] details > summary > header > h1 {
+section .block[data-taxon] details>summary>header>h1 {
   font-size: 13pt;
 }
 
-article > section > details > summary > header > h1 {
+article>section>details>summary>header>h1 {
   font-size: 1.5em;
 }
 
-article > section > details > summary > header {
+article>section>details>summary>header {
   display: block;
   margin-bottom: 0.5em;
 }
 
-article > section > details > summary > header > h1 > .taxon {
+article>section>details>summary>header>h1>.taxon {
   display: block;
   font-size: 0.9em;
   color: var(--article-taxon-color);
   padding-bottom: 5pt;
 }
 
-article > section > details > summary > header > h1 > .taxon:empty {
+article>section>details>summary>header>h1>.taxon:empty {
   display: none;
 }
 
-section.block > details {
+section.block>details {
   margin-bottom: 0.4em;
 }
 
-section.block > details[open] {
+section.block>details[open] {
   margin-bottom: 1em;
 }
 
-.link-list > section.block > details {
+.link-list>section.block>details {
   margin-bottom: 0.25em;
 }
 
@@ -280,7 +285,7 @@ section.block > details[open] {
   background-color: var(--hover-color-block);
 }
 
-.block.hide-metadata > details > summary > header > .metadata {
+.block.hide-metadata>details>summary>header>.metadata {
   display: none;
 }
 
@@ -317,12 +322,12 @@ ol {
   margin-bottom: 1em;
 }
 
-.logo > span {
+.logo>span {
   color: var(--logo-color);
   text-decoration: none;
 }
 
-.logo > span:hover {
+.logo>span:hover {
   color: var(--logo-hover-color);
 }
 
@@ -331,29 +336,17 @@ ol {
   font-size: 24px;
 }
 
-section
-  section[data-taxon="Reference"]
-  > details
-  > summary
-  > header
-  > h1
-  > .taxon,
-section
-  section[data-taxon="Person"]
-  > details
-  > summary
-  > header
-  > h1
-  > .taxon {
+section section[data-taxon="Reference"]>details>summary>header>h1>.taxon,
+section section[data-taxon="Person"]>details>summary>header>h1>.taxon {
   display: none;
 }
 
-section .block[data-taxon] > header > h1,
-section .block[data-taxon] details > summary > header > h1 {
+section .block[data-taxon]>header>h1,
+section .block[data-taxon] details>summary>header>h1 {
   font-size: 13pt;
 }
 
-footer > section {
+footer>section {
   margin-bottom: 1em;
 }
 
@@ -421,11 +414,11 @@ a.slug {
   font-weight: 200;
 }
 
-body > header {
+body>header {
   margin-bottom: 0.5em;
 }
 
-#grid-wrapper > article {
+#grid-wrapper>article {
   max-width: var(--article-max-width);
   margin-right: auto;
   grid-area: article;
@@ -439,7 +432,7 @@ body > header {
     transition: ease all 0.2s;
   }
 
-  #grid-wrapper > nav {
+  #grid-wrapper>nav {
     transition: ease all 0.2s;
   }
 
@@ -485,7 +478,7 @@ nav#toc ul {
   list-style-type: none;
 }
 
-nav#toc li > ul {
+nav#toc li>ul {
   margin: 0;
   padding-left: 1em;
 }
