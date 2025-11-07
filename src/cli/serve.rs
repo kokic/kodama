@@ -55,7 +55,7 @@ pub fn serve(command: &ServeCommand) -> eyre::Result<()> {
         use std::io::{BufRead, BufReader};
         let reader = BufReader::new(serve_stderr);
         for line in reader.lines() {
-            eprintln!("[serve:ERROR] {}", line.unwrap());
+            eprintln!("[serve] Error: {}", line.unwrap());
         }
     });
 

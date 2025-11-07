@@ -14,6 +14,7 @@ pub struct Kodama {
     pub trees: String,
     pub assets: String,
     pub base_url: String,
+    pub themes: Vec<String>,
 }
 
 impl Default for Kodama {
@@ -22,6 +23,7 @@ impl Default for Kodama {
             trees: DEFAULT_SOURCE_DIR.to_string(),
             assets: DEFAULT_ASSETS_DIR.to_string(),
             base_url: DEFAULT_BASE_URL.to_string(),
+            themes: vec![],
         }
     }
 }

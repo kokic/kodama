@@ -125,12 +125,27 @@ pub fn trees_dir() -> Utf8PathBuf {
     root_dir().join(trees)
 }
 
+pub fn theme_paths() -> Vec<Utf8PathBuf> {
+    get_environment()
+        .config
+        .kodama
+        .themes
+        .iter()
+        .map(|theme| root_dir().join(theme))
+        .collect()
+}
+
 pub fn output_dir() -> Utf8PathBuf {
     let output_dir = match get_environment().build_mode {
         BuildMode::Build => &get_config().build.output,
         BuildMode::Serve => &get_config().serve.output,
     };
     root_dir().join(output_dir)
+}
+
+pub fn base_url_raw() -> &'static str {
+    let env = get_environment();
+    &env.config.kodama.base_url
 }
 
 pub fn base_url() -> &'static str {

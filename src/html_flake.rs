@@ -2,8 +2,6 @@
 // Released under the GPL-3.0 license as described in the file LICENSE.
 // Authors: Kokic (@kokic), Spore (@s-cerevisiae)
 
-use std::ops::Not;
-
 use crate::{
     entry::{EntryMetaData, MetaData},
     environment::{self, input_path},
@@ -235,18 +233,10 @@ pub fn html_doc(
         toc_class.push("mobile-sticky-nav");
     }
 
-    let doc_type = "<!DOCTYPE html>";
-    let toc_html = catalog_html
-        .is_empty()
-        .not()
-        .then(|| html!(nav id="toc" class={toc_class.join(" ")} { (catalog_html) }))
-        .unwrap_or_default();
-
-    let body_inner = html!(div id="grid-wrapper" style={grid_wrapper_style()} {
-        (toc_html) "\n\n" article { (article_inner) (footer_html) }
-    });
     let base_url = environment::base_url();
+    let doc_type = "<!DOCTYPE html>";
 
+    let nav_html = html_nav(toc_class, catalog_html);
     let html = html!(html lang="en-US" {
         head {
             r#"
@@ -262,9 +252,21 @@ pub fn html_doc(
             (html_import_math())
             (html_scripts())
         }
-        body { (header_html) (body_inner) }
+        body {
+            (header_html)
+            (html_body_inner(&nav_html, article_inner, footer_html))
+        }
     });
     format!("{}\n{}", doc_type, html)
+}
+
+fn html_body_inner(nav: &str, article_inner: &str, footer: &str) -> String {
+    let base_url = environment::base_url_raw();
+    let style = grid_wrapper_style();
+
+    html!(div id="grid-wrapper" style={style} data_base_url={base_url} {
+        (nav) "\n\n" article { (article_inner) (footer) }
+    })
 }
 
 pub fn grid_wrapper_style() -> &'static str {
@@ -323,7 +325,36 @@ pub fn html_import_math() -> String {
 }
 
 pub fn html_scripts() -> &'static str {
-    include_str!("include/mobile-toc.html")
+    concat!(
+        include_str!("include/mobile-toc.html"),
+        include_str!("include/theme.html")
+    )
+}
+
+fn html_import_theme() -> String {
+    environment::theme_paths()
+        .iter()
+        .map(|theme_path| match std::fs::read_to_string(theme_path) {
+            Ok(content) => content,
+            Err(err) => {
+                eprintln!(
+                    "Warning: Failed to read theme file at '{}': {}",
+                    theme_path, err
+                );
+                String::new()
+            }
+        })
+        .collect()
+}
+
+fn html_themes() -> String {
+    html!(div id="theme-options" { (html_import_theme()) })
+}
+
+pub fn html_nav(toc_class: Vec<&str>, catalog_html: &str) -> String {
+    html!(nav id="toc" class={toc_class.join(" ")} {
+        (html_themes()) (catalog_html)
+    })
 }
 
 pub fn html_main_style() -> &'static str {
