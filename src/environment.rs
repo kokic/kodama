@@ -143,6 +143,11 @@ pub fn output_dir() -> Utf8PathBuf {
     root_dir().join(output_dir)
 }
 
+pub fn base_url_raw() -> &'static str {
+    let env = get_environment();
+    &env.config.kodama.base_url
+}
+
 pub fn base_url() -> &'static str {
     let env = get_environment();
     match env.build_mode {

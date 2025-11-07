@@ -2,8 +2,6 @@
 // Released under the GPL-3.0 license as described in the file LICENSE.
 // Authors: Kokic (@kokic), Spore (@s-cerevisiae)
 
-use std::ops::Not;
-
 use crate::{
     entry::{EntryMetaData, MetaData},
     environment::{self, input_path},
@@ -237,12 +235,8 @@ pub fn html_doc(
 
     let base_url = environment::base_url();
     let doc_type = "<!DOCTYPE html>";
-    let nav_html = catalog_html
-        .is_empty()
-        .not()
-        .then(|| html_nav(toc_class, catalog_html))
-        .unwrap_or_default();
 
+    let nav_html = html_nav(toc_class, catalog_html);
     let html = html!(html lang="en-US" {
         head {
             r#"
@@ -267,7 +261,10 @@ pub fn html_doc(
 }
 
 fn html_body_inner(nav: &str, article_inner: &str, footer: &str) -> String {
-    html!(div id="grid-wrapper" style={grid_wrapper_style()} {
+    let base_url = environment::base_url_raw();
+    let style = grid_wrapper_style();
+
+    html!(div id="grid-wrapper" style={style} data_base_url={base_url} {
         (nav) "\n\n" article { (article_inner) (footer) }
     })
 }
@@ -328,13 +325,16 @@ pub fn html_import_math() -> String {
 }
 
 pub fn html_scripts() -> &'static str {
-    include_str!("include/mobile-toc.html")
+    concat!(
+        include_str!("include/mobile-toc.html"),
+        include_str!("include/theme.html")
+    )
 }
 
 fn html_import_theme() -> String {
     environment::theme_paths()
         .iter()
-        .map(|theme_path| match std::fs::read_to_string(&theme_path) {
+        .map(|theme_path| match std::fs::read_to_string(theme_path) {
             Ok(content) => content,
             Err(err) => {
                 eprintln!(

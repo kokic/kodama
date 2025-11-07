@@ -1,0 +1,111 @@
+<style>
+  theme-option {
+    display: inline-block;
+  }
+
+  theme-option>input {
+    display: none;
+  }
+
+  theme-option>label {
+    color: var(--slug-color);
+  }
+
+  theme-option>label:hover {
+    background-color: var(--hover-color-link);
+  }
+
+  theme-option:has(input:checked)>label {
+    color: var(--link-color);
+  }
+
+  theme-option>label::before {
+    content: "[";
+    color: rgba(0, 0, 0, 0);
+  }
+
+  theme-option>label::after {
+    content: "]";
+    color: rgba(0, 0, 0, 0);
+  }
+
+  theme-option:has(input:checked)>label::before {
+    color: var(--link-color);
+  }
+
+  theme-option:has(input:checked)>label::after {
+    color: var(--link-color);
+  }
+</style>
+
+<template id="theme-option-template">
+  <input type="radio" name="theme" />
+  <label>
+    <slot>
+    </slot>
+  </label>
+</template>
+
+<script>
+  function storeSelectedTheme(name) {
+    localStorage.setItem(window.themeKey, name);
+  }
+
+  function getCurrentTheme() {
+    return localStorage.getItem(window.themeKey) || window.primaryTheme;
+  }
+
+  function applyFavorTheme() {
+    const favoredTheme = getCurrentTheme();
+    if (favoredTheme) {
+      const selector = `input[type='radio'][id='${favoredTheme}']`;
+      const favoredOption = window.themeOptions.querySelector(selector);
+
+      if (favoredOption) {
+        favoredOption.checked = true;
+      } else if (window.primaryOption) {
+        // Fallback to primary theme, if the favored theme is not found
+        // e.g., when the theme options have changed, and the stored theme is no longer available.
+        window.primaryOption.checked = true;
+      }
+    }
+  }
+
+  document.addEventListener("DOMContentLoaded", function () {
+    window.themeOptions = document.getElementById("theme-options");
+    const templateContent = document.getElementById("theme-option-template").content;
+
+    customElements.define(
+      "theme-option",
+      class extends HTMLElement {
+        constructor() {
+          super();
+
+          const node = templateContent.cloneNode(true);
+          const themeName = this.getAttribute("name");
+
+          const input = node.querySelector("input");
+          input.setAttribute("id", themeName);
+          input.setAttribute("value", themeName);
+
+          const label = node.querySelector("label");
+          label.setAttribute("for", themeName);
+          label.setAttribute("onclick", `storeSelectedTheme('${themeName}')`);
+
+          while (this.firstChild) {
+            label.appendChild(this.firstChild);
+          }
+          this.appendChild(node);
+        }
+      },
+    );
+
+    const baseUrl = document.getElementById("grid-wrapper").dataset.baseUrl;
+    window.themeKey = `${baseUrl}-kodama-theme`;
+
+    window.primaryOption = window.themeOptions.querySelector("input[type='radio']");
+    window.primaryTheme = primaryOption?.value;
+
+    applyFavorTheme();
+  });
+</script>
