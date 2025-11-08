@@ -50,7 +50,6 @@ pub fn build_with(config: &str, mode: BuildMode) -> eyre::Result<()> {
 
 fn export_css_files() -> eyre::Result<()> {
     export_css_file(html_flake::html_main_style(), "main.css")?;
-    export_css_file(html_flake::html_typst_style(), "typst.css")?;
     Ok(())
 }
 
