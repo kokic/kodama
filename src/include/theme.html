@@ -94,7 +94,7 @@
 
           const label = node.querySelector("label");
           label.setAttribute("for", themeName);
-          label.setAttribute("onclick", `selectTheme('${themeName}')`);
+          label.addEventListener("click", () => selectTheme(themeName));
 
           while (this.firstChild) {
             label.appendChild(this.firstChild);
