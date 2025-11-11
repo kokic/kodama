@@ -118,8 +118,6 @@
 
   const clamp = (value) => Math.max(0, Math.min(255, value));
 
-  const rgbToString = (r, g, b) =>
-    `rgb(${Math.round(r)}, ${Math.round(g)}, ${Math.round(b)})`;
 
   const multiply = ([r, g, b], matrix) => {
     const nr = clamp(r * matrix[0] + g * matrix[1] + b * matrix[2]);
