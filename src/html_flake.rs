@@ -279,14 +279,10 @@ pub fn grid_wrapper_style() -> &'static str {
 
 pub fn html_static_css() -> String {
     if environment::inline_css() {
-        html!(style { (html_main_style()) (html_typst_style()) })
+        html!(style { (html_main_style()) })
     } else {
         let base_url = environment::base_url();
-        format!(
-            r#"<link rel="stylesheet" href="{}main.css">
-<link rel="stylesheet" href="{}typst.css">"#,
-            base_url, base_url
-        )
+        format!(r#"<link rel="stylesheet" href="{}main.css">"#, base_url)
     }
 }
 
@@ -359,8 +355,4 @@ pub fn html_nav(toc_class: Vec<&str>, catalog_html: &str) -> String {
 
 pub fn html_main_style() -> &'static str {
     include_str!("include/main.css")
-}
-
-pub fn html_typst_style() -> &'static str {
-    include_str!("include/typst.css")
 }

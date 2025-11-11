@@ -504,3 +504,19 @@ nav#toc a.bullet {
   padding-right: 0.2em;
   text-decoration: none;
 }
+
+.typst-text use[fill="#000000"] {
+  fill: var(--text-color);
+}
+
+.typst-group use[fill="#000000"] {
+  fill: var(--text-color);
+}
+
+path.typst-shape[fill="#000000"] {
+  fill: var(--text-color);
+}
+
+path.typst-shape[stroke="#000000"] {
+  stroke: var(--text-color);
+}
