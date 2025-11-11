@@ -295,12 +295,17 @@
     return { values: best, loss: bestLoss };
   };
 
+  // Threshold for acceptable color loss. This value determines when the SPSA algorithm stops early.
+  // A loss below this value is considered visually indistinguishable for most use cases.
+  // The value 25 was determined empirically to balance performance and color accuracy.
+  const ACCEPTABLE_COLOR_LOSS = 25;
+
   const solveWide = (targetRgb) => {
     const A = 5;
     const c = 15;
     const a = [60, 180, 18000, 600, 1.2, 1.2];
     let best = { loss: Infinity, values: null };
-    for (let i = 0; best.loss > 25 && i < 3; i++) {
+    for (let i = 0; best.loss > ACCEPTABLE_COLOR_LOSS && i < 3; i++) {
       const initial = [50, 20, 3750, 50, 100, 100];
       const result = spsa(targetRgb, A, a, c, initial, 1000);
       if (result.loss < best.loss) best = result;
