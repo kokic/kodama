@@ -334,11 +334,15 @@
     };
   };
 
+  // Reuse a single canvas/context to avoid memory leaks
+  const colorParseCanvas = document.createElement('canvas');
+  colorParseCanvas.width = 1;
+  colorParseCanvas.height = 1;
+  const colorParseContext = colorParseCanvas.getContext('2d');
   const toRGBArray = (cssColor) => {
-    const context = document.createElement('canvas').getContext('2d');
-    context.fillStyle = cssColor;
-    context.fillRect(0, 0, 1, 1);
-    return Array.from(context.getImageData(0, 0, 1, 1).data);
+    colorParseContext.fillStyle = cssColor;
+    colorParseContext.fillRect(0, 0, 1, 1);
+    return Array.from(colorParseContext.getImageData(0, 0, 1, 1).data);
   };
 
   const dynamicStyleId = 'dynamic-color-invert-style';
