@@ -120,9 +120,12 @@ pub fn typst_root_dir() -> &'static Utf8Path {
     Utf8Path::new(&get_config().build.typst_root)
 }
 
+pub fn trees_dir_without_root() -> &'static str {
+    &get_environment().config.kodama.trees
+}
+
 pub fn trees_dir() -> Utf8PathBuf {
-    let trees = &get_environment().config.kodama.trees;
-    root_dir().join(trees)
+    root_dir().join(trees_dir_without_root())
 }
 
 pub fn theme_paths() -> Vec<Utf8PathBuf> {

@@ -7,7 +7,7 @@ use std::{fs, mem};
 
 use crate::{
     compiler::section::{EmbedContent, LocalLink, SectionOption},
-    environment::{assets_dir, root_dir},
+    environment::{self, assets_dir, root_dir},
     html_flake::{html_code_block, html_link},
     process::typst_image::is_inline_typst,
     recorder::State,
@@ -50,9 +50,10 @@ impl<'e, E: Iterator<Item = Event<'e>>> Iterator for Embed<'e, E> {
                     let (mut url, action) = url_action(dest_url);
                     if action == State::Embed.strify() {
                         self.state = State::Embed;
-                        self.url = Some(url); // [0]
+                        self.url = Some(relocate_trees_path(url)); // [0]
                     } else if action == State::Include.strify() {
                         self.state = State::Include;
+                        // Note: `Include` path starts from the root directory
                         self.url = Some(url);
                     } else if is_external_link(&url) {
                         self.state = State::ExternalLink;
@@ -63,7 +64,7 @@ impl<'e, E: Iterator<Item = Event<'e>>> Iterator for Embed<'e, E> {
                         if url.ends_with(".md") {
                             url.truncate(url.len() - 3);
                         }
-                        self.url = Some(url);
+                        self.url = Some(relocate_trees_path(url));
                     } else if is_assets_file(&url) {
                         self.state = State::AssetFile;
                         self.url = Some(url);
@@ -187,7 +188,7 @@ fn parse_embed_text(embed_text: &str) -> (SectionOption, String) {
     (option, inline_title.to_owned())
 }
 
-/// Returns `true` if the current state allows inline elements such as `Text`, `Code`, and `InlineMath` to be included in the content buffer. 
+/// Returns `true` if the current state allows inline elements such as `Text`, `Code`, and `InlineMath` to be included in the content buffer.
 fn is_inline_allowed(state: &State) -> bool {
     *state == State::Embed
         || *state == State::Include
@@ -203,12 +204,26 @@ pub fn display_taxon(s: &str) -> String {
     }
 }
 
-/*
- * URI scheme:
- *   http, https, ftp, mailto, file, data and irc
- */
+/// Relocate the path `/<trees>/path` to `/path`
+fn relocate_trees_path(path: String) -> String {
+    let trees = environment::trees_dir_without_root();
+    let trees = format!("/{}", trees);
+    if path.starts_with(&trees) {
+        return path[trees.len()..].to_string();
+    }
+    path
+}
+
+/// URI scheme: http, https, ftp, mailto, file, data and irc
 fn is_external_link(url: &str) -> bool {
-    url.starts_with("http://") || url.starts_with("https://") || url.starts_with("www.")
+    url.starts_with("http://")
+        || url.starts_with("https://")
+        || url.starts_with("www.")
+        || url.starts_with("ftp://")
+        || url.starts_with("mailto:")
+        || url.starts_with("file://")
+        || url.starts_with("data:")
+        || url.starts_with("irc://")
 }
 
 /// Returns `true` if the URL represents a static asset file in the configured assets directory (check via [`assets_dir`]).
@@ -272,5 +287,19 @@ mod tests {
         assert!(!is_local_link("assets/image.png"));
         assert!(!is_local_link("/assets/image.png"));
         assert!(!is_local_link("local-dir/"));
+    }
+
+    #[test]
+    fn test_relocate_trees_path() {
+        crate::environment::mock_environment().unwrap();
+
+        assert_eq!(
+            relocate_trees_path("/path".to_string()),
+            "/path".to_string()
+        );
+        assert_eq!(
+            relocate_trees_path("/trees/path".to_string()),
+            "/path".to_string()
+        );
     }
 }
