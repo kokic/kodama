@@ -38,7 +38,7 @@ pub const KEY_PAGE_TITLE: &str = "page-title";
 /// Controls whether the current page displays backlinks.
 pub const KEY_BACKLINKS: &str = "backlinks";
 
-/// `backlinks: bool`:
+/// `references: bool`:
 /// Controls whether the current page displays references.
 pub const KEY_REFERENCES: &str = "references";
 
