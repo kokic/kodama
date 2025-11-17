@@ -15,6 +15,7 @@ pub mod writer;
 use std::{collections::HashMap, fs::File, io::BufReader};
 
 use camino::{Utf8Path, Utf8PathBuf};
+use colored::Colorize;
 use eyre::{bail, eyre, WrapErr};
 use parser::parse_markdown;
 use section::{HTMLContent, ShallowSection};
@@ -120,7 +121,8 @@ pub fn all_trees_source(trees_dir: &Utf8Path) -> eyre::Result<Workspace> {
                 let svg_url = relative.with_extension("svg");
                 let svg_path = environment::output_path(&svg_url);
                 if let Err(err) = crate::typst_cli::write_svg(relative, &svg_path) {
-                    eprintln!("{:?} at {}", err, path)
+                    let message = format!("{:?} at {}", err, path).red();
+                    eprintln!("{message}");
                 }
             }
             Ok(())
@@ -173,10 +175,12 @@ pub fn all_trees_source(trees_dir: &Utf8Path) -> eyre::Result<Workspace> {
     };
 
     if !trees_dir.exists() {
-        eprintln!(
+        let message = format!(
             "Warning: Source directory `{}` does not exist, skipping.",
             trees_dir
-        );
+        )
+        .yellow();
+        eprintln!("{message}");
     }
 
     collect_files(trees_dir)?;

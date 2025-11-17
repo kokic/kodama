@@ -4,6 +4,8 @@
 
 use std::{collections::HashSet, ops::Not};
 
+use colored::Colorize;
+
 use crate::{
     compiler::counter::Counter,
     config::build::FooterMode,
@@ -29,10 +31,11 @@ impl Writer {
         let filepath = crate::environment::output_path(&html_url);
 
         let relative_path = environment::output_dir().join(&html_url);
-        if verify_update_hash(&relative_path, &html).expect("failed to verify update hash") {
+        let message = "failed to verify update hash".red();
+        if verify_update_hash(&relative_path, &html).expect(&message) {
             match std::fs::write(&filepath, html) {
                 Ok(()) => println!("[build] {:?} {}", page_title, filepath),
-                Err(err) => eprintln!("{:?}", err),
+                Err(err) => eprintln!("{:?}", err.to_string().red()),
             }
         }
     }
@@ -49,8 +52,11 @@ impl Writer {
                  * because writing to a file does not require a mutable reference
                  * of the [`Section`].
                  */
-                None => eprintln!("Slug `{}` not in compiled entries.", slug),
                 Some(section) => Writer::write(section, state),
+                None => {
+                    let message = format!("Slug `{}` not in compiled entries.", slug).red();
+                    eprintln!("{message}");
+                }
             });
     }
 

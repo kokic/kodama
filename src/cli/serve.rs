@@ -5,6 +5,7 @@
 use std::io::Write;
 
 use camino::{Utf8Path, Utf8PathBuf};
+use colored::Colorize;
 use notify::{Config, EventKind, RecommendedWatcher, RecursiveMode, Watcher};
 
 use crate::{
@@ -55,7 +56,8 @@ pub fn serve(command: &ServeCommand) -> eyre::Result<()> {
         use std::io::{BufRead, BufReader};
         let reader = BufReader::new(serve_stderr);
         for line in reader.lines() {
-            eprintln!("[serve] Error: {}", line.unwrap());
+            let message = format!("[serve] Error: {}", line.unwrap()).red();
+            eprintln!("{message}");
         }
     });
 
@@ -103,10 +105,12 @@ where
     for watched_path in watched_paths {
         let watched_path = watched_path.as_ref();
         if !watched_path.exists() {
-            eprintln!(
+            let message = format!(
                 "[watch] Warning: Path \"{}\" does not exist, skipping.",
                 watched_path
-            );
+            )
+            .yellow();
+            eprintln!("{message}");
             continue;
         }
 
@@ -131,7 +135,10 @@ where
                     }
                 }
             }
-            Err(error) => eprintln!("[watch] Error: {error:?}"),
+            Err(error) => {
+                let message = format!("[watch] Error: {error:?}").red();
+                eprintln!("{message}");
+            }
         }
     }
 

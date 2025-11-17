@@ -4,6 +4,7 @@
 
 use std::collections::{BTreeSet, HashMap, HashSet};
 
+use colored::Colorize;
 use eyre::OptionExt;
 
 use crate::{
@@ -98,10 +99,12 @@ impl CompileState {
                             let refered = match self.fetch_section(shallows, child_slug) {
                                 Some(refered_section) => refered_section,
                                 None => {
-                                    eprintln!(
+                                    let message = format!(
                                         "Error: [{}] attempting to fetch a non-existent [{}].",
-                                        slug, child_slug,
-                                    );
+                                        slug, child_slug
+                                    )
+                                    .red();
+                                    eprintln!("{message}");
                                     continue;
                                 }
                             };
