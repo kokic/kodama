@@ -84,8 +84,9 @@ fn parse_metadata(s: &str, metadata: &mut OrderedMap<String, HTMLContent>) -> ey
 }
 
 fn display_taxon(s: &str) -> String {
+    // Capitalize the first letter and add a period and space at the end.
     match s.split_at_checked(1) {
         Some((first, rest)) => format!("{}. ", first.to_uppercase() + rest),
-        _ => s.to_string(),
+        _ => format!("{}. ", s),
     }
 }
