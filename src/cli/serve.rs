@@ -19,12 +19,16 @@ pub struct ServeCommand {
     /// Path to the configuration file (e.g., "Kodama.toml").
     #[arg(short, long, default_value_t = config::DEFAULT_CONFIG_PATH.into())]
     config: String,
+
+    /// Enable verbose output.
+    #[arg(short, long, default_value_t = false)]
+    verbose: bool,
 }
 
 /// This function invoked the [`config::init_environment`] function to initialize the environment]
 pub fn serve(command: &ServeCommand) -> eyre::Result<()> {
     let serve_build = || -> eyre::Result<()> {
-        build_with(&command.config, BuildMode::Serve)?;
+        build_with(&command.config, BuildMode::Serve, command.verbose)?;
         Ok(())
     };
 

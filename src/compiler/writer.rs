@@ -34,7 +34,12 @@ impl Writer {
         let message = "failed to verify update hash".red();
         if verify_update_hash(&relative_path, &html).expect(&message) {
             match std::fs::write(&filepath, html) {
-                Ok(()) => println!("[build] {:?} {}", page_title, filepath),
+                Ok(()) => {
+                    if *crate::cli::build::verbose() {
+                        let prefix = "[build]".green();
+                        println!("{} {:?} {}", prefix, page_title, filepath);
+                    }
+                }
                 Err(err) => eprintln!("{:?}", err.to_string().red()),
             }
         }

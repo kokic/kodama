@@ -2,7 +2,7 @@
 // Released under the GPL-3.0 license as described in the file LICENSE.
 // Authors: Kokic (@kokic), Spore (@s-cerevisiae)
 
-use std::fs;
+use std::{fs, sync::OnceLock};
 
 use camino::Utf8Path;
 use eyre::{eyre, WrapErr};
@@ -20,15 +20,26 @@ pub struct BuildCommand {
     /// Path to the configuration file (e.g., "Kodama.toml").
     #[arg(short, long, default_value_t = config::DEFAULT_CONFIG_PATH.into())]
     config: String,
+
+    /// Enable verbose output.
+    #[arg(short, long, default_value_t = false)]
+    verbose: bool,
+}
+
+static VERBOSE: OnceLock<bool> = OnceLock::new();
+
+pub fn verbose() -> &'static bool {
+    VERBOSE.get().unwrap_or(&false)
 }
 
 /// This function invoked the [`config::init_environment`] function to initialize the environment]
 pub fn build(command: &BuildCommand) -> eyre::Result<()> {
-    build_with(&command.config, BuildMode::Build)
+    build_with(&command.config, BuildMode::Build, command.verbose)
 }
 
-pub fn build_with(config: &str, mode: BuildMode) -> eyre::Result<()> {
+pub fn build_with(config: &str, mode: BuildMode, verbose: bool) -> eyre::Result<()> {
     environment::init_environment(config.into(), mode)?;
+    _ = VERBOSE.set(verbose);
 
     if !environment::inline_css() {
         export_css_files().wrap_err("failed to export CSS")?;
