@@ -138,12 +138,24 @@ pub fn theme_paths() -> Vec<Utf8PathBuf> {
         .collect()
 }
 
+pub fn build_dir() -> &'static String {
+    &get_config().build.output
+}
+
+pub fn serve_dir() -> &'static String {
+    &get_config().serve.output
+}
+
 pub fn output_dir() -> Utf8PathBuf {
     let output_dir = match get_environment().build_mode {
-        BuildMode::Build => &get_config().build.output,
-        BuildMode::Serve => &get_config().serve.output,
+        BuildMode::Build => build_dir(),
+        BuildMode::Serve => serve_dir(),
     };
     root_dir().join(output_dir)
+}
+
+pub fn indexes_path(output_dir: &Utf8Path) -> Utf8PathBuf {
+    output_dir.join("kodama.json")
 }
 
 pub fn base_url_raw() -> &'static str {
@@ -174,28 +186,28 @@ pub fn is_toc_mobile_sticky() -> bool {
     get_config().toc.mobile_sticky
 }
 
-pub fn toc_max_width() -> String {
-    get_config().toc.max_width.clone()
+pub fn toc_max_width() -> &'static String {
+    &get_config().toc.max_width
 }
 
-pub fn get_edit_text() -> String {
-    get_config().text.edit.clone()
+pub fn get_edit_text() -> &'static String {
+    &get_config().text.edit
 }
 
-pub fn get_toc_text() -> String {
-    get_config().text.toc.clone()
+pub fn get_toc_text() -> &'static String {
+    &get_config().text.toc
 }
 
-pub fn get_footer_references_text() -> String {
-    get_config().text.references.clone()
+pub fn get_footer_references_text() -> &'static String {
+    &get_config().text.references
 }
 
-pub fn get_footer_backlinks_text() -> String {
-    get_config().text.backlinks.clone()
+pub fn get_footer_backlinks_text() -> &'static String {
+    &get_config().text.backlinks
 }
 
-pub fn footer_mode() -> FooterMode {
-    get_config().build.footer_mode
+pub fn footer_mode() -> &'static FooterMode {
+    &get_config().build.footer_mode
 }
 
 pub fn inline_css() -> bool {
@@ -214,8 +226,8 @@ pub fn editor_url() -> Option<&'static str> {
     get_config().serve.edit.as_deref()
 }
 
-pub fn serve_command() -> Vec<String> {
-    get_config().serve.command.clone()
+pub fn serve_command() -> &'static Vec<String> {
+    &get_config().serve.command
 }
 
 pub fn get_cache_dir() -> Utf8PathBuf {
@@ -252,7 +264,10 @@ pub fn input_path<P: AsRef<Utf8Path>>(path: P) -> Utf8PathBuf {
 }
 
 pub fn create_parent_dirs<P: AsRef<Utf8Path>>(path: P) {
-    let parent_dir = path.as_ref().parent().unwrap();
+    let parent_dir = path
+        .as_ref()
+        .parent()
+        .expect("path must have parent directory");
     if !parent_dir.exists() {
         let _ = create_dir_all(parent_dir);
     }

@@ -38,7 +38,7 @@ pub fn serve(command: &ServeCommand) -> eyre::Result<()> {
     std::io::stdout().flush()?;
 
     let mut serve = parse_command(
-        &environment::serve_command(),
+        environment::serve_command(),
         crate::environment::output_dir(),
     )?
     .stdout(std::process::Stdio::piped())

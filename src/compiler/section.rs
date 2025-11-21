@@ -75,7 +75,6 @@ pub enum HTMLContent {
 }
 
 impl HTMLContent {
-    #[allow(dead_code)]
     pub fn as_str(&self) -> Option<&str> {
         if let HTMLContent::Plain(s) = self {
             Some(s)

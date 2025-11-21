@@ -32,7 +32,7 @@ pub fn verbose() -> &'static bool {
     VERBOSE.get().unwrap_or(&false)
 }
 
-/// This function invoked the [`config::init_environment`] function to initialize the environment]
+/// This function invoked the [`environment::init_environment`] function to initialize the environment]
 pub fn build(command: &BuildCommand) -> eyre::Result<()> {
     build_with(&command.config, BuildMode::Build, command.verbose)
 }

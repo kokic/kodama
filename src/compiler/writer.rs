@@ -31,8 +31,7 @@ impl Writer {
         let filepath = crate::environment::output_path(&html_url);
 
         let relative_path = environment::output_dir().join(&html_url);
-        let message = "failed to verify update hash".red();
-        if verify_update_hash(&relative_path, &html).expect(&message) {
+        if verify_update_hash(&relative_path, &html).expect("failed to verify update hash") {
             match std::fs::write(&filepath, html) {
                 Ok(()) => {
                     if *crate::cli::build::verbose() {
@@ -140,7 +139,7 @@ impl Writer {
                     Writer::footer_section_to_html(footer_mode, section)
                 })
                 .reduce(|s, t| s + &t)
-                .map(|s| html_flake::html_footer_section(&references_text, &s))
+                .map(|s| html_flake::html_footer_section(references_text, &s))
                 .unwrap_or_default()
         } else {
             String::default()
@@ -159,7 +158,7 @@ impl Writer {
                         Writer::footer_section_to_html(footer_mode, section)
                     })
                     .reduce(|s, t| s + &t)
-                    .map(|s| html_flake::html_footer_section(&backlinks_text, &s))
+                    .map(|s| html_flake::html_footer_section(backlinks_text, &s))
                     .unwrap_or_default()
             })
             .unwrap_or_default();
@@ -189,7 +188,7 @@ impl Writer {
     }
 
     fn footer_section_to_html(page_option: Option<FooterMode>, section: &Section) -> String {
-        let footer_mode = page_option.unwrap_or(environment::footer_mode());
+        let footer_mode = page_option.unwrap_or(*environment::footer_mode());
 
         match footer_mode {
             FooterMode::Link => {

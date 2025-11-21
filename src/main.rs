@@ -23,7 +23,7 @@ use crate::cli::{
     build::BuildCommand,
     init::InitCommand,
     new::{NewCommand, NewCommandCli},
-    serve::ServeCommand,
+    serve::ServeCommand, snip::SnipCommand,
 };
 
 #[derive(Parser)]
@@ -52,6 +52,10 @@ enum Command {
     /// Server by default depends on the miniserve program in the user's environment.
     #[command(visible_alias = "s")]
     Serve(ServeCommand),
+
+    /// Generate VSCode style section link snippets file.
+    #[command()]
+    Snip(SnipCommand),
 }
 
 fn main() -> eyre::Result<()> {
@@ -65,6 +69,7 @@ fn main() -> eyre::Result<()> {
         Command::Init(command) => crate::cli::init::init(command)?,
         Command::Serve(command) => crate::cli::serve::serve(command)?,
         Command::Build(command) => crate::cli::build::build(command)?,
+        Command::Snip(command) => crate::cli::snip::snip(command)?,
     };
     Ok(())
 }
