@@ -30,11 +30,12 @@ pub fn write_to_inline_html<P: AsRef<Utf8Path>>(
     let html_body = html_to_body_content(&html);
 
     fs::write(html_path.as_ref(), html)?;
-    println!(
-        "Compiled to HTML: {}",
-        path_utils::pretty_path(html_path.as_ref())
-    );
-
+    if *crate::cli::build::verbose() {
+        println!(
+            "Compiled to HTML: {}",
+            path_utils::pretty_path(html_path.as_ref())
+        );
+    }
     Ok(html_body)
 }
 
@@ -154,7 +155,7 @@ pub fn write_svg<P: AsRef<Utf8Path>>(typst_path: P, svg_path: P) -> eyre::Result
         .arg(svg_path)
         .output()?;
 
-    if output.status.success() {
+    if output.status.success() && *crate::cli::build::verbose() {
         println!(
             "Compiled to SVG: {}",
             path_utils::pretty_path(Utf8Path::new(svg_path))
