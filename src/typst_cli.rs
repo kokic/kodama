@@ -19,7 +19,7 @@ pub fn write_to_inline_html<P: AsRef<Utf8Path>>(
     if !verify_and_file_hash(typst_path.as_ref())? && html_path.as_ref().exists() {
         let existed_html = fs::read_to_string(html_path.as_ref())?;
         let existed_html = html_to_body_content(&existed_html);
-        if *crate::cli::build::verbose() {
+        if *crate::cli::build::verbose_skip() {
             println!("Skip: {}", path_utils::pretty_path(typst_path.as_ref()));
         }
         return Ok(existed_html);
@@ -138,7 +138,7 @@ pub fn write_svg<P: AsRef<Utf8Path>>(typst_path: P, svg_path: P) -> eyre::Result
     let svg_path = svg_path.as_ref();
 
     if !verify_and_file_hash(typst_path)? && svg_path.exists() {
-        if *crate::cli::build::verbose() {
+        if *crate::cli::build::verbose_skip() {
             println!("Skip: {}", path_utils::pretty_path(typst_path));
         }
         return Ok(());

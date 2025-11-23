@@ -23,12 +23,16 @@ pub struct ServeCommand {
     /// Enable verbose output.
     #[arg(short, long, default_value_t = false)]
     verbose: bool,
+
+    /// Enable verbose skip output.
+    #[arg(long, default_value_t = false)]
+    verbose_skip: bool,
 }
 
 /// This function invoked the [`config::init_environment`] function to initialize the environment]
 pub fn serve(command: &ServeCommand) -> eyre::Result<()> {
     let serve_build = || -> eyre::Result<()> {
-        build_with(&command.config, BuildMode::Serve, command.verbose)?;
+        build_with(&command.config, BuildMode::Serve, command.verbose, command.verbose_skip)?;
         Ok(())
     };
 

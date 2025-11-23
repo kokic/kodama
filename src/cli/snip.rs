@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use eyre::{bail, eyre, WrapErr};
-use serde::Serialize;
+use serde::{Serialize};
 
 use crate::{
     compiler::section::HTMLContent, config, entry, environment, ordered_map::OrderedMap, slug::Slug,
@@ -18,7 +18,7 @@ pub struct SnipCommand {
 struct Snippet {
     prefix: String,
     body: [String; 1],
-    // description: String,
+    description: String,
 }
 
 /// This function invoked the [`environment::init_environment`] function to initialize the environment]
@@ -51,12 +51,15 @@ pub fn snip(command: &SnipCommand) -> eyre::Result<()> {
 
             let label = prefix.to_lowercase().replace(" ", "-");
             let body = [format!("[{label}]: {url}")];
+            let taxon = metadata.get(entry::KEY_TAXON)?.as_str()?;
+            let description = taxon.to_string();
 
             Some((
                 slug_str,
                 Snippet {
                     prefix: prefix.to_string(),
                     body,
+                    description,
                 },
             ))
         })

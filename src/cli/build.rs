@@ -24,22 +24,32 @@ pub struct BuildCommand {
     /// Enable verbose output.
     #[arg(short, long, default_value_t = false)]
     verbose: bool,
+
+    /// Enable verbose skip output.
+    #[arg(long, default_value_t = false)]
+    verbose_skip: bool,
 }
 
 static VERBOSE: OnceLock<bool> = OnceLock::new();
+static VERBOSE_SKIP: OnceLock<bool> = OnceLock::new();
 
 pub fn verbose() -> &'static bool {
     VERBOSE.get().unwrap_or(&false)
 }
 
-/// This function invoked the [`environment::init_environment`] function to initialize the environment]
-pub fn build(command: &BuildCommand) -> eyre::Result<()> {
-    build_with(&command.config, BuildMode::Build, command.verbose)
+pub fn verbose_skip() -> &'static bool {
+    VERBOSE_SKIP.get().unwrap_or(&false)
 }
 
-pub fn build_with(config: &str, mode: BuildMode, verbose: bool) -> eyre::Result<()> {
+/// This function invoked the [`environment::init_environment`] function to initialize the environment]
+pub fn build(command: &BuildCommand) -> eyre::Result<()> {
+    build_with(&command.config, BuildMode::Build, command.verbose, command.verbose_skip)
+}
+
+pub fn build_with(config: &str, mode: BuildMode, verbose: bool, verbose_skip: bool) -> eyre::Result<()> {
     environment::init_environment(config.into(), mode)?;
     _ = VERBOSE.set(verbose);
+    _ = VERBOSE_SKIP.set(verbose_skip);
 
     if !environment::inline_css() {
         export_css_files().wrap_err("failed to export CSS")?;
