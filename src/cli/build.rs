@@ -41,7 +41,7 @@ pub fn verbose_skip() -> &'static bool {
     VERBOSE_SKIP.get().unwrap_or(&false)
 }
 
-/// This function invoked the [`environment::init_environment`] function to initialize the environment]
+/// This function invoked the [`environment::init_environment`] function to initialize the environment
 pub fn build(command: &BuildCommand) -> eyre::Result<()> {
     build_with(&command.config, BuildMode::Build, command.verbose, command.verbose_skip)
 }
