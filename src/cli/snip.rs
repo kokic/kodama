@@ -21,7 +21,7 @@ struct Snippet {
     description: String,
 }
 
-/// This function invoked the [`environment::init_environment`] function to initialize the environment]
+/// This function invokes the [`environment::init_environment`] function to initialize the environment
 pub fn snip(command: &SnipCommand) -> eyre::Result<()> {
     let config_path = &command.config;
     environment::init_environment(config_path.into(), environment::BuildMode::Serve)?;
