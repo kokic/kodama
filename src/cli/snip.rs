@@ -21,7 +21,7 @@ struct Snippet {
     description: String,
 }
 
-/// This function invoked the [`environment::init_environment`] function to initialize the environment]
+/// This function invokes the [`environment::init_environment`] function to initialize the environment
 pub fn snip(command: &SnipCommand) -> eyre::Result<()> {
     let config_path = &command.config;
     environment::init_environment(config_path.into(), environment::BuildMode::Serve)?;
@@ -49,7 +49,7 @@ pub fn snip(command: &SnipCommand) -> eyre::Result<()> {
             let trees_dir = environment::trees_dir_without_root();
             let url = format!("/{}/{}.{}", trees_dir, slug_str, ext);
 
-            let label = prefix.to_lowercase().replace(" ", "-");
+            let label = prefix.to_lowercase().split_whitespace().collect::<Vec<_>>().join("-");
             let body = [format!("[{label}]: {url}")];
             let taxon = metadata.get(entry::KEY_TAXON)?.as_str()?;
             let description = taxon.to_string();
