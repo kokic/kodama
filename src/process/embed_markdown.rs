@@ -197,13 +197,6 @@ fn is_inline_allowed(state: &State) -> bool {
         || *state == State::AssetFile
 }
 
-pub fn display_taxon(s: &str) -> String {
-    match s.split_at_checked(1) {
-        Some((first, rest)) => format!("{}. ", first.to_uppercase() + rest),
-        _ => s.to_string(),
-    }
-}
-
 /// Relocate the path `/<trees>/path` to `/path`
 fn relocate_trees_path(path: String) -> String {
     let trees = environment::trees_dir_without_root();
