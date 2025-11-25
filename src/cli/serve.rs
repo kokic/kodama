@@ -5,6 +5,7 @@
 use std::io::Write;
 
 use camino::{Utf8Path, Utf8PathBuf};
+use colored::Colorize;
 use notify::{Config, EventKind, RecommendedWatcher, RecursiveMode, Watcher};
 
 use crate::{
@@ -18,12 +19,20 @@ pub struct ServeCommand {
     /// Path to the configuration file (e.g., "Kodama.toml").
     #[arg(short, long, default_value_t = config::DEFAULT_CONFIG_PATH.into())]
     config: String,
+
+    /// Enable verbose output.
+    #[arg(short, long, default_value_t = false)]
+    verbose: bool,
+
+    /// Enable verbose skip output.
+    #[arg(long, default_value_t = false)]
+    verbose_skip: bool,
 }
 
 /// This function invoked the [`config::init_environment`] function to initialize the environment]
 pub fn serve(command: &ServeCommand) -> eyre::Result<()> {
     let serve_build = || -> eyre::Result<()> {
-        build_with(&command.config, BuildMode::Serve)?;
+        build_with(&command.config, BuildMode::Serve, command.verbose, command.verbose_skip)?;
         Ok(())
     };
 
@@ -33,7 +42,7 @@ pub fn serve(command: &ServeCommand) -> eyre::Result<()> {
     std::io::stdout().flush()?;
 
     let mut serve = parse_command(
-        &environment::serve_command(),
+        environment::serve_command(),
         crate::environment::output_dir(),
     )?
     .stdout(std::process::Stdio::piped())
@@ -55,7 +64,8 @@ pub fn serve(command: &ServeCommand) -> eyre::Result<()> {
         use std::io::{BufRead, BufReader};
         let reader = BufReader::new(serve_stderr);
         for line in reader.lines() {
-            eprintln!("[serve] Error: {}", line.unwrap());
+            let message = format!("[serve] Error: {}", line.unwrap()).red();
+            eprintln!("{message}");
         }
     });
 
@@ -103,10 +113,12 @@ where
     for watched_path in watched_paths {
         let watched_path = watched_path.as_ref();
         if !watched_path.exists() {
-            eprintln!(
+            let message = format!(
                 "[watch] Warning: Path \"{}\" does not exist, skipping.",
                 watched_path
-            );
+            )
+            .yellow();
+            eprintln!("{message}");
             continue;
         }
 
@@ -131,7 +143,10 @@ where
                     }
                 }
             }
-            Err(error) => eprintln!("[watch] Error: {error:?}"),
+            Err(error) => {
+                let message = format!("[watch] Error: {error:?}").red();
+                eprintln!("{message}");
+            }
         }
     }
 

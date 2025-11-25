@@ -115,9 +115,7 @@
 </script>
 
 <script>
-
   const clamp = (value) => Math.max(0, Math.min(255, value));
-
 
   const multiply = ([r, g, b], matrix) => {
     const nr = clamp(r * matrix[0] + g * matrix[1] + b * matrix[2]);
@@ -256,7 +254,7 @@
 
   const fix = (value, idx) => {
     let max = 100;
-    if (idx === 2) max = 7500;               // saturate
+    if (idx === 2) max = 7500;                  // saturate
     else if (idx === 4 || idx === 5) max = 200; // brightness, contrast
     if (idx === 3) { // hue-rotate
       if (value > max) return value % max;
@@ -337,22 +335,27 @@
     };
   };
 
-  // Reuse a single canvas/context to avoid memory leaks
+  // Reuse a single canvas / context to avoid memory leaks
   const colorParseCanvas = document.createElement('canvas');
   colorParseCanvas.width = 1;
   colorParseCanvas.height = 1;
   const colorParseContext = colorParseCanvas.getContext('2d');
+  
   const toRGBArray = (cssColor) => {
     colorParseContext.fillStyle = cssColor;
     colorParseContext.fillRect(0, 0, 1, 1);
-    return Array.from(colorParseContext.getImageData(0, 0, 1, 1).data);
+
+    // The `getImageData().data` returns a Uint8ClampedArray with 4 values per pixel (RGBA). 
+    // also see: https://developer.mozilla.org/zh-CN/docs/Web/API/ImageData/data
+    const rgba = colorParseContext.getImageData(0, 0, 1, 1).data;
+    return Array.from(rgba.slice(0, 3));
   };
 
   const dynamicStyleId = 'dynamic-color-invert-style';
 
   function applyDynamicColorInvert() {
     const textColor = getComputedStyle(document.body).getPropertyValue('--text-color');
-    if (textColor.length > 0) {
+    if (textColor && textColor.length > 0) {
       const rgb = toRGBArray(textColor);
       const result = solveColor(rgb);
       const filter = result.filter;

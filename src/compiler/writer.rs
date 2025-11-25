@@ -4,6 +4,8 @@
 
 use std::{collections::HashSet, ops::Not};
 
+use colored::Colorize;
+
 use crate::{
     compiler::counter::Counter,
     config::build::FooterMode,
@@ -31,8 +33,13 @@ impl Writer {
         let relative_path = environment::output_dir().join(&html_url);
         if verify_update_hash(&relative_path, &html).expect("failed to verify update hash") {
             match std::fs::write(&filepath, html) {
-                Ok(()) => println!("[build] {:?} {}", page_title, filepath),
-                Err(err) => eprintln!("{:?}", err),
+                Ok(()) => {
+                    if *crate::cli::build::verbose() {
+                        let prefix = "[build]".green();
+                        println!("{} {:?} {}", prefix, page_title, filepath);
+                    }
+                }
+                Err(err) => eprintln!("{:?}", err.to_string().red()),
             }
         }
     }
@@ -49,8 +56,11 @@ impl Writer {
                  * because writing to a file does not require a mutable reference
                  * of the [`Section`].
                  */
-                None => eprintln!("Slug `{}` not in compiled entries.", slug),
                 Some(section) => Writer::write(section, state),
+                None => {
+                    let message = format!("Slug `{}` not in compiled entries.", slug).red();
+                    eprintln!("{message}");
+                }
             });
     }
 
@@ -129,7 +139,7 @@ impl Writer {
                     Writer::footer_section_to_html(footer_mode, section)
                 })
                 .reduce(|s, t| s + &t)
-                .map(|s| html_flake::html_footer_section(&references_text, &s))
+                .map(|s| html_flake::html_footer_section(references_text, &s))
                 .unwrap_or_default()
         } else {
             String::default()
@@ -148,7 +158,7 @@ impl Writer {
                         Writer::footer_section_to_html(footer_mode, section)
                     })
                     .reduce(|s, t| s + &t)
-                    .map(|s| html_flake::html_footer_section(&backlinks_text, &s))
+                    .map(|s| html_flake::html_footer_section(backlinks_text, &s))
                     .unwrap_or_default()
             })
             .unwrap_or_default();
@@ -178,7 +188,7 @@ impl Writer {
     }
 
     fn footer_section_to_html(page_option: Option<FooterMode>, section: &Section) -> String {
-        let footer_mode = page_option.unwrap_or(environment::footer_mode());
+        let footer_mode = page_option.unwrap_or(*environment::footer_mode());
 
         match footer_mode {
             FooterMode::Link => {

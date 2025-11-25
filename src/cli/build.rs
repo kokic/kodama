@@ -2,7 +2,7 @@
 // Released under the GPL-3.0 license as described in the file LICENSE.
 // Authors: Kokic (@kokic), Spore (@s-cerevisiae)
 
-use std::fs;
+use std::{fs, sync::OnceLock};
 
 use camino::Utf8Path;
 use eyre::{eyre, WrapErr};
@@ -20,15 +20,36 @@ pub struct BuildCommand {
     /// Path to the configuration file (e.g., "Kodama.toml").
     #[arg(short, long, default_value_t = config::DEFAULT_CONFIG_PATH.into())]
     config: String,
+
+    /// Enable verbose output.
+    #[arg(short, long, default_value_t = false)]
+    verbose: bool,
+
+    /// Enable verbose skip output.
+    #[arg(long, default_value_t = false)]
+    verbose_skip: bool,
 }
 
-/// This function invoked the [`config::init_environment`] function to initialize the environment]
+static VERBOSE: OnceLock<bool> = OnceLock::new();
+static VERBOSE_SKIP: OnceLock<bool> = OnceLock::new();
+
+pub fn verbose() -> &'static bool {
+    VERBOSE.get().unwrap_or(&false)
+}
+
+pub fn verbose_skip() -> &'static bool {
+    VERBOSE_SKIP.get().unwrap_or(&false)
+}
+
+/// This function invoked the [`environment::init_environment`] function to initialize the environment
 pub fn build(command: &BuildCommand) -> eyre::Result<()> {
-    build_with(&command.config, BuildMode::Build)
+    build_with(&command.config, BuildMode::Build, command.verbose, command.verbose_skip)
 }
 
-pub fn build_with(config: &str, mode: BuildMode) -> eyre::Result<()> {
+pub fn build_with(config: &str, mode: BuildMode, verbose: bool, verbose_skip: bool) -> eyre::Result<()> {
     environment::init_environment(config.into(), mode)?;
+    _ = VERBOSE.set(verbose);
+    _ = VERBOSE_SKIP.set(verbose_skip);
 
     if !environment::inline_css() {
         export_css_files().wrap_err("failed to export CSS")?;

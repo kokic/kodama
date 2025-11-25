@@ -11,7 +11,7 @@ use super::section::{HTMLContent, HTMLContentBuilder, LazyContent};
 use super::ShallowSection;
 use crate::entry::{HTMLMetaData, KEY_EXT, KEY_SLUG};
 use crate::ordered_map::OrderedMap;
-use crate::process::embed_markdown;
+use crate::process::{metadata};
 use crate::slug::Slug;
 use crate::typst_cli;
 use std::borrow::Cow;
@@ -63,7 +63,7 @@ fn parse_typst_html(
                 };
                 if key == "taxon" {
                     if let HTMLContent::Plain(v) = val {
-                        val = HTMLContent::Plain(embed_markdown::display_taxon(&v));
+                        val = HTMLContent::Plain(metadata::display_taxon(&v));
                     }
                 }
                 metadata.insert(key.to_string(), val);

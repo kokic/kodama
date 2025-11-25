@@ -5,6 +5,7 @@
 use std::{fs, io::Write, process::Command};
 
 use camino::Utf8Path;
+use colored::Colorize;
 
 use crate::{
     environment::{self, verify_and_file_hash},
@@ -18,7 +19,9 @@ pub fn write_to_inline_html<P: AsRef<Utf8Path>>(
     if !verify_and_file_hash(typst_path.as_ref())? && html_path.as_ref().exists() {
         let existed_html = fs::read_to_string(html_path.as_ref())?;
         let existed_html = html_to_body_content(&existed_html);
-        println!("Skip: {}", path_utils::pretty_path(typst_path.as_ref()));
+        if *crate::cli::build::verbose_skip() {
+            println!("Skip: {}", path_utils::pretty_path(typst_path.as_ref()));
+        }
         return Ok(existed_html);
     }
 
@@ -27,11 +30,12 @@ pub fn write_to_inline_html<P: AsRef<Utf8Path>>(
     let html_body = html_to_body_content(&html);
 
     fs::write(html_path.as_ref(), html)?;
-    println!(
-        "Compiled to HTML: {}",
-        path_utils::pretty_path(html_path.as_ref())
-    );
-
+    if *crate::cli::build::verbose() {
+        println!(
+            "Compiled to HTML: {}",
+            path_utils::pretty_path(html_path.as_ref())
+        );
+    }
     Ok(html_body)
 }
 
@@ -119,11 +123,13 @@ fn source_to_svg(src: &str) -> eyre::Result<String> {
         stdout.to_string()
     } else {
         let stderr = String::from_utf8_lossy(&output.stderr);
-        eprintln!(
+        let message = format!(
             "Command failed in {}: \n  {}",
             concat!(file!(), '#', line!()),
             stderr
-        );
+        )
+        .red();
+        eprintln!("{message}");
         String::new()
     })
 }
@@ -133,7 +139,9 @@ pub fn write_svg<P: AsRef<Utf8Path>>(typst_path: P, svg_path: P) -> eyre::Result
     let svg_path = svg_path.as_ref();
 
     if !verify_and_file_hash(typst_path)? && svg_path.exists() {
-        println!("Skip: {}", path_utils::pretty_path(typst_path));
+        if *crate::cli::build::verbose_skip() {
+            println!("Skip: {}", path_utils::pretty_path(typst_path));
+        }
         return Ok(());
     }
 
@@ -147,7 +155,7 @@ pub fn write_svg<P: AsRef<Utf8Path>>(typst_path: P, svg_path: P) -> eyre::Result
         .arg(svg_path)
         .output()?;
 
-    if output.status.success() {
+    if output.status.success() && *crate::cli::build::verbose() {
         println!(
             "Compiled to SVG: {}",
             path_utils::pretty_path(Utf8Path::new(svg_path))
@@ -160,8 +168,10 @@ pub fn write_svg<P: AsRef<Utf8Path>>(typst_path: P, svg_path: P) -> eyre::Result
 }
 
 fn failed_in_file(src_pos: &'static str, file_path: &str, stderr: std::borrow::Cow<'_, str>) {
-    eprintln!(
+    let message = format!(
         "Command failed in {}: \n  In file {}, {}",
         src_pos, file_path, stderr
-    );
+    )
+    .red();
+    eprintln!("{message}");
 }
