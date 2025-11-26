@@ -1,0 +1,63 @@
+<template id="inline-section">
+  <section class="block" data-taxon="">
+    <details open="">
+      <summary>
+        <header>
+          <h1>
+            <span class="taxon"></span>
+            <div id="title"></div>
+          </h1>
+        </header>
+      </summary>
+      <div id="content"></div>
+    </details>
+  </section>
+</template>
+
+<script>
+  function inlineSection(template, section, taxon, title) {
+    taxon = taxon || section.getAttribute("taxon") || "";
+    title = title || section.getAttribute("title") || "";
+
+    const clone = template.content.cloneNode(true);
+    clone.querySelector("section").dataset.taxon = taxon;
+    clone.querySelector(".taxon").textContent = `${taxon}. `;
+    clone.querySelector("#title").replaceWith(title);
+    clone.querySelector("#content").replaceWith(...section.childNodes);
+
+    if (section.hasAttribute("close")) {
+      clone.querySelector("details").removeAttribute("open");
+    }
+    
+    section.replaceWith(clone);
+  }
+
+  const tagTaxonTable = {
+    "exegesis": "Exegesis",
+    "definition": "Definition",
+    "proposition": "Proposition",
+    "remark": "Remark",
+    "conjecture": "Conjecture",
+    "postulate": "Postulate",
+    "claim": "Claim",
+    "observation": "Observation",
+    "fact": "Fact",
+    "hypothesis": "Hypothesis",
+    "axiom": "Axiom",
+    "lemma": "Lemma",
+    "theorem": "Theorem",
+    "corollary": "Corollary",
+    "example": "Example", 
+    "proof": "Proof",
+  };
+
+  document.addEventListener("DOMContentLoaded", () => {
+    const template = document.getElementById("inline-section");
+
+    [...document.getElementsByTagName("block")].forEach(section => inlineSection(template, section));
+
+    Object.entries(tagTaxonTable).forEach(([tag, taxon]) => {
+      [...document.getElementsByTagName(tag)].forEach(section => inlineSection(template, section, taxon));
+    });
+  });
+</script>
