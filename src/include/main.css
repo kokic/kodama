@@ -91,6 +91,7 @@ em {
 
 table {
   border-collapse: collapse;
+  margin-bottom: 1em;
 }
 
 /* !forest */

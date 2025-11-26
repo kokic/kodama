@@ -155,11 +155,13 @@ pub fn write_svg<P: AsRef<Utf8Path>>(typst_path: P, svg_path: P) -> eyre::Result
         .arg(svg_path)
         .output()?;
 
-    if output.status.success() && *crate::cli::build::verbose() {
-        println!(
-            "Compiled to SVG: {}",
-            path_utils::pretty_path(Utf8Path::new(svg_path))
-        );
+    if output.status.success() {
+        if *crate::cli::build::verbose() {
+            println!(
+                "Compiled to SVG: {}",
+                path_utils::pretty_path(Utf8Path::new(svg_path))
+            );
+        }
     } else {
         let stderr = String::from_utf8_lossy(&output.stderr);
         failed_in_file(concat!(file!(), '#', line!()), full_path.as_str(), stderr);
