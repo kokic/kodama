@@ -34,8 +34,9 @@ impl Taxon {
         }
     }
 
+    /// Note: The data-taxon string does not have a "." suffix
     pub fn is_reference(s: &str) -> bool {
-        s.to_lowercase().starts_with("reference.") || s.starts_with("参考.")
+        s.to_lowercase().starts_with("reference") || s.starts_with("参考")
     }
 
     pub fn to_data_taxon(taxon_display: &str) -> &str {
