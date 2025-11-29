@@ -16,12 +16,12 @@
 
 <script>
   function inlineSection(template, section, taxon, title) {
-    taxon = taxon || section.getAttribute("taxon") || "";
+    taxon = taxon || section.getAttribute("taxon") || null;
     title = title || section.getAttribute("title") || "";
 
     const clone = template.content.cloneNode(true);
     clone.querySelector("section").dataset.taxon = taxon;
-    clone.querySelector(".taxon").textContent = `${taxon}. `;
+    clone.querySelector(".taxon").textContent = taxon ? `${taxon}. ` : "";
     clone.querySelector("#title").replaceWith(title);
     clone.querySelector("#content").replaceWith(...section.childNodes);
 

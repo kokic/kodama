@@ -44,12 +44,14 @@
 </template>
 
 <script>
+  const THEME_KEY = `kodama-theme`;
+
   function storeSelectedTheme(name) {
-    localStorage.setItem(window.themeKey, name);
+    localStorage.setItem(THEME_KEY, name);
   }
 
   function getCurrentTheme() {
-    return localStorage.getItem(window.themeKey) || window.primaryTheme;
+    return localStorage.getItem(THEME_KEY) || window.primaryTheme;
   }
 
   function selectTheme(themeName) {
@@ -70,9 +72,8 @@
         // e.g., when the theme options have changed, and the stored theme is no longer available.
         window.primaryOption.checked = true;
       }
-
-      applyDynamicColorInvert();
     }
+    applyDynamicColorInvert();
   }
 
   document.addEventListener("DOMContentLoaded", function () {
@@ -103,9 +104,6 @@
         }
       },
     );
-
-    const baseUrl = document.getElementById("grid-wrapper").dataset.baseUrl;
-    window.themeKey = `${baseUrl}-kodama-theme`;
 
     window.primaryOption = window.themeOptions.querySelector("input[type='radio']");
     window.primaryTheme = primaryOption?.value;
@@ -340,7 +338,7 @@
   colorParseCanvas.width = 1;
   colorParseCanvas.height = 1;
   const colorParseContext = colorParseCanvas.getContext('2d');
-  
+
   const toRGBArray = (cssColor) => {
     colorParseContext.fillStyle = cssColor;
     colorParseContext.fillRect(0, 0, 1, 1);
@@ -351,21 +349,33 @@
     return Array.from(rgba.slice(0, 3));
   };
 
-  const dynamicStyleId = 'dynamic-color-invert-style';
+  const DYNAMIC_STYLE_ID = 'dynamic-color-invert-style';
+  const SOLVED_COLOR_KEY = "solved-";
+
+  function memorizedSolvedFilter(color) {
+    const colorKey = SOLVED_COLOR_KEY + color;
+    const storedFilterOption = localStorage.getItem(colorKey);
+    if (storedFilterOption) {
+      return storedFilterOption;
+    } else {
+      const filter = solveColor(color).filter;
+      localStorage.setItem(colorKey, filter);
+      return filter;
+    }
+  }
 
   function applyDynamicColorInvert() {
     const textColor = getComputedStyle(document.body).getPropertyValue('--text-color');
     if (textColor && textColor.length > 0) {
       const rgb = toRGBArray(textColor);
-      const result = solveColor(rgb);
-      const filter = result.filter;
+      const filter = memorizedSolvedFilter(rgb);
 
-      const existingStyle = document.getElementById(dynamicStyleId);
+      const existingStyle = document.getElementById(DYNAMIC_STYLE_ID);
       if (existingStyle) {
         existingStyle.textContent = `.color-invert {${filter}}`;
       } else {
         const style = document.createElement('style');
-        style.id = dynamicStyleId;
+        style.id = DYNAMIC_STYLE_ID;
         style.textContent = `.color-invert {${filter}}`;
         document.head.appendChild(style);
       }
