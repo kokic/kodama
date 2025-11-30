@@ -251,8 +251,8 @@ pub fn html_doc(
             (html_dynamic_css())
             (html_import_style())
             (html_import_fonts())
-            (html_import_math())
             (html_scripts())
+            (html_import_math())
         }
         body {
             (header_html)
@@ -324,9 +324,9 @@ pub fn html_import_math() -> String {
 
 pub fn html_scripts() -> &'static str {
     concat!(
+        include_str!("include/inline-section.html"),
         include_str!("include/mobile-toc.html"),
         include_str!("include/theme.html"),
-        include_str!("include/inline-section.html"),
     )
 }
 
