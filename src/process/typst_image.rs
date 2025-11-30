@@ -5,7 +5,6 @@
 use std::{fmt::Write, fs};
 
 use camino::Utf8PathBuf;
-use colored::Colorize;
 use pulldown_cmark::{Event, Tag, TagEnd};
 
 use crate::{
@@ -97,8 +96,7 @@ impl<'e, E: Iterator<Item = Event<'e>>> Iterator for TypstImage<E> {
                         let html = match write_to_inline_html(typst_url, html_path) {
                             Ok(inline_html) => inline_html,
                             Err(err) => {
-                                let message = format!("{:?} at {}", err, self.current_slug).red();
-                                eprintln!("{message}");
+                                color_print::ceprintln!("<r>{:?} at {}</>", err, self.current_slug);
                                 String::new()
                             }
                         };
@@ -130,12 +128,11 @@ impl<'e, E: Iterator<Item = Event<'e>>> Iterator for TypstImage<E> {
                         let html = match typst_cli::source_to_inline_svg(&inline_typst, config) {
                             Ok(svg) => svg,
                             Err(err) => {
-                                let message = format!("{:?} at {}", err, self.current_slug).red();
-                                eprintln!("{message}");
+                                color_print::ceprintln!("<r>{:?} at {}</>", err, self.current_slug);
                                 String::new()
                             }
                         };
-
+                        
                         self.exit();
                         return Some(Event::Html(html.into()));
                     }

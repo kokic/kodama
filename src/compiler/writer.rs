@@ -4,8 +4,6 @@
 
 use std::{collections::HashSet, ops::Not};
 
-use colored::Colorize;
-
 use crate::{
     compiler::counter::Counter,
     config::build::FooterMode,
@@ -35,11 +33,10 @@ impl Writer {
             match std::fs::write(&filepath, html) {
                 Ok(()) => {
                     if *crate::cli::build::verbose() {
-                        let prefix = "[build]".green();
-                        println!("{} {:?} {}", prefix, page_title, filepath);
+                        color_print::ceprintln!("<g>[build]</> {:?} {}", page_title, filepath);
                     }
                 }
-                Err(err) => eprintln!("{:?}", err.to_string().red()),
+                Err(err) => color_print::ceprintln!("<r>{:?}</>", err),
             }
         }
     }
@@ -57,10 +54,7 @@ impl Writer {
                  * of the [`Section`].
                  */
                 Some(section) => Writer::write(section, state),
-                None => {
-                    let message = format!("Slug `{}` not in compiled entries.", slug).red();
-                    eprintln!("{message}");
-                }
+                None => color_print::ceprintln!("<r>Slug `{}` not in compiled entries.</>", slug),
             });
     }
 

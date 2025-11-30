@@ -5,7 +5,6 @@
 use std::{fs, io::Write, process::Command};
 
 use camino::Utf8Path;
-use colored::Colorize;
 
 use crate::{
     environment::{self, verify_and_file_hash},
@@ -123,13 +122,11 @@ fn source_to_svg(src: &str) -> eyre::Result<String> {
         stdout.to_string()
     } else {
         let stderr = String::from_utf8_lossy(&output.stderr);
-        let message = format!(
-            "Command failed in {}: \n  {}",
+        color_print::ceprintln!(
+            "<r>Command failed in {}: \n  {}</>",
             concat!(file!(), '#', line!()),
             stderr
-        )
-        .red();
-        eprintln!("{message}");
+        );
         String::new()
     })
 }
@@ -170,10 +167,8 @@ pub fn write_svg<P: AsRef<Utf8Path>>(typst_path: P, svg_path: P) -> eyre::Result
 }
 
 fn failed_in_file(src_pos: &'static str, file_path: &str, stderr: std::borrow::Cow<'_, str>) {
-    let message = format!(
-        "Command failed in {}: \n  In file {}, {}",
+    color_print::ceprintln!(
+        "<r>Command failed in {}: \n  In file {}, {}</>",
         src_pos, file_path, stderr
-    )
-    .red();
-    eprintln!("{message}");
+    );
 }
