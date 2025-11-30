@@ -26,8 +26,17 @@ use crate::cli::{
     serve::ServeCommand, snip::SnipCommand,
 };
 
+#[rustfmt::skip]
+const AFTER_HELP: &str = color_print::cstr!("\
+<s><u>Resources:</></>
+  <s>Tutorial:</>   https://kodama-community.github.io/docs/tutorials/
+  <s>Reference:</>  https://kodama-community.github.io/docs/references/
+  <s>Themes:</>     https://github.com/kodama-community/themes
+  <s>Forum:</>      https://discord.gg/mbeF8J6rXX
+");
+
 #[derive(Parser)]
-#[command(version, about, long_about = None)]
+#[command(version, about, long_about = None, after_help = AFTER_HELP)]
 struct Cli {
     #[command(subcommand)]
     command: Command,
@@ -53,7 +62,7 @@ enum Command {
     #[command(visible_alias = "s")]
     Serve(ServeCommand),
 
-    /// Generate VSCode style section link snippets file.
+    /// Generate VSCode style snippets file.
     #[command()]
     Snip(SnipCommand),
 }

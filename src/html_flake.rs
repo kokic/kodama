@@ -2,8 +2,6 @@
 // Released under the GPL-3.0 license as described in the file LICENSE.
 // Authors: Kokic (@kokic), Spore (@s-cerevisiae)
 
-use colored::Colorize;
-
 use crate::{
     entry::{EntryMetaData, MetaData},
     environment::{self, input_path},
@@ -336,12 +334,12 @@ fn html_import_theme() -> String {
         .map(|theme_path| match std::fs::read_to_string(theme_path) {
             Ok(content) => content,
             Err(err) => {
-                let message = format!(
-                    "Warning: Failed to read theme file at '{}': {}",
-                    theme_path, err
-                )
-                .yellow();
-                eprintln!("{message}");
+                color_print::ceprintln!(
+                    "<y>Warning: Failed to read theme file at '{}': {}</>",
+                    theme_path,
+                    err
+                );
+
                 String::new()
             }
         })

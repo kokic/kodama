@@ -1,0 +1,6674 @@
+{
+  "N": {
+    "scope": "latex",
+    "prefix": "\\N",
+    "body": [
+      "\\N"
+    ],
+    "description": "ℕ"
+  },
+  "Z": {
+    "scope": "latex",
+    "prefix": "\\Z",
+    "body": [
+      "\\Z"
+    ],
+    "description": "ℤ"
+  },
+  "R": {
+    "scope": "latex",
+    "prefix": "\\R",
+    "body": [
+      "\\R"
+    ],
+    "description": "ℝ"
+  },
+  "natnums": {
+    "scope": "latex",
+    "prefix": "\\natnums",
+    "body": [
+      "\\natnums"
+    ],
+    "description": "ℕ"
+  },
+  "reals": {
+    "scope": "latex",
+    "prefix": "\\reals",
+    "body": [
+      "\\reals"
+    ],
+    "description": "ℝ"
+  },
+  "Reals": {
+    "scope": "latex",
+    "prefix": "\\Reals",
+    "body": [
+      "\\Reals"
+    ],
+    "description": "ℝ"
+  },
+  "cnums": {
+    "scope": "latex",
+    "prefix": "\\cnums",
+    "body": [
+      "\\cnums"
+    ],
+    "description": "ℂ"
+  },
+  "Complex": {
+    "scope": "latex",
+    "prefix": "\\Complex",
+    "body": [
+      "\\Complex"
+    ],
+    "description": "ℂ"
+  },
+  "Bbbk": {
+    "scope": "latex",
+    "prefix": "\\Bbbk",
+    "body": [
+      "\\Bbbk"
+    ],
+    "description": "𝕜"
+  },
+  "TeX": {
+    "scope": "latex",
+    "prefix": "\\TeX",
+    "body": [
+      "\\TeX"
+    ],
+    "description": "TᴇX"
+  },
+  "LaTeX": {
+    "scope": "latex",
+    "prefix": "\\LaTeX",
+    "body": [
+      "\\LaTeX"
+    ],
+    "description": "LᴬTᴇX"
+  },
+  "degree": {
+    "scope": "latex",
+    "prefix": "\\degree",
+    "body": [
+      "\\degree"
+    ],
+    "description": "°"
+  },
+  "varGamma": {
+    "scope": "latex",
+    "prefix": "\\varGamma",
+    "body": [
+      "\\varGamma"
+    ],
+    "description": "Γ"
+  },
+  "varDelta": {
+    "scope": "latex",
+    "prefix": "\\varDelta",
+    "body": [
+      "\\varDelta"
+    ],
+    "description": "Δ"
+  },
+  "varTheta": {
+    "scope": "latex",
+    "prefix": "\\varTheta",
+    "body": [
+      "\\varTheta"
+    ],
+    "description": "Θ"
+  },
+  "varLambda": {
+    "scope": "latex",
+    "prefix": "\\varLambda",
+    "body": [
+      "\\varLambda"
+    ],
+    "description": "Λ"
+  },
+  "varXi": {
+    "scope": "latex",
+    "prefix": "\\varXi",
+    "body": [
+      "\\varXi"
+    ],
+    "description": "Ξ"
+  },
+  "varPi": {
+    "scope": "latex",
+    "prefix": "\\varPi",
+    "body": [
+      "\\varPi"
+    ],
+    "description": "ϖ"
+  },
+  "varSigma": {
+    "scope": "latex",
+    "prefix": "\\varSigma",
+    "body": [
+      "\\varSigma"
+    ],
+    "description": "Σ"
+  },
+  "varUpsilon": {
+    "scope": "latex",
+    "prefix": "\\varUpsilon",
+    "body": [
+      "\\varUpsilon"
+    ],
+    "description": "Υ"
+  },
+  "varPhi": {
+    "scope": "latex",
+    "prefix": "\\varPhi",
+    "body": [
+      "\\varPhi"
+    ],
+    "description": "Φ"
+  },
+  "varPsi": {
+    "scope": "latex",
+    "prefix": "\\varPsi",
+    "body": [
+      "\\varPsi"
+    ],
+    "description": "Ψ"
+  },
+  "varOmega": {
+    "scope": "latex",
+    "prefix": "\\varOmega",
+    "body": [
+      "\\varOmega"
+    ],
+    "description": "Ω"
+  },
+  "varepsilon": {
+    "scope": "latex",
+    "prefix": "\\varepsilon",
+    "body": [
+      "\\varepsilon"
+    ],
+    "description": "ε"
+  },
+  "varkappa": {
+    "scope": "latex",
+    "prefix": "\\varkappa",
+    "body": [
+      "\\varkappa"
+    ],
+    "description": "ϰ"
+  },
+  "vartheta": {
+    "scope": "latex",
+    "prefix": "\\vartheta",
+    "body": [
+      "\\vartheta"
+    ],
+    "description": "ϑ"
+  },
+  "thetasym": {
+    "scope": "latex",
+    "prefix": "\\thetasym",
+    "body": [
+      "\\thetasym"
+    ],
+    "description": "ϑ"
+  },
+  "varpi": {
+    "scope": "latex",
+    "prefix": "\\varpi",
+    "body": [
+      "\\varpi"
+    ],
+    "description": "ϖ"
+  },
+  "varrho": {
+    "scope": "latex",
+    "prefix": "\\varrho",
+    "body": [
+      "\\varrho"
+    ],
+    "description": "ϱ"
+  },
+  "varsigma": {
+    "scope": "latex",
+    "prefix": "\\varsigma",
+    "body": [
+      "\\varsigma"
+    ],
+    "description": "ς"
+  },
+  "varphi": {
+    "scope": "latex",
+    "prefix": "\\varphi",
+    "body": [
+      "\\varphi"
+    ],
+    "description": "φ"
+  },
+  "digamma": {
+    "scope": "latex",
+    "prefix": "\\digamma",
+    "body": [
+      "\\digamma"
+    ],
+    "description": "ϝ"
+  },
+  "argmax": {
+    "scope": "latex",
+    "prefix": "\\argmax",
+    "body": [
+      "\\argmax"
+    ],
+    "description": "arg max"
+  },
+  "argmin": {
+    "scope": "latex",
+    "prefix": "\\argmin",
+    "body": [
+      "\\argmin"
+    ],
+    "description": "arg min"
+  },
+  "injlim": {
+    "scope": "latex",
+    "prefix": "\\injlim",
+    "body": [
+      "\\injlim"
+    ],
+    "description": "inj lim"
+  },
+  "liminf": {
+    "scope": "latex",
+    "prefix": "\\liminf",
+    "body": [
+      "\\liminf"
+    ],
+    "description": "lim inf"
+  },
+  "limsup": {
+    "scope": "latex",
+    "prefix": "\\limsup",
+    "body": [
+      "\\limsup"
+    ],
+    "description": "lim sup"
+  },
+  "projlim": {
+    "scope": "latex",
+    "prefix": "\\projlim",
+    "body": [
+      "\\projlim"
+    ],
+    "description": "proj lim"
+  },
+  "limits": {
+    "scope": "latex",
+    "prefix": "\\limits",
+    "body": [
+      "\\limits"
+    ],
+    "description": "limits"
+  },
+  "cdot": {
+    "scope": "latex",
+    "prefix": "\\cdot",
+    "body": [
+      "\\cdot"
+    ],
+    "description": "⋅"
+  },
+  "cdotp": {
+    "scope": "latex",
+    "prefix": "\\cdotp",
+    "body": [
+      "\\cdotp"
+    ],
+    "description": "⋅"
+  },
+  "dots": {
+    "scope": "latex",
+    "prefix": "\\dots",
+    "body": [
+      "\\dots"
+    ],
+    "description": "…"
+  },
+  "cdots": {
+    "scope": "latex",
+    "prefix": "\\cdots",
+    "body": [
+      "\\cdots"
+    ],
+    "description": "⋯"
+  },
+  "ldots": {
+    "scope": "latex",
+    "prefix": "\\ldots",
+    "body": [
+      "\\ldots"
+    ],
+    "description": "…"
+  },
+  "ddots": {
+    "scope": "latex",
+    "prefix": "\\ddots",
+    "body": [
+      "\\ddots"
+    ],
+    "description": "⋱"
+  },
+  "vdots": {
+    "scope": "latex",
+    "prefix": "\\vdots",
+    "body": [
+      "\\vdots"
+    ],
+    "description": "⋮"
+  },
+  "prime": {
+    "scope": "latex",
+    "prefix": "\\prime",
+    "body": [
+      "\\prime"
+    ],
+    "description": "′"
+  },
+  "Box": {
+    "scope": "latex",
+    "prefix": "\\Box",
+    "body": [
+      "\\Box"
+    ],
+    "description": "□"
+  },
+  "|": {
+    "scope": "latex",
+    "prefix": "\\|",
+    "body": [
+      "\\|"
+    ],
+    "description": "‖"
+  },
+  "lang": {
+    "scope": "latex",
+    "prefix": "\\lang",
+    "body": [
+      "\\lang"
+    ],
+    "description": "⟨"
+  },
+  "langle": {
+    "scope": "latex",
+    "prefix": "\\langle",
+    "body": [
+      "\\langle"
+    ],
+    "description": "⟨"
+  },
+  "rang": {
+    "scope": "latex",
+    "prefix": "\\rang",
+    "body": [
+      "\\rang"
+    ],
+    "description": "⟩"
+  },
+  "rangle": {
+    "scope": "latex",
+    "prefix": "\\rangle",
+    "body": [
+      "\\rangle"
+    ],
+    "description": "⟩"
+  },
+  "vert": {
+    "scope": "latex",
+    "prefix": "\\vert",
+    "body": [
+      "\\vert"
+    ],
+    "description": "∣"
+  },
+  "Vert": {
+    "scope": "latex",
+    "prefix": "\\Vert",
+    "body": [
+      "\\Vert"
+    ],
+    "description": "‖"
+  },
+  "lVert": {
+    "scope": "latex",
+    "prefix": "\\lVert",
+    "body": [
+      "\\lVert"
+    ],
+    "description": "‖"
+  },
+  "rVert": {
+    "scope": "latex",
+    "prefix": "\\rVert",
+    "body": [
+      "\\rVert"
+    ],
+    "description": "‖"
+  },
+  "lceil": {
+    "scope": "latex",
+    "prefix": "\\lceil",
+    "body": [
+      "\\lceil"
+    ],
+    "description": "⌈"
+  },
+  "rceil": {
+    "scope": "latex",
+    "prefix": "\\rceil",
+    "body": [
+      "\\rceil"
+    ],
+    "description": "⌉"
+  },
+  "lfloor": {
+    "scope": "latex",
+    "prefix": "\\lfloor",
+    "body": [
+      "\\lfloor"
+    ],
+    "description": "⌊"
+  },
+  "rfloor": {
+    "scope": "latex",
+    "prefix": "\\rfloor",
+    "body": [
+      "\\rfloor"
+    ],
+    "description": "⌋"
+  },
+  "lmoustache": {
+    "scope": "latex",
+    "prefix": "\\lmoustache",
+    "body": [
+      "\\lmoustache"
+    ],
+    "description": "⎰"
+  },
+  "rmoustache": {
+    "scope": "latex",
+    "prefix": "\\rmoustache",
+    "body": [
+      "\\rmoustache"
+    ],
+    "description": "⎱"
+  },
+  "lgroup": {
+    "scope": "latex",
+    "prefix": "\\lgroup",
+    "body": [
+      "\\lgroup"
+    ],
+    "description": "⟮"
+  },
+  "rgroup": {
+    "scope": "latex",
+    "prefix": "\\rgroup",
+    "body": [
+      "\\rgroup"
+    ],
+    "description": "⟯"
+  },
+  "ulcorner": {
+    "scope": "latex",
+    "prefix": "\\ulcorner",
+    "body": [
+      "\\ulcorner"
+    ],
+    "description": "┌"
+  },
+  "urcorner": {
+    "scope": "latex",
+    "prefix": "\\urcorner",
+    "body": [
+      "\\urcorner"
+    ],
+    "description": "┐"
+  },
+  "llcorner": {
+    "scope": "latex",
+    "prefix": "\\llcorner",
+    "body": [
+      "\\llcorner"
+    ],
+    "description": "└"
+  },
+  "lrcorner": {
+    "scope": "latex",
+    "prefix": "\\lrcorner",
+    "body": [
+      "\\lrcorner"
+    ],
+    "description": "┘"
+  },
+  "llbracket": {
+    "scope": "latex",
+    "prefix": "\\llbracket",
+    "body": [
+      "\\llbracket"
+    ],
+    "description": "[["
+  },
+  "rlbracket": {
+    "scope": "latex",
+    "prefix": "\\rlbracket",
+    "body": [
+      "\\rlbracket"
+    ],
+    "description": "]]"
+  },
+  "lBrace": {
+    "scope": "latex",
+    "prefix": "\\lBrace",
+    "body": [
+      "\\lBrace"
+    ],
+    "description": "{["
+  },
+  "rBrace": {
+    "scope": "latex",
+    "prefix": "\\rBrace",
+    "body": [
+      "\\rBrace"
+    ],
+    "description": "]}"
+  },
+  "bigotimes": {
+    "scope": "latex",
+    "prefix": "\\bigotimes",
+    "body": [
+      "\\bigotimes"
+    ],
+    "description": "⨂"
+  },
+  "bigvee": {
+    "scope": "latex",
+    "prefix": "\\bigvee",
+    "body": [
+      "\\bigvee"
+    ],
+    "description": "⋁"
+  },
+  "bigoplus": {
+    "scope": "latex",
+    "prefix": "\\bigoplus",
+    "body": [
+      "\\bigoplus"
+    ],
+    "description": "⨁"
+  },
+  "bigwedge": {
+    "scope": "latex",
+    "prefix": "\\bigwedge",
+    "body": [
+      "\\bigwedge"
+    ],
+    "description": "⋀"
+  },
+  "bigodot": {
+    "scope": "latex",
+    "prefix": "\\bigodot",
+    "body": [
+      "\\bigodot"
+    ],
+    "description": "⨀"
+  },
+  "bigcap": {
+    "scope": "latex",
+    "prefix": "\\bigcap",
+    "body": [
+      "\\bigcap"
+    ],
+    "description": "⋂"
+  },
+  "biguplus": {
+    "scope": "latex",
+    "prefix": "\\biguplus",
+    "body": [
+      "\\biguplus"
+    ],
+    "description": "⨄"
+  },
+  "bigcup": {
+    "scope": "latex",
+    "prefix": "\\bigcup",
+    "body": [
+      "\\bigcup"
+    ],
+    "description": "⋃"
+  },
+  "bigsqcup": {
+    "scope": "latex",
+    "prefix": "\\bigsqcup",
+    "body": [
+      "\\bigsqcup"
+    ],
+    "description": "⨆"
+  },
+  "wedge": {
+    "scope": "latex",
+    "prefix": "\\wedge",
+    "body": [
+      "\\wedge"
+    ],
+    "description": "∧"
+  },
+  "curlywedge": {
+    "scope": "latex",
+    "prefix": "\\curlywedge",
+    "body": [
+      "\\curlywedge"
+    ],
+    "description": "⋏"
+  },
+  "barwedge": {
+    "scope": "latex",
+    "prefix": "\\barwedge",
+    "body": [
+      "\\barwedge"
+    ],
+    "description": "⊼"
+  },
+  "doublebarwedge": {
+    "scope": "latex",
+    "prefix": "\\doublebarwedge",
+    "body": [
+      "\\doublebarwedge"
+    ],
+    "description": "⩞"
+  },
+  "vee": {
+    "scope": "latex",
+    "prefix": "\\vee",
+    "body": [
+      "\\vee"
+    ],
+    "description": "∨"
+  },
+  "curlyvee": {
+    "scope": "latex",
+    "prefix": "\\curlyvee",
+    "body": [
+      "\\curlyvee"
+    ],
+    "description": "⋎"
+  },
+  "veebar": {
+    "scope": "latex",
+    "prefix": "\\veebar",
+    "body": [
+      "\\veebar"
+    ],
+    "description": "⊻"
+  },
+  "sqcap": {
+    "scope": "latex",
+    "prefix": "\\sqcap",
+    "body": [
+      "\\sqcap"
+    ],
+    "description": "⊓"
+  },
+  "sqcup": {
+    "scope": "latex",
+    "prefix": "\\sqcup",
+    "body": [
+      "\\sqcup"
+    ],
+    "description": "⊔"
+  },
+  "boxdot": {
+    "scope": "latex",
+    "prefix": "\\boxdot",
+    "body": [
+      "\\boxdot"
+    ],
+    "description": "⊡"
+  },
+  "boxplus": {
+    "scope": "latex",
+    "prefix": "\\boxplus",
+    "body": [
+      "\\boxplus"
+    ],
+    "description": "⊞"
+  },
+  "boxminus": {
+    "scope": "latex",
+    "prefix": "\\boxminus",
+    "body": [
+      "\\boxminus"
+    ],
+    "description": "⊟"
+  },
+  "boxtimes": {
+    "scope": "latex",
+    "prefix": "\\boxtimes",
+    "body": [
+      "\\boxtimes"
+    ],
+    "description": "⊠"
+  },
+  "oplus": {
+    "scope": "latex",
+    "prefix": "\\oplus",
+    "body": [
+      "\\oplus"
+    ],
+    "description": "⊕"
+  },
+  "ominus": {
+    "scope": "latex",
+    "prefix": "\\ominus",
+    "body": [
+      "\\ominus"
+    ],
+    "description": "⊖"
+  },
+  "otimes": {
+    "scope": "latex",
+    "prefix": "\\otimes",
+    "body": [
+      "\\otimes"
+    ],
+    "description": "⊗"
+  },
+  "oslash": {
+    "scope": "latex",
+    "prefix": "\\oslash",
+    "body": [
+      "\\oslash"
+    ],
+    "description": "⊘"
+  },
+  "uplus": {
+    "scope": "latex",
+    "prefix": "\\uplus",
+    "body": [
+      "\\uplus"
+    ],
+    "description": "⊎"
+  },
+  "divideontimes": {
+    "scope": "latex",
+    "prefix": "\\divideontimes",
+    "body": [
+      "\\divideontimes"
+    ],
+    "description": "⋇"
+  },
+  "lhd": {
+    "scope": "latex",
+    "prefix": "\\lhd",
+    "body": [
+      "\\lhd"
+    ],
+    "description": "⊲"
+  },
+  "unlhd": {
+    "scope": "latex",
+    "prefix": "\\unlhd",
+    "body": [
+      "\\unlhd"
+    ],
+    "description": "⊴"
+  },
+  "rhd": {
+    "scope": "latex",
+    "prefix": "\\rhd",
+    "body": [
+      "\\rhd"
+    ],
+    "description": "⊳"
+  },
+  "unrhd": {
+    "scope": "latex",
+    "prefix": "\\unrhd",
+    "body": [
+      "\\unrhd"
+    ],
+    "description": "⊵"
+  },
+  "setminus": {
+    "scope": "latex",
+    "prefix": "\\setminus",
+    "body": [
+      "\\setminus"
+    ],
+    "description": "∖"
+  },
+  "smallsetminus": {
+    "scope": "latex",
+    "prefix": "\\smallsetminus",
+    "body": [
+      "\\smallsetminus"
+    ],
+    "description": "∖"
+  },
+  "forall": {
+    "scope": "latex",
+    "prefix": "\\forall",
+    "body": [
+      "\\forall"
+    ],
+    "description": "∀"
+  },
+  "complement": {
+    "scope": "latex",
+    "prefix": "\\complement",
+    "body": [
+      "\\complement"
+    ],
+    "description": "∁"
+  },
+  "partial": {
+    "scope": "latex",
+    "prefix": "\\partial",
+    "body": [
+      "\\partial"
+    ],
+    "description": "∂"
+  },
+  "exist": {
+    "scope": "latex",
+    "prefix": "\\exist",
+    "body": [
+      "\\exist"
+    ],
+    "description": "∃"
+  },
+  "exists": {
+    "scope": "latex",
+    "prefix": "\\exists",
+    "body": [
+      "\\exists"
+    ],
+    "description": "∃"
+  },
+  "noexist": {
+    "scope": "latex",
+    "prefix": "\\noexist",
+    "body": [
+      "\\noexist"
+    ],
+    "description": "∄"
+  },
+  "empty": {
+    "scope": "latex",
+    "prefix": "\\empty",
+    "body": [
+      "\\empty"
+    ],
+    "description": "∅"
+  },
+  "emptyset": {
+    "scope": "latex",
+    "prefix": "\\emptyset",
+    "body": [
+      "\\emptyset"
+    ],
+    "description": "∅"
+  },
+  "varnothing": {
+    "scope": "latex",
+    "prefix": "\\varnothing",
+    "body": [
+      "\\varnothing"
+    ],
+    "description": "⌀"
+  },
+  "nabla": {
+    "scope": "latex",
+    "prefix": "\\nabla",
+    "body": [
+      "\\nabla"
+    ],
+    "description": "∇"
+  },
+  "ni": {
+    "scope": "latex",
+    "prefix": "\\ni",
+    "body": [
+      "\\ni"
+    ],
+    "description": "∋"
+  },
+  "blacksquare": {
+    "scope": "latex",
+    "prefix": "\\blacksquare",
+    "body": [
+      "\\blacksquare"
+    ],
+    "description": "∎"
+  },
+  "prod": {
+    "scope": "latex",
+    "prefix": "\\prod",
+    "body": [
+      "\\prod"
+    ],
+    "description": "∏"
+  },
+  "_": {
+    "scope": "latex",
+    "prefix": "\\_",
+    "body": [
+      "\\_"
+    ],
+    "description": "_"
+  },
+  "infty": {
+    "scope": "latex",
+    "prefix": "\\infty",
+    "body": [
+      "\\infty"
+    ],
+    "description": "∞"
+  },
+  "textunderscore": {
+    "scope": "latex",
+    "prefix": "\\textunderscore",
+    "body": [
+      "\\textunderscore"
+    ],
+    "description": "_"
+  },
+  "dotsb": {
+    "scope": "latex",
+    "prefix": "\\dotsb",
+    "body": [
+      "\\dotsb"
+    ],
+    "description": "⋯"
+  },
+  "infin": {
+    "scope": "latex",
+    "prefix": "\\infin",
+    "body": [
+      "\\infin"
+    ],
+    "description": "∞"
+  },
+  "dotsc": {
+    "scope": "latex",
+    "prefix": "\\dotsc",
+    "body": [
+      "\\dotsc"
+    ],
+    "description": "…"
+  },
+  "checkmark": {
+    "scope": "latex",
+    "prefix": "\\checkmark",
+    "body": [
+      "\\checkmark"
+    ],
+    "description": "✓"
+  },
+  "textendash": {
+    "scope": "latex",
+    "prefix": "\\textendash",
+    "body": [
+      "\\textendash"
+    ],
+    "description": "–"
+  },
+  "dotsi": {
+    "scope": "latex",
+    "prefix": "\\dotsi",
+    "body": [
+      "\\dotsi"
+    ],
+    "description": "⋯"
+  },
+  "dag": {
+    "scope": "latex",
+    "prefix": "\\dag",
+    "body": [
+      "\\dag"
+    ],
+    "description": "†"
+  },
+  "dotsm": {
+    "scope": "latex",
+    "prefix": "\\dotsm",
+    "body": [
+      "\\dotsm"
+    ],
+    "description": "⋯"
+  },
+  "dagger": {
+    "scope": "latex",
+    "prefix": "\\dagger",
+    "body": [
+      "\\dagger"
+    ],
+    "description": "†"
+  },
+  "textemdash": {
+    "scope": "latex",
+    "prefix": "\\textemdash",
+    "body": [
+      "\\textemdash"
+    ],
+    "description": "—"
+  },
+  "dotso": {
+    "scope": "latex",
+    "prefix": "\\dotso",
+    "body": [
+      "\\dotso"
+    ],
+    "description": "…"
+  },
+  "textdagger": {
+    "scope": "latex",
+    "prefix": "\\textdagger",
+    "body": [
+      "\\textdagger"
+    ],
+    "description": "†"
+  },
+  "textasciitilde": {
+    "scope": "latex",
+    "prefix": "\\textasciitilde",
+    "body": [
+      "\\textasciitilde"
+    ],
+    "description": "~"
+  },
+  "sdot": {
+    "scope": "latex",
+    "prefix": "\\sdot",
+    "body": [
+      "\\sdot"
+    ],
+    "description": "⋅"
+  },
+  "ddag": {
+    "scope": "latex",
+    "prefix": "\\ddag",
+    "body": [
+      "\\ddag"
+    ],
+    "description": "‡"
+  },
+  "textasciicircum": {
+    "scope": "latex",
+    "prefix": "\\textasciicircum",
+    "body": [
+      "\\textasciicircum"
+    ],
+    "description": "^"
+  },
+  "mathellipsis": {
+    "scope": "latex",
+    "prefix": "\\mathellipsis",
+    "body": [
+      "\\mathellipsis"
+    ],
+    "description": "…"
+  },
+  "ddagger": {
+    "scope": "latex",
+    "prefix": "\\ddagger",
+    "body": [
+      "\\ddagger"
+    ],
+    "description": "‡"
+  },
+  "`": {
+    "scope": "latex",
+    "prefix": "\\`",
+    "body": [
+      "\\`{$0}"
+    ],
+    "description": "̀a"
+  },
+  "textellipsis": {
+    "scope": "latex",
+    "prefix": "\\textellipsis",
+    "body": [
+      "\\textellipsis"
+    ],
+    "description": "…"
+  },
+  "textdaggerdbl": {
+    "scope": "latex",
+    "prefix": "\\textdaggerdbl",
+    "body": [
+      "\\textdaggerdbl"
+    ],
+    "description": "‡"
+  },
+  "textquoteleft": {
+    "scope": "latex",
+    "prefix": "\\textquoteleft",
+    "body": [
+      "\\textquoteleft"
+    ],
+    "description": "‘"
+  },
+  "Dagger": {
+    "scope": "latex",
+    "prefix": "\\Dagger",
+    "body": [
+      "\\Dagger"
+    ],
+    "description": "‡"
+  },
+  "lq": {
+    "scope": "latex",
+    "prefix": "\\lq",
+    "body": [
+      "\\lq"
+    ],
+    "description": "‘"
+  },
+  "square": {
+    "scope": "latex",
+    "prefix": "\\square",
+    "body": [
+      "\\square"
+    ],
+    "description": "□"
+  },
+  "angle": {
+    "scope": "latex",
+    "prefix": "\\angle",
+    "body": [
+      "\\angle"
+    ],
+    "description": "∠"
+  },
+  "textquoteright": {
+    "scope": "latex",
+    "prefix": "\\textquoteright",
+    "body": [
+      "\\textquoteright"
+    ],
+    "description": "’"
+  },
+  "measuredangle": {
+    "scope": "latex",
+    "prefix": "\\measuredangle",
+    "body": [
+      "\\measuredangle"
+    ],
+    "description": "∡"
+  },
+  "rq": {
+    "scope": "latex",
+    "prefix": "\\rq",
+    "body": [
+      "\\rq"
+    ],
+    "description": "′"
+  },
+  "triangle": {
+    "scope": "latex",
+    "prefix": "\\triangle",
+    "body": [
+      "\\triangle"
+    ],
+    "description": "△"
+  },
+  "sphericalangle": {
+    "scope": "latex",
+    "prefix": "\\sphericalangle",
+    "body": [
+      "\\sphericalangle"
+    ],
+    "description": "∢"
+  },
+  "textquotedblleft": {
+    "scope": "latex",
+    "prefix": "\\textquotedblleft",
+    "body": [
+      "\\textquotedblleft"
+    ],
+    "description": "“"
+  },
+  "triangledown": {
+    "scope": "latex",
+    "prefix": "\\triangledown",
+    "body": [
+      "\\triangledown"
+    ],
+    "description": "▽"
+  },
+  "top": {
+    "scope": "latex",
+    "prefix": "\\top",
+    "body": [
+      "\\top"
+    ],
+    "description": "⊤"
+  },
+  "\"": {
+    "scope": "latex",
+    "prefix": "\\\"",
+    "body": [
+      "\\\"{$0}"
+    ],
+    "description": "̈a"
+  },
+  "triangleleft": {
+    "scope": "latex",
+    "prefix": "\\triangleleft",
+    "body": [
+      "\\triangleleft"
+    ],
+    "description": "◃"
+  },
+  "bot": {
+    "scope": "latex",
+    "prefix": "\\bot",
+    "body": [
+      "\\bot"
+    ],
+    "description": "⊥"
+  },
+  "textquotedblright": {
+    "scope": "latex",
+    "prefix": "\\textquotedblright",
+    "body": [
+      "\\textquotedblright"
+    ],
+    "description": "”"
+  },
+  "triangleright": {
+    "scope": "latex",
+    "prefix": "\\triangleright",
+    "body": [
+      "\\triangleright"
+    ],
+    "description": "▹"
+  },
+  "$": {
+    "scope": "latex",
+    "prefix": "\\$",
+    "body": [
+      "\\$"
+    ],
+    "description": "$"
+  },
+  "colon": {
+    "scope": "latex",
+    "prefix": "\\colon",
+    "body": [
+      "\\colon"
+    ],
+    "description": ":"
+  },
+  "bigtriangledown": {
+    "scope": "latex",
+    "prefix": "\\bigtriangledown",
+    "body": [
+      "\\bigtriangledown"
+    ],
+    "description": "▽"
+  },
+  "textdollar": {
+    "scope": "latex",
+    "prefix": "\\textdollar",
+    "body": [
+      "\\textdollar"
+    ],
+    "description": "$"
+  },
+  "backprime": {
+    "scope": "latex",
+    "prefix": "\\backprime",
+    "body": [
+      "\\backprime"
+    ],
+    "description": "‵"
+  },
+  "bigtriangleup": {
+    "scope": "latex",
+    "prefix": "\\bigtriangleup",
+    "body": [
+      "\\bigtriangleup"
+    ],
+    "description": "△"
+  },
+  "pounds": {
+    "scope": "latex",
+    "prefix": "\\pounds",
+    "body": [
+      "\\pounds"
+    ],
+    "description": "£"
+  },
+  "blacktriangle": {
+    "scope": "latex",
+    "prefix": "\\blacktriangle",
+    "body": [
+      "\\blacktriangle"
+    ],
+    "description": "▲"
+  },
+  "mathsterling": {
+    "scope": "latex",
+    "prefix": "\\mathsterling",
+    "body": [
+      "\\mathsterling"
+    ],
+    "description": "£"
+  },
+  "textless": {
+    "scope": "latex",
+    "prefix": "\\textless",
+    "body": [
+      "\\textless"
+    ],
+    "description": "<"
+  },
+  "blacktriangledown": {
+    "scope": "latex",
+    "prefix": "\\blacktriangledown",
+    "body": [
+      "\\blacktriangledown"
+    ],
+    "description": "▼"
+  },
+  "textsterling": {
+    "scope": "latex",
+    "prefix": "\\textsterling",
+    "body": [
+      "\\textsterling"
+    ],
+    "description": "£"
+  },
+  "textgreater": {
+    "scope": "latex",
+    "prefix": "\\textgreater",
+    "body": [
+      "\\textgreater"
+    ],
+    "description": ">"
+  },
+  "blacktriangleleft": {
+    "scope": "latex",
+    "prefix": "\\blacktriangleleft",
+    "body": [
+      "\\blacktriangleleft"
+    ],
+    "description": "◀"
+  },
+  "yen": {
+    "scope": "latex",
+    "prefix": "\\yen",
+    "body": [
+      "\\yen"
+    ],
+    "description": "¥"
+  },
+  "textbar": {
+    "scope": "latex",
+    "prefix": "\\textbar",
+    "body": [
+      "\\textbar"
+    ],
+    "description": "|"
+  },
+  "blacktriangleright": {
+    "scope": "latex",
+    "prefix": "\\blacktriangleright",
+    "body": [
+      "\\blacktriangleright"
+    ],
+    "description": "▶"
+  },
+  "surd": {
+    "scope": "latex",
+    "prefix": "\\surd",
+    "body": [
+      "\\surd"
+    ],
+    "description": "√"
+  },
+  "textbardbl": {
+    "scope": "latex",
+    "prefix": "\\textbardbl",
+    "body": [
+      "\\textbardbl"
+    ],
+    "description": "∥"
+  },
+  "diamond": {
+    "scope": "latex",
+    "prefix": "\\diamond",
+    "body": [
+      "\\diamond"
+    ],
+    "description": "⋄"
+  },
+  "textbraceleft": {
+    "scope": "latex",
+    "prefix": "\\textbraceleft",
+    "body": [
+      "\\textbraceleft"
+    ],
+    "description": "{"
+  },
+  "Diamond": {
+    "scope": "latex",
+    "prefix": "\\Diamond",
+    "body": [
+      "\\Diamond"
+    ],
+    "description": "◊"
+  },
+  "textdegree": {
+    "scope": "latex",
+    "prefix": "\\textdegree",
+    "body": [
+      "\\textdegree"
+    ],
+    "description": "°"
+  },
+  "textbraceright": {
+    "scope": "latex",
+    "prefix": "\\textbraceright",
+    "body": [
+      "\\textbraceright"
+    ],
+    "description": "}"
+  },
+  "lozenge": {
+    "scope": "latex",
+    "prefix": "\\lozenge",
+    "body": [
+      "\\lozenge"
+    ],
+    "description": "◊"
+  },
+  "mho": {
+    "scope": "latex",
+    "prefix": "\\mho",
+    "body": [
+      "\\mho"
+    ],
+    "description": "℧"
+  },
+  "textbackslash": {
+    "scope": "latex",
+    "prefix": "\\textbackslash",
+    "body": [
+      "\\textbackslash"
+    ],
+    "description": "\\"
+  },
+  "blacklozenge": {
+    "scope": "latex",
+    "prefix": "\\blacklozenge",
+    "body": [
+      "\\blacklozenge"
+    ],
+    "description": "⧫"
+  },
+  "diagdown": {
+    "scope": "latex",
+    "prefix": "\\diagdown",
+    "body": [
+      "\\diagdown"
+    ],
+    "description": "╲"
+  },
+  "P": {
+    "scope": "latex",
+    "prefix": "\\P",
+    "body": [
+      "\\P"
+    ],
+    "description": "¶"
+  },
+  "star": {
+    "scope": "latex",
+    "prefix": "\\star",
+    "body": [
+      "\\star"
+    ],
+    "description": "⋆"
+  },
+  "diagup": {
+    "scope": "latex",
+    "prefix": "\\diagup",
+    "body": [
+      "\\diagup"
+    ],
+    "description": "╱"
+  },
+  "S": {
+    "scope": "latex",
+    "prefix": "\\S",
+    "body": [
+      "\\mathbb{S}"
+    ],
+    "description": "𝕊"
+  },
+  "bigstar": {
+    "scope": "latex",
+    "prefix": "\\bigstar",
+    "body": [
+      "\\bigstar"
+    ],
+    "description": "★"
+  },
+  "flat": {
+    "scope": "latex",
+    "prefix": "\\flat",
+    "body": [
+      "\\flat"
+    ],
+    "description": "♭"
+  },
+  "sect": {
+    "scope": "latex",
+    "prefix": "\\sect",
+    "body": [
+      "\\sect"
+    ],
+    "description": "§"
+  },
+  "clubsuit": {
+    "scope": "latex",
+    "prefix": "\\clubsuit",
+    "body": [
+      "\\clubsuit"
+    ],
+    "description": "♣"
+  },
+  "natural": {
+    "scope": "latex",
+    "prefix": "\\natural",
+    "body": [
+      "\\natural"
+    ],
+    "description": "♮"
+  },
+  "copyright": {
+    "scope": "latex",
+    "prefix": "\\copyright",
+    "body": [
+      "\\copyright"
+    ],
+    "description": "©"
+  },
+  "clubs": {
+    "scope": "latex",
+    "prefix": "\\clubs",
+    "body": [
+      "\\clubs"
+    ],
+    "description": "♣"
+  },
+  "sharp": {
+    "scope": "latex",
+    "prefix": "\\sharp",
+    "body": [
+      "\\sharp"
+    ],
+    "description": "♯"
+  },
+  "circledR": {
+    "scope": "latex",
+    "prefix": "\\circledR",
+    "body": [
+      "\\circledR"
+    ],
+    "description": "®"
+  },
+  "diamondsuit": {
+    "scope": "latex",
+    "prefix": "\\diamondsuit",
+    "body": [
+      "\\diamondsuit"
+    ],
+    "description": "♢"
+  },
+  "heartsuit": {
+    "scope": "latex",
+    "prefix": "\\heartsuit",
+    "body": [
+      "\\heartsuit"
+    ],
+    "description": "♡"
+  },
+  "textregistered": {
+    "scope": "latex",
+    "prefix": "\\textregistered",
+    "body": [
+      "\\textregistered"
+    ],
+    "description": "®"
+  },
+  "diamonds": {
+    "scope": "latex",
+    "prefix": "\\diamonds",
+    "body": [
+      "\\diamonds"
+    ],
+    "description": "♢"
+  },
+  "hearts": {
+    "scope": "latex",
+    "prefix": "\\hearts",
+    "body": [
+      "\\hearts"
+    ],
+    "description": "♡"
+  },
+  "circledS": {
+    "scope": "latex",
+    "prefix": "\\circledS",
+    "body": [
+      "\\circledS"
+    ],
+    "description": "Ⓢ"
+  },
+  "spadesuit": {
+    "scope": "latex",
+    "prefix": "\\spadesuit",
+    "body": [
+      "\\spadesuit"
+    ],
+    "description": "♠"
+  },
+  "spades": {
+    "scope": "latex",
+    "prefix": "\\spades",
+    "body": [
+      "\\spades"
+    ],
+    "description": "♠"
+  },
+  "maltese": {
+    "scope": "latex",
+    "prefix": "\\maltese",
+    "body": [
+      "\\maltese"
+    ],
+    "description": "✠"
+  },
+  "minuso": {
+    "scope": "latex",
+    "prefix": "\\minuso",
+    "body": [
+      "\\minuso"
+    ],
+    "description": "∘−"
+  },
+  "coprod": {
+    "scope": "latex",
+    "prefix": "\\coprod",
+    "body": [
+      "\\coprod"
+    ],
+    "description": "∐"
+  },
+  "sum": {
+    "scope": "latex",
+    "prefix": "\\sum",
+    "body": [
+      "\\sum"
+    ],
+    "description": "∑"
+  },
+  "plus": {
+    "scope": "latex",
+    "prefix": "\\plus",
+    "body": [
+      "\\plus"
+    ],
+    "description": "+"
+  },
+  "minus": {
+    "scope": "latex",
+    "prefix": "\\minus",
+    "body": [
+      "\\minus"
+    ],
+    "description": "−"
+  },
+  "mp": {
+    "scope": "latex",
+    "prefix": "\\mp",
+    "body": [
+      "\\mp"
+    ],
+    "description": "∓"
+  },
+  "dotplus": {
+    "scope": "latex",
+    "prefix": "\\dotplus",
+    "body": [
+      "\\dotplus"
+    ],
+    "description": "∔"
+  },
+  "backslash": {
+    "scope": "latex",
+    "prefix": "\\backslash",
+    "body": [
+      "\\backslash"
+    ],
+    "description": "∖"
+  },
+  "ast": {
+    "scope": "latex",
+    "prefix": "\\ast",
+    "body": [
+      "\\ast"
+    ],
+    "description": "∗"
+  },
+  "circ": {
+    "scope": "latex",
+    "prefix": "\\circ",
+    "body": [
+      "\\circ"
+    ],
+    "description": "∘"
+  },
+  "bullet": {
+    "scope": "latex",
+    "prefix": "\\bullet",
+    "body": [
+      "\\bullet"
+    ],
+    "description": "∙"
+  },
+  "mid": {
+    "scope": "latex",
+    "prefix": "\\mid",
+    "body": [
+      "\\mid"
+    ],
+    "description": "∣"
+  },
+  "nmid": {
+    "scope": "latex",
+    "prefix": "\\nmid",
+    "body": [
+      "\\nmid"
+    ],
+    "description": "∤"
+  },
+  "parallel": {
+    "scope": "latex",
+    "prefix": "\\parallel",
+    "body": [
+      "\\parallel"
+    ],
+    "description": "∥"
+  },
+  "nparallel": {
+    "scope": "latex",
+    "prefix": "\\nparallel",
+    "body": [
+      "\\nparallel"
+    ],
+    "description": "∦"
+  },
+  "land": {
+    "scope": "latex",
+    "prefix": "\\land",
+    "body": [
+      "\\land"
+    ],
+    "description": "∧"
+  },
+  "lor": {
+    "scope": "latex",
+    "prefix": "\\lor",
+    "body": [
+      "\\lor"
+    ],
+    "description": "∨"
+  },
+  "cap": {
+    "scope": "latex",
+    "prefix": "\\cap",
+    "body": [
+      "\\cap"
+    ],
+    "description": "∩"
+  },
+  "cup": {
+    "scope": "latex",
+    "prefix": "\\cup",
+    "body": [
+      "\\cup"
+    ],
+    "description": "∪"
+  },
+  "int": {
+    "scope": "latex",
+    "prefix": "\\int",
+    "body": [
+      "\\int"
+    ],
+    "description": "∫"
+  },
+  "iint": {
+    "scope": "latex",
+    "prefix": "\\iint",
+    "body": [
+      "\\iint"
+    ],
+    "description": "∬"
+  },
+  "iiint": {
+    "scope": "latex",
+    "prefix": "\\iiint",
+    "body": [
+      "\\iiint"
+    ],
+    "description": "∭"
+  },
+  "iiiint": {
+    "scope": "latex",
+    "prefix": "\\iiiint",
+    "body": [
+      "\\iiiint"
+    ],
+    "description": "⨌"
+  },
+  "oint": {
+    "scope": "latex",
+    "prefix": "\\oint",
+    "body": [
+      "\\oint"
+    ],
+    "description": "∮"
+  },
+  "oiint": {
+    "scope": "latex",
+    "prefix": "\\oiint",
+    "body": [
+      "\\oiint"
+    ],
+    "description": "∯"
+  },
+  "oiiint": {
+    "scope": "latex",
+    "prefix": "\\oiiint",
+    "body": [
+      "\\oiiint"
+    ],
+    "description": "∰"
+  },
+  "intclockwise": {
+    "scope": "latex",
+    "prefix": "\\intclockwise",
+    "body": [
+      "\\intclockwise"
+    ],
+    "description": "∱"
+  },
+  "lcirclerightint": {
+    "scope": "latex",
+    "prefix": "\\lcirclerightint",
+    "body": [
+      "\\lcirclerightint"
+    ],
+    "description": "∲"
+  },
+  "rcirclerightint": {
+    "scope": "latex",
+    "prefix": "\\rcirclerightint",
+    "body": [
+      "\\rcirclerightint"
+    ],
+    "description": "∳"
+  },
+  "nsimeq": {
+    "scope": "latex",
+    "prefix": "\\nsimeq",
+    "body": [
+      "\\nsimeq"
+    ],
+    "description": "≄"
+  },
+  "congneq": {
+    "scope": "latex",
+    "prefix": "\\congneq",
+    "body": [
+      "\\congneq"
+    ],
+    "description": "≆"
+  },
+  "eq": {
+    "scope": "latex",
+    "prefix": "\\eq",
+    "body": [
+      "\\eq"
+    ],
+    "description": "="
+  },
+  "ne": {
+    "scope": "latex",
+    "prefix": "\\ne",
+    "body": [
+      "\\ne"
+    ],
+    "description": "≠"
+  },
+  "neq": {
+    "scope": "latex",
+    "prefix": "\\neq",
+    "body": [
+      "\\neq"
+    ],
+    "description": "≠"
+  },
+  "triangleq": {
+    "scope": "latex",
+    "prefix": "\\triangleq",
+    "body": [
+      "\\triangleq"
+    ],
+    "description": "≜"
+  },
+  "doteqdot": {
+    "scope": "latex",
+    "prefix": "\\doteqdot",
+    "body": [
+      "\\doteqdot"
+    ],
+    "description": "≑"
+  },
+  "lessapprox": {
+    "scope": "latex",
+    "prefix": "\\lessapprox",
+    "body": [
+      "\\lessapprox"
+    ],
+    "description": "⪅"
+  },
+  "smile": {
+    "scope": "latex",
+    "prefix": "\\smile",
+    "body": [
+      "\\smile"
+    ],
+    "description": "⌣"
+  },
+  "eqcirc": {
+    "scope": "latex",
+    "prefix": "\\eqcirc",
+    "body": [
+      "\\eqcirc"
+    ],
+    "description": "≖"
+  },
+  "lesseqgtr": {
+    "scope": "latex",
+    "prefix": "\\lesseqgtr",
+    "body": [
+      "\\lesseqgtr"
+    ],
+    "description": "⋚"
+  },
+  "sqsubset": {
+    "scope": "latex",
+    "prefix": "\\sqsubset",
+    "body": [
+      "\\sqsubset"
+    ],
+    "description": "⊏"
+  },
+  "eqcolon": {
+    "scope": "latex",
+    "prefix": "\\eqcolon",
+    "body": [
+      "\\eqcolon"
+    ],
+    "description": "∹"
+  },
+  "minuscolon": {
+    "scope": "latex",
+    "prefix": "\\minuscolon",
+    "body": [
+      "\\minuscolon"
+    ],
+    "description": "∹"
+  },
+  "lesseqqgtr": {
+    "scope": "latex",
+    "prefix": "\\lesseqqgtr",
+    "body": [
+      "\\lesseqqgtr"
+    ],
+    "description": "⪋"
+  },
+  "sqsubseteq": {
+    "scope": "latex",
+    "prefix": "\\sqsubseteq",
+    "body": [
+      "\\sqsubseteq"
+    ],
+    "description": "⊑"
+  },
+  "Eqcolon": {
+    "scope": "latex",
+    "prefix": "\\Eqcolon",
+    "body": [
+      "\\Eqcolon"
+    ],
+    "description": "−∷"
+  },
+  "minuscoloncolon": {
+    "scope": "latex",
+    "prefix": "\\minuscoloncolon",
+    "body": [
+      "\\minuscoloncolon"
+    ],
+    "description": "-∷"
+  },
+  "lessgtr": {
+    "scope": "latex",
+    "prefix": "\\lessgtr",
+    "body": [
+      "\\lessgtr"
+    ],
+    "description": "≶"
+  },
+  "sqsupset": {
+    "scope": "latex",
+    "prefix": "\\sqsupset",
+    "body": [
+      "\\sqsupset"
+    ],
+    "description": "⊐"
+  },
+  "approx": {
+    "scope": "latex",
+    "prefix": "\\approx",
+    "body": [
+      "\\approx"
+    ],
+    "description": "≈"
+  },
+  "eqqcolon": {
+    "scope": "latex",
+    "prefix": "\\eqqcolon",
+    "body": [
+      "\\eqqcolon"
+    ],
+    "description": "≕"
+  },
+  "equalscolon": {
+    "scope": "latex",
+    "prefix": "\\equalscolon",
+    "body": [
+      "\\equalscolon"
+    ],
+    "description": "≕"
+  },
+  "lesssim": {
+    "scope": "latex",
+    "prefix": "\\lesssim",
+    "body": [
+      "\\lesssim"
+    ],
+    "description": "≲"
+  },
+  "sqsupseteq": {
+    "scope": "latex",
+    "prefix": "\\sqsupseteq",
+    "body": [
+      "\\sqsupseteq"
+    ],
+    "description": "⊒"
+  },
+  "approxcolon": {
+    "scope": "latex",
+    "prefix": "\\approxcolon",
+    "body": [
+      "\\approxcolon"
+    ],
+    "description": "≈:"
+  },
+  "Eqqcolon": {
+    "scope": "latex",
+    "prefix": "\\Eqqcolon",
+    "body": [
+      "\\Eqqcolon"
+    ],
+    "description": "=∷"
+  },
+  "equalscoloncolon": {
+    "scope": "latex",
+    "prefix": "\\equalscoloncolon",
+    "body": [
+      "\\equalscoloncolon"
+    ],
+    "description": "=∷"
+  },
+  "ll": {
+    "scope": "latex",
+    "prefix": "\\ll",
+    "body": [
+      "\\ll"
+    ],
+    "description": "≪"
+  },
+  "Subset": {
+    "scope": "latex",
+    "prefix": "\\Subset",
+    "body": [
+      "\\Subset"
+    ],
+    "description": "⋐"
+  },
+  "approxcoloncolon": {
+    "scope": "latex",
+    "prefix": "\\approxcoloncolon",
+    "body": [
+      "\\approxcoloncolon"
+    ],
+    "description": "≈∷"
+  },
+  "eqsim": {
+    "scope": "latex",
+    "prefix": "\\eqsim",
+    "body": [
+      "\\eqsim"
+    ],
+    "description": "≂"
+  },
+  "lll": {
+    "scope": "latex",
+    "prefix": "\\lll",
+    "body": [
+      "\\lll"
+    ],
+    "description": "⋘"
+  },
+  "subset": {
+    "scope": "latex",
+    "prefix": "\\subset",
+    "body": [
+      "\\subset"
+    ],
+    "description": "⊂"
+  },
+  "sub": {
+    "scope": "latex",
+    "prefix": "\\sub",
+    "body": [
+      "\\sub"
+    ],
+    "description": "⊂"
+  },
+  "approxeq": {
+    "scope": "latex",
+    "prefix": "\\approxeq",
+    "body": [
+      "\\approxeq"
+    ],
+    "description": "≊"
+  },
+  "eqslantgtr": {
+    "scope": "latex",
+    "prefix": "\\eqslantgtr",
+    "body": [
+      "\\eqslantgtr"
+    ],
+    "description": "⪖"
+  },
+  "llless": {
+    "scope": "latex",
+    "prefix": "\\llless",
+    "body": [
+      "\\llless"
+    ],
+    "description": "⋘"
+  },
+  "subseteq": {
+    "scope": "latex",
+    "prefix": "\\subseteq",
+    "body": [
+      "\\subseteq"
+    ],
+    "description": "⊆"
+  },
+  "sube": {
+    "scope": "latex",
+    "prefix": "\\sube",
+    "body": [
+      "\\sube"
+    ],
+    "description": "⊆"
+  },
+  "asymp": {
+    "scope": "latex",
+    "prefix": "\\asymp",
+    "body": [
+      "\\asymp"
+    ],
+    "description": "≍"
+  },
+  "eqslantless": {
+    "scope": "latex",
+    "prefix": "\\eqslantless",
+    "body": [
+      "\\eqslantless"
+    ],
+    "description": "⪕"
+  },
+  "lt": {
+    "scope": "latex",
+    "prefix": "\\lt",
+    "body": [
+      "\\lt"
+    ],
+    "description": "<"
+  },
+  "subseteqq": {
+    "scope": "latex",
+    "prefix": "\\subseteqq",
+    "body": [
+      "\\subseteqq"
+    ],
+    "description": "⫅"
+  },
+  "backepsilon": {
+    "scope": "latex",
+    "prefix": "\\backepsilon",
+    "body": [
+      "\\backepsilon"
+    ],
+    "description": "∍"
+  },
+  "equiv": {
+    "scope": "latex",
+    "prefix": "\\equiv",
+    "body": [
+      "\\equiv"
+    ],
+    "description": "≡"
+  },
+  "succ": {
+    "scope": "latex",
+    "prefix": "\\succ",
+    "body": [
+      "\\succ"
+    ],
+    "description": "≻"
+  },
+  "backsim": {
+    "scope": "latex",
+    "prefix": "\\backsim",
+    "body": [
+      "\\backsim"
+    ],
+    "description": "∽"
+  },
+  "fallingdotseq": {
+    "scope": "latex",
+    "prefix": "\\fallingdotseq",
+    "body": [
+      "\\fallingdotseq"
+    ],
+    "description": "≒"
+  },
+  "models": {
+    "scope": "latex",
+    "prefix": "\\models",
+    "body": [
+      "\\models"
+    ],
+    "description": "⊨"
+  },
+  "succapprox": {
+    "scope": "latex",
+    "prefix": "\\succapprox",
+    "body": [
+      "\\succapprox"
+    ],
+    "description": "⪸"
+  },
+  "backsimeq": {
+    "scope": "latex",
+    "prefix": "\\backsimeq",
+    "body": [
+      "\\backsimeq"
+    ],
+    "description": "⋍"
+  },
+  "frown": {
+    "scope": "latex",
+    "prefix": "\\frown",
+    "body": [
+      "\\frown"
+    ],
+    "description": "⌢"
+  },
+  "multimap": {
+    "scope": "latex",
+    "prefix": "\\multimap",
+    "body": [
+      "\\multimap"
+    ],
+    "description": "⊸"
+  },
+  "succcurlyeq": {
+    "scope": "latex",
+    "prefix": "\\succcurlyeq",
+    "body": [
+      "\\succcurlyeq"
+    ],
+    "description": "≽"
+  },
+  "between": {
+    "scope": "latex",
+    "prefix": "\\between",
+    "body": [
+      "\\between"
+    ],
+    "description": "≬"
+  },
+  "ge": {
+    "scope": "latex",
+    "prefix": "\\ge",
+    "body": [
+      "\\ge"
+    ],
+    "description": "≥"
+  },
+  "origof": {
+    "scope": "latex",
+    "prefix": "\\origof",
+    "body": [
+      "\\origof"
+    ],
+    "description": "⊶"
+  },
+  "succeq": {
+    "scope": "latex",
+    "prefix": "\\succeq",
+    "body": [
+      "\\succeq"
+    ],
+    "description": "⪰"
+  },
+  "bowtie": {
+    "scope": "latex",
+    "prefix": "\\bowtie",
+    "body": [
+      "\\bowtie"
+    ],
+    "description": "⋈"
+  },
+  "geq": {
+    "scope": "latex",
+    "prefix": "\\geq",
+    "body": [
+      "\\geq"
+    ],
+    "description": "≥"
+  },
+  "owns": {
+    "scope": "latex",
+    "prefix": "\\owns",
+    "body": [
+      "\\owns"
+    ],
+    "description": "∋"
+  },
+  "succsim": {
+    "scope": "latex",
+    "prefix": "\\succsim",
+    "body": [
+      "\\succsim"
+    ],
+    "description": "≿"
+  },
+  "bumpeq": {
+    "scope": "latex",
+    "prefix": "\\bumpeq",
+    "body": [
+      "\\bumpeq"
+    ],
+    "description": "≏"
+  },
+  "geqq": {
+    "scope": "latex",
+    "prefix": "\\geqq",
+    "body": [
+      "\\geqq"
+    ],
+    "description": "≧"
+  },
+  "Supset": {
+    "scope": "latex",
+    "prefix": "\\Supset",
+    "body": [
+      "\\Supset"
+    ],
+    "description": "⋑"
+  },
+  "Bumpeq": {
+    "scope": "latex",
+    "prefix": "\\Bumpeq",
+    "body": [
+      "\\Bumpeq"
+    ],
+    "description": "≎"
+  },
+  "geqslant": {
+    "scope": "latex",
+    "prefix": "\\geqslant",
+    "body": [
+      "\\geqslant"
+    ],
+    "description": "⩾"
+  },
+  "perp": {
+    "scope": "latex",
+    "prefix": "\\perp",
+    "body": [
+      "\\perp"
+    ],
+    "description": "⊥"
+  },
+  "supset": {
+    "scope": "latex",
+    "prefix": "\\supset",
+    "body": [
+      "\\supset"
+    ],
+    "description": "⊃"
+  },
+  "gg": {
+    "scope": "latex",
+    "prefix": "\\gg",
+    "body": [
+      "\\gg"
+    ],
+    "description": "≫"
+  },
+  "pitchfork": {
+    "scope": "latex",
+    "prefix": "\\pitchfork",
+    "body": [
+      "\\pitchfork"
+    ],
+    "description": "⋔"
+  },
+  "supseteq": {
+    "scope": "latex",
+    "prefix": "\\supseteq",
+    "body": [
+      "\\supseteq"
+    ],
+    "description": "⊇"
+  },
+  "supe": {
+    "scope": "latex",
+    "prefix": "\\supe",
+    "body": [
+      "\\supe"
+    ],
+    "description": "⊇"
+  },
+  "colonapprox": {
+    "scope": "latex",
+    "prefix": "\\colonapprox",
+    "body": [
+      "\\colonapprox"
+    ],
+    "description": ":≈"
+  },
+  "ggg": {
+    "scope": "latex",
+    "prefix": "\\ggg",
+    "body": [
+      "\\ggg"
+    ],
+    "description": "⋙"
+  },
+  "prec": {
+    "scope": "latex",
+    "prefix": "\\prec",
+    "body": [
+      "\\prec"
+    ],
+    "description": "≺"
+  },
+  "supseteqq": {
+    "scope": "latex",
+    "prefix": "\\supseteqq",
+    "body": [
+      "\\supseteqq"
+    ],
+    "description": "⫆"
+  },
+  "Colonapprox": {
+    "scope": "latex",
+    "prefix": "\\Colonapprox",
+    "body": [
+      "\\Colonapprox"
+    ],
+    "description": "∷≈"
+  },
+  "coloncolonapprox": {
+    "scope": "latex",
+    "prefix": "\\coloncolonapprox",
+    "body": [
+      "\\coloncolonapprox"
+    ],
+    "description": "∷≈"
+  },
+  "gggtr": {
+    "scope": "latex",
+    "prefix": "\\gggtr",
+    "body": [
+      "\\gggtr"
+    ],
+    "description": "⋙"
+  },
+  "precapprox": {
+    "scope": "latex",
+    "prefix": "\\precapprox",
+    "body": [
+      "\\precapprox"
+    ],
+    "description": "⪷"
+  },
+  "thickapprox": {
+    "scope": "latex",
+    "prefix": "\\thickapprox",
+    "body": [
+      "\\thickapprox"
+    ],
+    "description": "≈"
+  },
+  "coloneq": {
+    "scope": "latex",
+    "prefix": "\\coloneq",
+    "body": [
+      "\\coloneq"
+    ],
+    "description": ":−"
+  },
+  "colonminus": {
+    "scope": "latex",
+    "prefix": "\\colonminus",
+    "body": [
+      "\\colonminus"
+    ],
+    "description": ":-"
+  },
+  "gt": {
+    "scope": "latex",
+    "prefix": "\\gt",
+    "body": [
+      "\\gt"
+    ],
+    "description": ">"
+  },
+  "preccurlyeq": {
+    "scope": "latex",
+    "prefix": "\\preccurlyeq",
+    "body": [
+      "\\preccurlyeq"
+    ],
+    "description": "≼"
+  },
+  "thicksim": {
+    "scope": "latex",
+    "prefix": "\\thicksim",
+    "body": [
+      "\\thicksim"
+    ],
+    "description": "∼"
+  },
+  "Coloneq": {
+    "scope": "latex",
+    "prefix": "\\Coloneq",
+    "body": [
+      "\\Coloneq"
+    ],
+    "description": "∷−"
+  },
+  "coloncolonminus": {
+    "scope": "latex",
+    "prefix": "\\coloncolonminus",
+    "body": [
+      "\\coloncolonminus"
+    ],
+    "description": "∷−"
+  },
+  "gtrapprox": {
+    "scope": "latex",
+    "prefix": "\\gtrapprox",
+    "body": [
+      "\\gtrapprox"
+    ],
+    "description": "⪆"
+  },
+  "preceq": {
+    "scope": "latex",
+    "prefix": "\\preceq",
+    "body": [
+      "\\preceq"
+    ],
+    "description": "⪯"
+  },
+  "trianglelefteq": {
+    "scope": "latex",
+    "prefix": "\\trianglelefteq",
+    "body": [
+      "\\trianglelefteq"
+    ],
+    "description": "⊴"
+  },
+  "coloneqq": {
+    "scope": "latex",
+    "prefix": "\\coloneqq",
+    "body": [
+      "\\coloneqq"
+    ],
+    "description": "≔"
+  },
+  "colonequals": {
+    "scope": "latex",
+    "prefix": "\\colonequals",
+    "body": [
+      "\\colonequals"
+    ],
+    "description": "≔"
+  },
+  "gtreqless": {
+    "scope": "latex",
+    "prefix": "\\gtreqless",
+    "body": [
+      "\\gtreqless"
+    ],
+    "description": "⋛"
+  },
+  "precsim": {
+    "scope": "latex",
+    "prefix": "\\precsim",
+    "body": [
+      "\\precsim"
+    ],
+    "description": "≾"
+  },
+  "Coloneqq": {
+    "scope": "latex",
+    "prefix": "\\Coloneqq",
+    "body": [
+      "\\Coloneqq"
+    ],
+    "description": "∷="
+  },
+  "coloncolonequals": {
+    "scope": "latex",
+    "prefix": "\\coloncolonequals",
+    "body": [
+      "\\coloncolonequals"
+    ],
+    "description": "∷="
+  },
+  "gtreqqless": {
+    "scope": "latex",
+    "prefix": "\\gtreqqless",
+    "body": [
+      "\\gtreqqless"
+    ],
+    "description": "⪌"
+  },
+  "propto": {
+    "scope": "latex",
+    "prefix": "\\propto",
+    "body": [
+      "\\propto"
+    ],
+    "description": "∝"
+  },
+  "trianglerighteq": {
+    "scope": "latex",
+    "prefix": "\\trianglerighteq",
+    "body": [
+      "\\trianglerighteq"
+    ],
+    "description": "⊵"
+  },
+  "colonsim": {
+    "scope": "latex",
+    "prefix": "\\colonsim",
+    "body": [
+      "\\colonsim"
+    ],
+    "description": ":∼"
+  },
+  "gtrless": {
+    "scope": "latex",
+    "prefix": "\\gtrless",
+    "body": [
+      "\\gtrless"
+    ],
+    "description": "≷"
+  },
+  "risingdotseq": {
+    "scope": "latex",
+    "prefix": "\\risingdotseq",
+    "body": [
+      "\\risingdotseq"
+    ],
+    "description": "≓"
+  },
+  "varpropto": {
+    "scope": "latex",
+    "prefix": "\\varpropto",
+    "body": [
+      "\\varpropto"
+    ],
+    "description": "∝"
+  },
+  "Colonsim": {
+    "scope": "latex",
+    "prefix": "\\Colonsim",
+    "body": [
+      "\\Colonsim"
+    ],
+    "description": "∷∼"
+  },
+  "coloncolonsim": {
+    "scope": "latex",
+    "prefix": "\\coloncolonsim",
+    "body": [
+      "\\coloncolonsim"
+    ],
+    "description": "∷∼"
+  },
+  "gtrsim": {
+    "scope": "latex",
+    "prefix": "\\gtrsim",
+    "body": [
+      "\\gtrsim"
+    ],
+    "description": "≳"
+  },
+  "shortmid": {
+    "scope": "latex",
+    "prefix": "\\shortmid",
+    "body": [
+      "\\shortmid"
+    ],
+    "description": "∣"
+  },
+  "vartriangle": {
+    "scope": "latex",
+    "prefix": "\\vartriangle",
+    "body": [
+      "\\vartriangle"
+    ],
+    "description": "△"
+  },
+  "cong": {
+    "scope": "latex",
+    "prefix": "\\cong",
+    "body": [
+      "\\cong"
+    ],
+    "description": "≅"
+  },
+  "imageof": {
+    "scope": "latex",
+    "prefix": "\\imageof",
+    "body": [
+      "\\imageof"
+    ],
+    "description": "⊷"
+  },
+  "shortparallel": {
+    "scope": "latex",
+    "prefix": "\\shortparallel",
+    "body": [
+      "\\shortparallel"
+    ],
+    "description": "∥"
+  },
+  "vartriangleleft": {
+    "scope": "latex",
+    "prefix": "\\vartriangleleft",
+    "body": [
+      "\\vartriangleleft"
+    ],
+    "description": "⊲"
+  },
+  "curlyeqprec": {
+    "scope": "latex",
+    "prefix": "\\curlyeqprec",
+    "body": [
+      "\\curlyeqprec"
+    ],
+    "description": "⋞"
+  },
+  "in": {
+    "scope": "latex",
+    "prefix": "\\in",
+    "body": [
+      "\\in"
+    ],
+    "description": "∈"
+  },
+  "isin": {
+    "scope": "latex",
+    "prefix": "\\isin",
+    "body": [
+      "\\isin"
+    ],
+    "description": "∈"
+  },
+  "sim": {
+    "scope": "latex",
+    "prefix": "\\sim",
+    "body": [
+      "\\sim"
+    ],
+    "description": "∼"
+  },
+  "vartriangleright": {
+    "scope": "latex",
+    "prefix": "\\vartriangleright",
+    "body": [
+      "\\vartriangleright"
+    ],
+    "description": "⊳"
+  },
+  "curlyeqsucc": {
+    "scope": "latex",
+    "prefix": "\\curlyeqsucc",
+    "body": [
+      "\\curlyeqsucc"
+    ],
+    "description": "⋟"
+  },
+  "Join": {
+    "scope": "latex",
+    "prefix": "\\Join",
+    "body": [
+      "\\Join"
+    ],
+    "description": "⋈"
+  },
+  "simcolon": {
+    "scope": "latex",
+    "prefix": "\\simcolon",
+    "body": [
+      "\\simcolon"
+    ],
+    "description": "∼:"
+  },
+  "vcentcolon": {
+    "scope": "latex",
+    "prefix": "\\vcentcolon",
+    "body": [
+      "\\vcentcolon"
+    ],
+    "description": ":"
+  },
+  "ratio": {
+    "scope": "latex",
+    "prefix": "\\ratio",
+    "body": [
+      "\\ratio"
+    ],
+    "description": ":"
+  },
+  "dashv": {
+    "scope": "latex",
+    "prefix": "\\dashv",
+    "body": [
+      "\\dashv"
+    ],
+    "description": "⊣"
+  },
+  "le": {
+    "scope": "latex",
+    "prefix": "\\le",
+    "body": [
+      "\\le"
+    ],
+    "description": "≤"
+  },
+  "simcoloncolon": {
+    "scope": "latex",
+    "prefix": "\\simcoloncolon",
+    "body": [
+      "\\simcoloncolon"
+    ],
+    "description": "∼∷"
+  },
+  "vdash": {
+    "scope": "latex",
+    "prefix": "\\vdash",
+    "body": [
+      "\\vdash"
+    ],
+    "description": "⊢"
+  },
+  "dblcolon": {
+    "scope": "latex",
+    "prefix": "\\dblcolon",
+    "body": [
+      "\\dblcolon"
+    ],
+    "description": "∷"
+  },
+  "coloncolon": {
+    "scope": "latex",
+    "prefix": "\\coloncolon",
+    "body": [
+      "\\coloncolon"
+    ],
+    "description": "∷"
+  },
+  "leq": {
+    "scope": "latex",
+    "prefix": "\\leq",
+    "body": [
+      "\\leq"
+    ],
+    "description": "≤"
+  },
+  "simeq": {
+    "scope": "latex",
+    "prefix": "\\simeq",
+    "body": [
+      "\\simeq"
+    ],
+    "description": "≃"
+  },
+  "vDash": {
+    "scope": "latex",
+    "prefix": "\\vDash",
+    "body": [
+      "\\vDash"
+    ],
+    "description": "⊨"
+  },
+  "doteq": {
+    "scope": "latex",
+    "prefix": "\\doteq",
+    "body": [
+      "\\doteq"
+    ],
+    "description": "≐"
+  },
+  "leqq": {
+    "scope": "latex",
+    "prefix": "\\leqq",
+    "body": [
+      "\\leqq"
+    ],
+    "description": "≦"
+  },
+  "smallfrown": {
+    "scope": "latex",
+    "prefix": "\\smallfrown",
+    "body": [
+      "\\smallfrown"
+    ],
+    "description": "⌢"
+  },
+  "Vdash": {
+    "scope": "latex",
+    "prefix": "\\Vdash",
+    "body": [
+      "\\Vdash"
+    ],
+    "description": "⊩"
+  },
+  "Doteq": {
+    "scope": "latex",
+    "prefix": "\\Doteq",
+    "body": [
+      "\\Doteq"
+    ],
+    "description": "≑"
+  },
+  "leqslant": {
+    "scope": "latex",
+    "prefix": "\\leqslant",
+    "body": [
+      "\\leqslant"
+    ],
+    "description": "⩽"
+  },
+  "smallsmile": {
+    "scope": "latex",
+    "prefix": "\\smallsmile",
+    "body": [
+      "\\smallsmile"
+    ],
+    "description": "⌣"
+  },
+  "Vvdash": {
+    "scope": "latex",
+    "prefix": "\\Vvdash",
+    "body": [
+      "\\Vvdash"
+    ],
+    "description": "⊪"
+  },
+  "gnapprox": {
+    "scope": "latex",
+    "prefix": "\\gnapprox",
+    "body": [
+      "\\gnapprox"
+    ],
+    "description": "⪊"
+  },
+  "ngeqslant": {
+    "scope": "latex",
+    "prefix": "\\ngeqslant",
+    "body": [
+      "\\ngeqslant"
+    ],
+    "description": "≱"
+  },
+  "nsubseteq": {
+    "scope": "latex",
+    "prefix": "\\nsubseteq",
+    "body": [
+      "\\nsubseteq"
+    ],
+    "description": "⊈"
+  },
+  "precneqq": {
+    "scope": "latex",
+    "prefix": "\\precneqq",
+    "body": [
+      "\\precneqq"
+    ],
+    "description": "⪵"
+  },
+  "gneq": {
+    "scope": "latex",
+    "prefix": "\\gneq",
+    "body": [
+      "\\gneq"
+    ],
+    "description": "⪈"
+  },
+  "ngtr": {
+    "scope": "latex",
+    "prefix": "\\ngtr",
+    "body": [
+      "\\ngtr"
+    ],
+    "description": "≯"
+  },
+  "nsubseteqq": {
+    "scope": "latex",
+    "prefix": "\\nsubseteqq",
+    "body": [
+      "\\nsubseteqq"
+    ],
+    "description": "⊈"
+  },
+  "precnsim": {
+    "scope": "latex",
+    "prefix": "\\precnsim",
+    "body": [
+      "\\precnsim"
+    ],
+    "description": "⋨"
+  },
+  "gneqq": {
+    "scope": "latex",
+    "prefix": "\\gneqq",
+    "body": [
+      "\\gneqq"
+    ],
+    "description": "≩"
+  },
+  "nleq": {
+    "scope": "latex",
+    "prefix": "\\nleq",
+    "body": [
+      "\\nleq"
+    ],
+    "description": "≰"
+  },
+  "nsucc": {
+    "scope": "latex",
+    "prefix": "\\nsucc",
+    "body": [
+      "\\nsucc"
+    ],
+    "description": "⊁"
+  },
+  "subsetneq": {
+    "scope": "latex",
+    "prefix": "\\subsetneq",
+    "body": [
+      "\\subsetneq"
+    ],
+    "description": "⊊"
+  },
+  "gnsim": {
+    "scope": "latex",
+    "prefix": "\\gnsim",
+    "body": [
+      "\\gnsim"
+    ],
+    "description": "⋧"
+  },
+  "nleqq": {
+    "scope": "latex",
+    "prefix": "\\nleqq",
+    "body": [
+      "\\nleqq"
+    ],
+    "description": "≰"
+  },
+  "nsucceq": {
+    "scope": "latex",
+    "prefix": "\\nsucceq",
+    "body": [
+      "\\nsucceq"
+    ],
+    "description": "⋡"
+  },
+  "subsetneqq": {
+    "scope": "latex",
+    "prefix": "\\subsetneqq",
+    "body": [
+      "\\subsetneqq"
+    ],
+    "description": "⫋"
+  },
+  "gvertneqq": {
+    "scope": "latex",
+    "prefix": "\\gvertneqq",
+    "body": [
+      "\\gvertneqq"
+    ],
+    "description": "≩"
+  },
+  "nleqslant": {
+    "scope": "latex",
+    "prefix": "\\nleqslant",
+    "body": [
+      "\\nleqslant"
+    ],
+    "description": "≰"
+  },
+  "nsupseteq": {
+    "scope": "latex",
+    "prefix": "\\nsupseteq",
+    "body": [
+      "\\nsupseteq"
+    ],
+    "description": "⊉"
+  },
+  "succnapprox": {
+    "scope": "latex",
+    "prefix": "\\succnapprox",
+    "body": [
+      "\\succnapprox"
+    ],
+    "description": "⪺"
+  },
+  "lnapprox": {
+    "scope": "latex",
+    "prefix": "\\lnapprox",
+    "body": [
+      "\\lnapprox"
+    ],
+    "description": "⪉"
+  },
+  "nless": {
+    "scope": "latex",
+    "prefix": "\\nless",
+    "body": [
+      "\\nless"
+    ],
+    "description": "≮"
+  },
+  "nsupseteqq": {
+    "scope": "latex",
+    "prefix": "\\nsupseteqq",
+    "body": [
+      "\\nsupseteqq"
+    ],
+    "description": "⊉"
+  },
+  "succneqq": {
+    "scope": "latex",
+    "prefix": "\\succneqq",
+    "body": [
+      "\\succneqq"
+    ],
+    "description": "⪶"
+  },
+  "lneq": {
+    "scope": "latex",
+    "prefix": "\\lneq",
+    "body": [
+      "\\lneq"
+    ],
+    "description": "⪇"
+  },
+  "ntriangleleft": {
+    "scope": "latex",
+    "prefix": "\\ntriangleleft",
+    "body": [
+      "\\ntriangleleft"
+    ],
+    "description": "⋪"
+  },
+  "succnsim": {
+    "scope": "latex",
+    "prefix": "\\succnsim",
+    "body": [
+      "\\succnsim"
+    ],
+    "description": "⋩"
+  },
+  "lneqq": {
+    "scope": "latex",
+    "prefix": "\\lneqq",
+    "body": [
+      "\\lneqq"
+    ],
+    "description": "≨"
+  },
+  "notin": {
+    "scope": "latex",
+    "prefix": "\\notin",
+    "body": [
+      "\\notin"
+    ],
+    "description": "∉"
+  },
+  "neg": {
+    "scope": "latex",
+    "prefix": "\\neg",
+    "body": [
+      "\\neg"
+    ],
+    "description": "¬"
+  },
+  "lnot": {
+    "scope": "latex",
+    "prefix": "\\lnot",
+    "body": [
+      "\\lnot"
+    ],
+    "description": "¬"
+  },
+  "ntrianglelefteq": {
+    "scope": "latex",
+    "prefix": "\\ntrianglelefteq",
+    "body": [
+      "\\ntrianglelefteq"
+    ],
+    "description": "⋬"
+  },
+  "supsetneq": {
+    "scope": "latex",
+    "prefix": "\\supsetneq",
+    "body": [
+      "\\supsetneq"
+    ],
+    "description": "⊋"
+  },
+  "lnsim": {
+    "scope": "latex",
+    "prefix": "\\lnsim",
+    "body": [
+      "\\lnsim"
+    ],
+    "description": "⋦"
+  },
+  "notni": {
+    "scope": "latex",
+    "prefix": "\\notni",
+    "body": [
+      "\\notni"
+    ],
+    "description": "∌"
+  },
+  "ntriangleright": {
+    "scope": "latex",
+    "prefix": "\\ntriangleright",
+    "body": [
+      "\\ntriangleright"
+    ],
+    "description": "⋫"
+  },
+  "supsetneqq": {
+    "scope": "latex",
+    "prefix": "\\supsetneqq",
+    "body": [
+      "\\supsetneqq"
+    ],
+    "description": "⫌"
+  },
+  "lvertneqq": {
+    "scope": "latex",
+    "prefix": "\\lvertneqq",
+    "body": [
+      "\\lvertneqq"
+    ],
+    "description": "≨"
+  },
+  "ntrianglerighteq": {
+    "scope": "latex",
+    "prefix": "\\ntrianglerighteq",
+    "body": [
+      "\\ntrianglerighteq"
+    ],
+    "description": "⋭"
+  },
+  "varsubsetneq": {
+    "scope": "latex",
+    "prefix": "\\varsubsetneq",
+    "body": [
+      "\\varsubsetneq"
+    ],
+    "description": "⊊"
+  },
+  "ncong": {
+    "scope": "latex",
+    "prefix": "\\ncong",
+    "body": [
+      "\\ncong"
+    ],
+    "description": "≆"
+  },
+  "nprec": {
+    "scope": "latex",
+    "prefix": "\\nprec",
+    "body": [
+      "\\nprec"
+    ],
+    "description": "⊀"
+  },
+  "nvdash": {
+    "scope": "latex",
+    "prefix": "\\nvdash",
+    "body": [
+      "\\nvdash"
+    ],
+    "description": "⊬"
+  },
+  "varsubsetneqq": {
+    "scope": "latex",
+    "prefix": "\\varsubsetneqq",
+    "body": [
+      "\\varsubsetneqq"
+    ],
+    "description": "⫋"
+  },
+  "npreceq": {
+    "scope": "latex",
+    "prefix": "\\npreceq",
+    "body": [
+      "\\npreceq"
+    ],
+    "description": "⋠"
+  },
+  "nvDash": {
+    "scope": "latex",
+    "prefix": "\\nvDash",
+    "body": [
+      "\\nvDash"
+    ],
+    "description": "⊭"
+  },
+  "varsupsetneq": {
+    "scope": "latex",
+    "prefix": "\\varsupsetneq",
+    "body": [
+      "\\varsupsetneq"
+    ],
+    "description": "⊋"
+  },
+  "nshortmid": {
+    "scope": "latex",
+    "prefix": "\\nshortmid",
+    "body": [
+      "\\nshortmid"
+    ],
+    "description": "∤"
+  },
+  "nVDash": {
+    "scope": "latex",
+    "prefix": "\\nVDash",
+    "body": [
+      "\\nVDash"
+    ],
+    "description": "⊯"
+  },
+  "varsupsetneqq": {
+    "scope": "latex",
+    "prefix": "\\varsupsetneqq",
+    "body": [
+      "\\varsupsetneqq"
+    ],
+    "description": "⫌"
+  },
+  "ngeq": {
+    "scope": "latex",
+    "prefix": "\\ngeq",
+    "body": [
+      "\\ngeq"
+    ],
+    "description": "≱"
+  },
+  "nshortparallel": {
+    "scope": "latex",
+    "prefix": "\\nshortparallel",
+    "body": [
+      "\\nshortparallel"
+    ],
+    "description": "∦"
+  },
+  "nVdash": {
+    "scope": "latex",
+    "prefix": "\\nVdash",
+    "body": [
+      "\\nVdash"
+    ],
+    "description": "⊮"
+  },
+  "ngeqq": {
+    "scope": "latex",
+    "prefix": "\\ngeqq",
+    "body": [
+      "\\ngeqq"
+    ],
+    "description": "≱"
+  },
+  "nsim": {
+    "scope": "latex",
+    "prefix": "\\nsim",
+    "body": [
+      "\\nsim"
+    ],
+    "description": "≁"
+  },
+  "precnapprox": {
+    "scope": "latex",
+    "prefix": "\\precnapprox",
+    "body": [
+      "\\precnapprox"
+    ],
+    "description": "⪹"
+  },
+  "circlearrowleft": {
+    "scope": "latex",
+    "prefix": "\\circlearrowleft",
+    "body": [
+      "\\circlearrowleft"
+    ],
+    "description": "↺"
+  },
+  "leftharpoonup": {
+    "scope": "latex",
+    "prefix": "\\leftharpoonup",
+    "body": [
+      "\\leftharpoonup"
+    ],
+    "description": "↼"
+  },
+  "rArr": {
+    "scope": "latex",
+    "prefix": "\\rArr",
+    "body": [
+      "\\rArr"
+    ],
+    "description": "⇒"
+  },
+  "circlearrowright": {
+    "scope": "latex",
+    "prefix": "\\circlearrowright",
+    "body": [
+      "\\circlearrowright"
+    ],
+    "description": "↻"
+  },
+  "leftleftarrows": {
+    "scope": "latex",
+    "prefix": "\\leftleftarrows",
+    "body": [
+      "\\leftleftarrows"
+    ],
+    "description": "⇇"
+  },
+  "rarr": {
+    "scope": "latex",
+    "prefix": "\\rarr",
+    "body": [
+      "\\rarr"
+    ],
+    "description": "→"
+  },
+  "curvearrowleft": {
+    "scope": "latex",
+    "prefix": "\\curvearrowleft",
+    "body": [
+      "\\curvearrowleft"
+    ],
+    "description": "↶"
+  },
+  "leftrightarrow": {
+    "scope": "latex",
+    "prefix": "\\leftrightarrow",
+    "body": [
+      "\\leftrightarrow"
+    ],
+    "description": "↔"
+  },
+  "restriction": {
+    "scope": "latex",
+    "prefix": "\\restriction",
+    "body": [
+      "\\restriction"
+    ],
+    "description": "↾"
+  },
+  "curvearrowright": {
+    "scope": "latex",
+    "prefix": "\\curvearrowright",
+    "body": [
+      "\\curvearrowright"
+    ],
+    "description": "↷"
+  },
+  "Leftrightarrow": {
+    "scope": "latex",
+    "prefix": "\\Leftrightarrow",
+    "body": [
+      "\\Leftrightarrow"
+    ],
+    "description": "⇔"
+  },
+  "rightarrow": {
+    "scope": "latex",
+    "prefix": "\\rightarrow",
+    "body": [
+      "\\rightarrow"
+    ],
+    "description": "→"
+  },
+  "Darr": {
+    "scope": "latex",
+    "prefix": "\\Darr",
+    "body": [
+      "\\Darr"
+    ],
+    "description": "⇓"
+  },
+  "leftrightarrows": {
+    "scope": "latex",
+    "prefix": "\\leftrightarrows",
+    "body": [
+      "\\leftrightarrows"
+    ],
+    "description": "⇆"
+  },
+  "Rightarrow": {
+    "scope": "latex",
+    "prefix": "\\Rightarrow",
+    "body": [
+      "\\Rightarrow"
+    ],
+    "description": "⇒"
+  },
+  "dArr": {
+    "scope": "latex",
+    "prefix": "\\dArr",
+    "body": [
+      "\\dArr"
+    ],
+    "description": "⇓"
+  },
+  "leftrightharpoons": {
+    "scope": "latex",
+    "prefix": "\\leftrightharpoons",
+    "body": [
+      "\\leftrightharpoons"
+    ],
+    "description": "⇋"
+  },
+  "rightarrowtail": {
+    "scope": "latex",
+    "prefix": "\\rightarrowtail",
+    "body": [
+      "\\rightarrowtail"
+    ],
+    "description": "↣"
+  },
+  "darr": {
+    "scope": "latex",
+    "prefix": "\\darr",
+    "body": [
+      "\\darr"
+    ],
+    "description": "↓"
+  },
+  "leftrightsquigarrow": {
+    "scope": "latex",
+    "prefix": "\\leftrightsquigarrow",
+    "body": [
+      "\\leftrightsquigarrow"
+    ],
+    "description": "↭"
+  },
+  "rightharpoondown": {
+    "scope": "latex",
+    "prefix": "\\rightharpoondown",
+    "body": [
+      "\\rightharpoondown"
+    ],
+    "description": "⇁"
+  },
+  "dashleftarrow": {
+    "scope": "latex",
+    "prefix": "\\dashleftarrow",
+    "body": [
+      "\\dashleftarrow"
+    ],
+    "description": "⇠"
+  },
+  "Lleftarrow": {
+    "scope": "latex",
+    "prefix": "\\Lleftarrow",
+    "body": [
+      "\\Lleftarrow"
+    ],
+    "description": "⇚"
+  },
+  "rightharpoonup": {
+    "scope": "latex",
+    "prefix": "\\rightharpoonup",
+    "body": [
+      "\\rightharpoonup"
+    ],
+    "description": "⇀"
+  },
+  "dashrightarrow": {
+    "scope": "latex",
+    "prefix": "\\dashrightarrow",
+    "body": [
+      "\\dashrightarrow"
+    ],
+    "description": "⇢"
+  },
+  "longleftarrow": {
+    "scope": "latex",
+    "prefix": "\\longleftarrow",
+    "body": [
+      "\\longleftarrow"
+    ],
+    "description": "⟵"
+  },
+  "rightleftarrows": {
+    "scope": "latex",
+    "prefix": "\\rightleftarrows",
+    "body": [
+      "\\rightleftarrows"
+    ],
+    "description": "⇄"
+  },
+  "downarrow": {
+    "scope": "latex",
+    "prefix": "\\downarrow",
+    "body": [
+      "\\downarrow"
+    ],
+    "description": "↓"
+  },
+  "Longleftarrow": {
+    "scope": "latex",
+    "prefix": "\\Longleftarrow",
+    "body": [
+      "\\Longleftarrow"
+    ],
+    "description": "⟸"
+  },
+  "rightleftharpoons": {
+    "scope": "latex",
+    "prefix": "\\rightleftharpoons",
+    "body": [
+      "\\rightleftharpoons"
+    ],
+    "description": "⇌"
+  },
+  "Downarrow": {
+    "scope": "latex",
+    "prefix": "\\Downarrow",
+    "body": [
+      "\\Downarrow"
+    ],
+    "description": "⇓"
+  },
+  "longleftrightarrow": {
+    "scope": "latex",
+    "prefix": "\\longleftrightarrow",
+    "body": [
+      "\\longleftrightarrow"
+    ],
+    "description": "⟷"
+  },
+  "rightrightarrows": {
+    "scope": "latex",
+    "prefix": "\\rightrightarrows",
+    "body": [
+      "\\rightrightarrows"
+    ],
+    "description": "⇉"
+  },
+  "downdownarrows": {
+    "scope": "latex",
+    "prefix": "\\downdownarrows",
+    "body": [
+      "\\downdownarrows"
+    ],
+    "description": "⇊"
+  },
+  "Longleftrightarrow": {
+    "scope": "latex",
+    "prefix": "\\Longleftrightarrow",
+    "body": [
+      "\\Longleftrightarrow"
+    ],
+    "description": "⟺"
+  },
+  "rightsquigarrow": {
+    "scope": "latex",
+    "prefix": "\\rightsquigarrow",
+    "body": [
+      "\\rightsquigarrow"
+    ],
+    "description": "⇝"
+  },
+  "downharpoonleft": {
+    "scope": "latex",
+    "prefix": "\\downharpoonleft",
+    "body": [
+      "\\downharpoonleft"
+    ],
+    "description": "⇃"
+  },
+  "longmapsto": {
+    "scope": "latex",
+    "prefix": "\\longmapsto",
+    "body": [
+      "\\longmapsto"
+    ],
+    "description": "⟼"
+  },
+  "Rrightarrow": {
+    "scope": "latex",
+    "prefix": "\\Rrightarrow",
+    "body": [
+      "\\Rrightarrow"
+    ],
+    "description": "⇛"
+  },
+  "downharpoonright": {
+    "scope": "latex",
+    "prefix": "\\downharpoonright",
+    "body": [
+      "\\downharpoonright"
+    ],
+    "description": "⇂"
+  },
+  "longrightarrow": {
+    "scope": "latex",
+    "prefix": "\\longrightarrow",
+    "body": [
+      "\\longrightarrow"
+    ],
+    "description": "⟶"
+  },
+  "Rsh": {
+    "scope": "latex",
+    "prefix": "\\Rsh",
+    "body": [
+      "\\Rsh"
+    ],
+    "description": "↱"
+  },
+  "gets": {
+    "scope": "latex",
+    "prefix": "\\gets",
+    "body": [
+      "\\gets"
+    ],
+    "description": "←"
+  },
+  "Longrightarrow": {
+    "scope": "latex",
+    "prefix": "\\Longrightarrow",
+    "body": [
+      "\\Longrightarrow"
+    ],
+    "description": "⟹"
+  },
+  "searrow": {
+    "scope": "latex",
+    "prefix": "\\searrow",
+    "body": [
+      "\\searrow"
+    ],
+    "description": "↘"
+  },
+  "Harr": {
+    "scope": "latex",
+    "prefix": "\\Harr",
+    "body": [
+      "\\Harr"
+    ],
+    "description": "⇔"
+  },
+  "looparrowleft": {
+    "scope": "latex",
+    "prefix": "\\looparrowleft",
+    "body": [
+      "\\looparrowleft"
+    ],
+    "description": "↫"
+  },
+  "swarrow": {
+    "scope": "latex",
+    "prefix": "\\swarrow",
+    "body": [
+      "\\swarrow"
+    ],
+    "description": "↙"
+  },
+  "hArr": {
+    "scope": "latex",
+    "prefix": "\\hArr",
+    "body": [
+      "\\hArr"
+    ],
+    "description": "⇔"
+  },
+  "looparrowright": {
+    "scope": "latex",
+    "prefix": "\\looparrowright",
+    "body": [
+      "\\looparrowright"
+    ],
+    "description": "↬"
+  },
+  "to": {
+    "scope": "latex",
+    "prefix": "\\to",
+    "body": [
+      "\\to"
+    ],
+    "description": "→"
+  },
+  "harr": {
+    "scope": "latex",
+    "prefix": "\\harr",
+    "body": [
+      "\\harr"
+    ],
+    "description": "↔"
+  },
+  "Lrarr": {
+    "scope": "latex",
+    "prefix": "\\Lrarr",
+    "body": [
+      "\\Lrarr"
+    ],
+    "description": "⇔"
+  },
+  "twoheadleftarrow": {
+    "scope": "latex",
+    "prefix": "\\twoheadleftarrow",
+    "body": [
+      "\\twoheadleftarrow"
+    ],
+    "description": "↞"
+  },
+  "hookleftarrow": {
+    "scope": "latex",
+    "prefix": "\\hookleftarrow",
+    "body": [
+      "\\hookleftarrow"
+    ],
+    "description": "↩"
+  },
+  "lrArr": {
+    "scope": "latex",
+    "prefix": "\\lrArr",
+    "body": [
+      "\\lrArr"
+    ],
+    "description": "⇔"
+  },
+  "twoheadrightarrow": {
+    "scope": "latex",
+    "prefix": "\\twoheadrightarrow",
+    "body": [
+      "\\twoheadrightarrow"
+    ],
+    "description": "↠"
+  },
+  "hookrightarrow": {
+    "scope": "latex",
+    "prefix": "\\hookrightarrow",
+    "body": [
+      "\\hookrightarrow"
+    ],
+    "description": "↪"
+  },
+  "lrarr": {
+    "scope": "latex",
+    "prefix": "\\lrarr",
+    "body": [
+      "\\lrarr"
+    ],
+    "description": "↔"
+  },
+  "Uarr": {
+    "scope": "latex",
+    "prefix": "\\Uarr",
+    "body": [
+      "\\Uarr"
+    ],
+    "description": "⇑"
+  },
+  "iff": {
+    "scope": "latex",
+    "prefix": "\\iff",
+    "body": [
+      "\\iff"
+    ],
+    "description": "⟺"
+  },
+  "Lsh": {
+    "scope": "latex",
+    "prefix": "\\Lsh",
+    "body": [
+      "\\Lsh"
+    ],
+    "description": "↰"
+  },
+  "uArr": {
+    "scope": "latex",
+    "prefix": "\\uArr",
+    "body": [
+      "\\uArr"
+    ],
+    "description": "⇑"
+  },
+  "impliedby": {
+    "scope": "latex",
+    "prefix": "\\impliedby",
+    "body": [
+      "\\impliedby"
+    ],
+    "description": "⟸"
+  },
+  "mapsto": {
+    "scope": "latex",
+    "prefix": "\\mapsto",
+    "body": [
+      "\\mapsto"
+    ],
+    "description": "↦"
+  },
+  "uarr": {
+    "scope": "latex",
+    "prefix": "\\uarr",
+    "body": [
+      "\\uarr"
+    ],
+    "description": "↑"
+  },
+  "implies": {
+    "scope": "latex",
+    "prefix": "\\implies",
+    "body": [
+      "\\implies"
+    ],
+    "description": "⟹"
+  },
+  "nearrow": {
+    "scope": "latex",
+    "prefix": "\\nearrow",
+    "body": [
+      "\\nearrow"
+    ],
+    "description": "↗"
+  },
+  "uparrow": {
+    "scope": "latex",
+    "prefix": "\\uparrow",
+    "body": [
+      "\\uparrow"
+    ],
+    "description": "↑"
+  },
+  "Larr": {
+    "scope": "latex",
+    "prefix": "\\Larr",
+    "body": [
+      "\\Larr"
+    ],
+    "description": "⇐"
+  },
+  "nleftarrow": {
+    "scope": "latex",
+    "prefix": "\\nleftarrow",
+    "body": [
+      "\\nleftarrow"
+    ],
+    "description": "↚"
+  },
+  "Uparrow": {
+    "scope": "latex",
+    "prefix": "\\Uparrow",
+    "body": [
+      "\\Uparrow"
+    ],
+    "description": "⇑"
+  },
+  "lArr": {
+    "scope": "latex",
+    "prefix": "\\lArr",
+    "body": [
+      "\\lArr"
+    ],
+    "description": "⇐"
+  },
+  "nLeftarrow": {
+    "scope": "latex",
+    "prefix": "\\nLeftarrow",
+    "body": [
+      "\\nLeftarrow"
+    ],
+    "description": "⇍"
+  },
+  "updownarrow": {
+    "scope": "latex",
+    "prefix": "\\updownarrow",
+    "body": [
+      "\\updownarrow"
+    ],
+    "description": "↕"
+  },
+  "larr": {
+    "scope": "latex",
+    "prefix": "\\larr",
+    "body": [
+      "\\larr"
+    ],
+    "description": "←"
+  },
+  "nleftrightarrow": {
+    "scope": "latex",
+    "prefix": "\\nleftrightarrow",
+    "body": [
+      "\\nleftrightarrow"
+    ],
+    "description": "↮"
+  },
+  "Updownarrow": {
+    "scope": "latex",
+    "prefix": "\\Updownarrow",
+    "body": [
+      "\\Updownarrow"
+    ],
+    "description": "⇕"
+  },
+  "leadsto": {
+    "scope": "latex",
+    "prefix": "\\leadsto",
+    "body": [
+      "\\leadsto"
+    ],
+    "description": "⇝"
+  },
+  "nLeftrightarrow": {
+    "scope": "latex",
+    "prefix": "\\nLeftrightarrow",
+    "body": [
+      "\\nLeftrightarrow"
+    ],
+    "description": "⇎"
+  },
+  "upharpoonleft": {
+    "scope": "latex",
+    "prefix": "\\upharpoonleft",
+    "body": [
+      "\\upharpoonleft"
+    ],
+    "description": "↿"
+  },
+  "leftarrow": {
+    "scope": "latex",
+    "prefix": "\\leftarrow",
+    "body": [
+      "\\leftarrow"
+    ],
+    "description": "←"
+  },
+  "nrightarrow": {
+    "scope": "latex",
+    "prefix": "\\nrightarrow",
+    "body": [
+      "\\nrightarrow"
+    ],
+    "description": "↛"
+  },
+  "upharpoonright": {
+    "scope": "latex",
+    "prefix": "\\upharpoonright",
+    "body": [
+      "\\upharpoonright"
+    ],
+    "description": "↾"
+  },
+  "Leftarrow": {
+    "scope": "latex",
+    "prefix": "\\Leftarrow",
+    "body": [
+      "\\Leftarrow"
+    ],
+    "description": "⇐"
+  },
+  "nRightarrow": {
+    "scope": "latex",
+    "prefix": "\\nRightarrow",
+    "body": [
+      "\\nRightarrow"
+    ],
+    "description": "⇏"
+  },
+  "upuparrows": {
+    "scope": "latex",
+    "prefix": "\\upuparrows",
+    "body": [
+      "\\upuparrows"
+    ],
+    "description": "⇈"
+  },
+  "leftarrowtail": {
+    "scope": "latex",
+    "prefix": "\\leftarrowtail",
+    "body": [
+      "\\leftarrowtail"
+    ],
+    "description": "↢"
+  },
+  "nwarrow": {
+    "scope": "latex",
+    "prefix": "\\nwarrow",
+    "body": [
+      "\\nwarrow"
+    ],
+    "description": "↖"
+  },
+  "leftharpoondown": {
+    "scope": "latex",
+    "prefix": "\\leftharpoondown",
+    "body": [
+      "\\leftharpoondown"
+    ],
+    "description": "↽"
+  },
+  "Rarr": {
+    "scope": "latex",
+    "prefix": "\\Rarr",
+    "body": [
+      "\\Rarr"
+    ],
+    "description": "⇒"
+  },
+  "pm": {
+    "scope": "latex",
+    "prefix": "\\pm",
+    "body": [
+      "\\pm"
+    ],
+    "description": "±"
+  },
+  "plusmn": {
+    "scope": "latex",
+    "prefix": "\\plusmn",
+    "body": [
+      "\\plusmn"
+    ],
+    "description": "±"
+  },
+  "times": {
+    "scope": "latex",
+    "prefix": "\\times",
+    "body": [
+      "\\times"
+    ],
+    "description": "×"
+  },
+  "ltimes": {
+    "scope": "latex",
+    "prefix": "\\ltimes",
+    "body": [
+      "\\ltimes"
+    ],
+    "description": "⋉"
+  },
+  "rtimes": {
+    "scope": "latex",
+    "prefix": "\\rtimes",
+    "body": [
+      "\\rtimes"
+    ],
+    "description": "⋊"
+  },
+  "div": {
+    "scope": "latex",
+    "prefix": "\\div",
+    "body": [
+      "\\div"
+    ],
+    "description": "÷"
+  },
+  "aleph": {
+    "scope": "latex",
+    "prefix": "\\aleph",
+    "body": [
+      "\\aleph"
+    ],
+    "description": "ℵ"
+  },
+  "alef": {
+    "scope": "latex",
+    "prefix": "\\alef",
+    "body": [
+      "\\alef"
+    ],
+    "description": "ℵ"
+  },
+  "alefsym": {
+    "scope": "latex",
+    "prefix": "\\alefsym",
+    "body": [
+      "\\alefsym"
+    ],
+    "description": "ℵ"
+  },
+  "beth": {
+    "scope": "latex",
+    "prefix": "\\beth",
+    "body": [
+      "\\beth"
+    ],
+    "description": "ℶ"
+  },
+  "gimel": {
+    "scope": "latex",
+    "prefix": "\\gimel",
+    "body": [
+      "\\gimel"
+    ],
+    "description": "ℷ"
+  },
+  "daleth": {
+    "scope": "latex",
+    "prefix": "\\daleth",
+    "body": [
+      "\\daleth"
+    ],
+    "description": "ℸ"
+  },
+  "eth": {
+    "scope": "latex",
+    "prefix": "\\eth",
+    "body": [
+      "\\eth"
+    ],
+    "description": "ð"
+  },
+  "ell": {
+    "scope": "latex",
+    "prefix": "\\ell",
+    "body": [
+      "\\ell"
+    ],
+    "description": "ℓ"
+  },
+  "wp": {
+    "scope": "latex",
+    "prefix": "\\wp",
+    "body": [
+      "\\wp"
+    ],
+    "description": "℘"
+  },
+  "weierp": {
+    "scope": "latex",
+    "prefix": "\\weierp",
+    "body": [
+      "\\weierp"
+    ],
+    "description": "℘"
+  },
+  ",": {
+    "scope": "latex",
+    "prefix": "\\,",
+    "body": [
+      "\\,"
+    ],
+    "description": " "
+  },
+  ">": {
+    "scope": "latex",
+    "prefix": "\\>",
+    "body": [
+      "\\>"
+    ],
+    "description": " "
+  },
+  ":": {
+    "scope": "latex",
+    "prefix": "\\:",
+    "body": [
+      "\\:"
+    ],
+    "description": " "
+  },
+  ";": {
+    "scope": "latex",
+    "prefix": "\\;",
+    "body": [
+      "\\;"
+    ],
+    "description": "  "
+  },
+  "!": {
+    "scope": "latex",
+    "prefix": "\\!",
+    "body": [
+      "\\!"
+    ],
+    "description": ""
+  },
+  "quad": {
+    "scope": "latex",
+    "prefix": "\\quad",
+    "body": [
+      "\\quad"
+    ],
+    "description": "    "
+  },
+  "qquad": {
+    "scope": "latex",
+    "prefix": "\\qquad",
+    "body": [
+      "\\qquad"
+    ],
+    "description": "      "
+  },
+  "thinspace": {
+    "scope": "latex",
+    "prefix": "\\thinspace",
+    "body": [
+      "\\thinspace"
+    ],
+    "description": " "
+  },
+  "medspace": {
+    "scope": "latex",
+    "prefix": "\\medspace",
+    "body": [
+      "\\medspace"
+    ],
+    "description": " "
+  },
+  "thickspace": {
+    "scope": "latex",
+    "prefix": "\\thickspace",
+    "body": [
+      "\\thickspace"
+    ],
+    "description": "  "
+  },
+  "enspace": {
+    "scope": "latex",
+    "prefix": "\\enspace",
+    "body": [
+      "\\enspace"
+    ],
+    "description": "  "
+  },
+  "negthickspace": {
+    "scope": "latex",
+    "prefix": "\\negthickspace",
+    "body": [
+      "\\negthickspace"
+    ],
+    "description": ""
+  },
+  "negthinspace": {
+    "scope": "latex",
+    "prefix": "\\negthinspace",
+    "body": [
+      "\\negthinspace"
+    ],
+    "description": ""
+  },
+  "negmedspace": {
+    "scope": "latex",
+    "prefix": "\\negmedspace",
+    "body": [
+      "\\negmedspace"
+    ],
+    "description": ""
+  },
+  "(": {
+    "scope": "latex",
+    "prefix": "\\(",
+    "body": [
+      "\\("
+    ],
+    "description": "("
+  },
+  ")": {
+    "scope": "latex",
+    "prefix": "\\)",
+    "body": [
+      "\\)"
+    ],
+    "description": ")"
+  },
+  "[": {
+    "scope": "latex",
+    "prefix": "\\[",
+    "body": [
+      "\\["
+    ],
+    "description": "["
+  },
+  "]": {
+    "scope": "latex",
+    "prefix": "\\]",
+    "body": [
+      "\\]"
+    ],
+    "description": "]"
+  },
+  "{": {
+    "scope": "latex",
+    "prefix": "\\{",
+    "body": [
+      "\\{"
+    ],
+    "description": "{"
+  },
+  "}": {
+    "scope": "latex",
+    "prefix": "\\}",
+    "body": [
+      "\\}"
+    ],
+    "description": "}"
+  },
+  "%": {
+    "scope": "latex",
+    "prefix": "\\%",
+    "body": [
+      "\\%"
+    ],
+    "description": "%"
+  },
+  "\\": {
+    "scope": "latex",
+    "prefix": "\\\\",
+    "body": [
+      "\\\\"
+    ],
+    "description": "\n"
+  },
+  "newline": {
+    "scope": "latex",
+    "prefix": "\\newline",
+    "body": [
+      "\\newline"
+    ],
+    "description": "\n"
+  },
+  "Game": {
+    "scope": "latex",
+    "prefix": "\\Game",
+    "body": [
+      "\\Game"
+    ],
+    "description": "⅁"
+  },
+  "because": {
+    "scope": "latex",
+    "prefix": "\\because",
+    "body": [
+      "\\because"
+    ],
+    "description": "∵"
+  },
+  "suchthat": {
+    "scope": "latex",
+    "prefix": "\\suchthat",
+    "body": [
+      "\\suchthat"
+    ],
+    "description": "∴"
+  },
+  "arcsin": {
+    "scope": "latex",
+    "prefix": "\\arcsin",
+    "body": [
+      "\\arcsin"
+    ],
+    "description": "arcsin"
+  },
+  "arccos": {
+    "scope": "latex",
+    "prefix": "\\arccos",
+    "body": [
+      "\\arccos"
+    ],
+    "description": "arccos"
+  },
+  "arctan": {
+    "scope": "latex",
+    "prefix": "\\arctan",
+    "body": [
+      "\\arctan"
+    ],
+    "description": "arctan"
+  },
+  "arctg": {
+    "scope": "latex",
+    "prefix": "\\arctg",
+    "body": [
+      "\\arctg"
+    ],
+    "description": "arctg"
+  },
+  "arcctg": {
+    "scope": "latex",
+    "prefix": "\\arcctg",
+    "body": [
+      "\\arcctg"
+    ],
+    "description": "arcctg"
+  },
+  "arg": {
+    "scope": "latex",
+    "prefix": "\\arg",
+    "body": [
+      "\\arg"
+    ],
+    "description": "arg"
+  },
+  "ch": {
+    "scope": "latex",
+    "prefix": "\\ch",
+    "body": [
+      "\\ch"
+    ],
+    "description": "ch"
+  },
+  "cos": {
+    "scope": "latex",
+    "prefix": "\\cos",
+    "body": [
+      "\\cos"
+    ],
+    "description": "cos"
+  },
+  "det": {
+    "scope": "latex",
+    "prefix": "\\det",
+    "body": [
+      "\\det"
+    ],
+    "description": "det"
+  },
+  "gcd": {
+    "scope": "latex",
+    "prefix": "\\gcd",
+    "body": [
+      "\\gcd"
+    ],
+    "description": "gcd"
+  },
+  "inf": {
+    "scope": "latex",
+    "prefix": "\\inf",
+    "body": [
+      "\\inf"
+    ],
+    "description": "inf"
+  },
+  "cosec": {
+    "scope": "latex",
+    "prefix": "\\cosec",
+    "body": [
+      "\\cosec"
+    ],
+    "description": "cosec"
+  },
+  "cosh": {
+    "scope": "latex",
+    "prefix": "\\cosh",
+    "body": [
+      "\\cosh"
+    ],
+    "description": "cosh"
+  },
+  "cot": {
+    "scope": "latex",
+    "prefix": "\\cot",
+    "body": [
+      "\\cot"
+    ],
+    "description": "cot"
+  },
+  "cotg": {
+    "scope": "latex",
+    "prefix": "\\cotg",
+    "body": [
+      "\\cotg"
+    ],
+    "description": "cotg"
+  },
+  "coth": {
+    "scope": "latex",
+    "prefix": "\\coth",
+    "body": [
+      "\\coth"
+    ],
+    "description": "coth"
+  },
+  "csc": {
+    "scope": "latex",
+    "prefix": "\\csc",
+    "body": [
+      "\\csc"
+    ],
+    "description": "csc"
+  },
+  "ctg": {
+    "scope": "latex",
+    "prefix": "\\ctg",
+    "body": [
+      "\\ctg"
+    ],
+    "description": "ctg"
+  },
+  "cth": {
+    "scope": "latex",
+    "prefix": "\\cth",
+    "body": [
+      "\\cth"
+    ],
+    "description": "cth"
+  },
+  "lim": {
+    "scope": "latex",
+    "prefix": "\\lim",
+    "body": [
+      "\\lim"
+    ],
+    "description": "lim"
+  },
+  "max": {
+    "scope": "latex",
+    "prefix": "\\max",
+    "body": [
+      "\\max"
+    ],
+    "description": "max"
+  },
+  "deg": {
+    "scope": "latex",
+    "prefix": "\\deg",
+    "body": [
+      "\\deg"
+    ],
+    "description": "deg"
+  },
+  "dim": {
+    "scope": "latex",
+    "prefix": "\\dim",
+    "body": [
+      "\\dim"
+    ],
+    "description": "dim"
+  },
+  "exp": {
+    "scope": "latex",
+    "prefix": "\\exp",
+    "body": [
+      "\\exp"
+    ],
+    "description": "exp"
+  },
+  "hom": {
+    "scope": "latex",
+    "prefix": "\\hom",
+    "body": [
+      "\\hom"
+    ],
+    "description": "hom"
+  },
+  "ker": {
+    "scope": "latex",
+    "prefix": "\\ker",
+    "body": [
+      "\\ker"
+    ],
+    "description": "ker"
+  },
+  "lg": {
+    "scope": "latex",
+    "prefix": "\\lg",
+    "body": [
+      "\\lg"
+    ],
+    "description": "lg"
+  },
+  "ln": {
+    "scope": "latex",
+    "prefix": "\\ln",
+    "body": [
+      "\\ln"
+    ],
+    "description": "ln"
+  },
+  "log": {
+    "scope": "latex",
+    "prefix": "\\log",
+    "body": [
+      "\\log"
+    ],
+    "description": "log"
+  },
+  "min": {
+    "scope": "latex",
+    "prefix": "\\min",
+    "body": [
+      "\\min"
+    ],
+    "description": "min"
+  },
+  "plim": {
+    "scope": "latex",
+    "prefix": "\\plim",
+    "body": [
+      "\\plim"
+    ],
+    "description": "plim"
+  },
+  "Pr": {
+    "scope": "latex",
+    "prefix": "\\Pr",
+    "body": [
+      "\\Pr"
+    ],
+    "description": "Pr"
+  },
+  "sup": {
+    "scope": "latex",
+    "prefix": "\\sup",
+    "body": [
+      "\\sup"
+    ],
+    "description": "sup"
+  },
+  "sec": {
+    "scope": "latex",
+    "prefix": "\\sec",
+    "body": [
+      "\\sec"
+    ],
+    "description": "sec"
+  },
+  "sin": {
+    "scope": "latex",
+    "prefix": "\\sin",
+    "body": [
+      "\\sin"
+    ],
+    "description": "sin"
+  },
+  "sinh": {
+    "scope": "latex",
+    "prefix": "\\sinh",
+    "body": [
+      "\\sinh"
+    ],
+    "description": "sinh"
+  },
+  "sh": {
+    "scope": "latex",
+    "prefix": "\\sh",
+    "body": [
+      "\\sh"
+    ],
+    "description": "sh"
+  },
+  "tan": {
+    "scope": "latex",
+    "prefix": "\\tan",
+    "body": [
+      "\\tan"
+    ],
+    "description": "tan"
+  },
+  "tanh": {
+    "scope": "latex",
+    "prefix": "\\tanh",
+    "body": [
+      "\\tanh"
+    ],
+    "description": "tanh"
+  },
+  "tg": {
+    "scope": "latex",
+    "prefix": "\\tg",
+    "body": [
+      "\\tg"
+    ],
+    "description": "tg"
+  },
+  "th": {
+    "scope": "latex",
+    "prefix": "\\th",
+    "body": [
+      "\\th"
+    ],
+    "description": "th"
+  },
+  "Alpha": {
+    "scope": "latex",
+    "prefix": "\\Alpha",
+    "body": [
+      "\\Alpha"
+    ],
+    "description": "Α"
+  },
+  "Beta": {
+    "scope": "latex",
+    "prefix": "\\Beta",
+    "body": [
+      "\\Beta"
+    ],
+    "description": "Β"
+  },
+  "Gamma": {
+    "scope": "latex",
+    "prefix": "\\Gamma",
+    "body": [
+      "\\Gamma"
+    ],
+    "description": "Γ"
+  },
+  "Delta": {
+    "scope": "latex",
+    "prefix": "\\Delta",
+    "body": [
+      "\\Delta"
+    ],
+    "description": "Δ"
+  },
+  "Epsilon": {
+    "scope": "latex",
+    "prefix": "\\Epsilon",
+    "body": [
+      "\\Epsilon"
+    ],
+    "description": "Ε"
+  },
+  "Zeta": {
+    "scope": "latex",
+    "prefix": "\\Zeta",
+    "body": [
+      "\\Zeta"
+    ],
+    "description": "Ζ"
+  },
+  "Eta": {
+    "scope": "latex",
+    "prefix": "\\Eta",
+    "body": [
+      "\\Eta"
+    ],
+    "description": "Η"
+  },
+  "Theta": {
+    "scope": "latex",
+    "prefix": "\\Theta",
+    "body": [
+      "\\Theta"
+    ],
+    "description": "Θ"
+  },
+  "Iota": {
+    "scope": "latex",
+    "prefix": "\\Iota",
+    "body": [
+      "\\Iota"
+    ],
+    "description": "Ι"
+  },
+  "Kappa": {
+    "scope": "latex",
+    "prefix": "\\Kappa",
+    "body": [
+      "\\Kappa"
+    ],
+    "description": "Κ"
+  },
+  "Lambda": {
+    "scope": "latex",
+    "prefix": "\\Lambda",
+    "body": [
+      "\\Lambda"
+    ],
+    "description": "Λ"
+  },
+  "Mu": {
+    "scope": "latex",
+    "prefix": "\\Mu",
+    "body": [
+      "\\Mu"
+    ],
+    "description": "Μ"
+  },
+  "Nu": {
+    "scope": "latex",
+    "prefix": "\\Nu",
+    "body": [
+      "\\Nu"
+    ],
+    "description": "Ν"
+  },
+  "Xi": {
+    "scope": "latex",
+    "prefix": "\\Xi",
+    "body": [
+      "\\Xi"
+    ],
+    "description": "Ξ"
+  },
+  "Omicron": {
+    "scope": "latex",
+    "prefix": "\\Omicron",
+    "body": [
+      "\\Omicron"
+    ],
+    "description": "Ο"
+  },
+  "Pi": {
+    "scope": "latex",
+    "prefix": "\\Pi",
+    "body": [
+      "\\Pi"
+    ],
+    "description": "Π"
+  },
+  "Rho": {
+    "scope": "latex",
+    "prefix": "\\Rho",
+    "body": [
+      "\\Rho"
+    ],
+    "description": "Ρ"
+  },
+  "Sigma": {
+    "scope": "latex",
+    "prefix": "\\Sigma",
+    "body": [
+      "\\Sigma"
+    ],
+    "description": "Σ"
+  },
+  "Tau": {
+    "scope": "latex",
+    "prefix": "\\Tau",
+    "body": [
+      "\\Tau"
+    ],
+    "description": "Τ"
+  },
+  "Upsilon": {
+    "scope": "latex",
+    "prefix": "\\Upsilon",
+    "body": [
+      "\\Upsilon"
+    ],
+    "description": "Υ"
+  },
+  "Phi": {
+    "scope": "latex",
+    "prefix": "\\Phi",
+    "body": [
+      "\\Phi"
+    ],
+    "description": "Φ"
+  },
+  "Chi": {
+    "scope": "latex",
+    "prefix": "\\Chi",
+    "body": [
+      "\\Chi"
+    ],
+    "description": "Χ"
+  },
+  "Psi": {
+    "scope": "latex",
+    "prefix": "\\Psi",
+    "body": [
+      "\\Psi"
+    ],
+    "description": "Ψ"
+  },
+  "Omega": {
+    "scope": "latex",
+    "prefix": "\\Omega",
+    "body": [
+      "\\Omega"
+    ],
+    "description": "Ω"
+  },
+  "alpha": {
+    "scope": "latex",
+    "prefix": "\\alpha",
+    "body": [
+      "\\alpha"
+    ],
+    "description": "α"
+  },
+  "beta": {
+    "scope": "latex",
+    "prefix": "\\beta",
+    "body": [
+      "\\beta"
+    ],
+    "description": "β"
+  },
+  "gamma": {
+    "scope": "latex",
+    "prefix": "\\gamma",
+    "body": [
+      "\\gamma"
+    ],
+    "description": "γ"
+  },
+  "delta": {
+    "scope": "latex",
+    "prefix": "\\delta",
+    "body": [
+      "\\delta"
+    ],
+    "description": "δ"
+  },
+  "epsilon": {
+    "scope": "latex",
+    "prefix": "\\epsilon",
+    "body": [
+      "\\epsilon"
+    ],
+    "description": "ϵ"
+  },
+  "zeta": {
+    "scope": "latex",
+    "prefix": "\\zeta",
+    "body": [
+      "\\zeta"
+    ],
+    "description": "ζ"
+  },
+  "eta": {
+    "scope": "latex",
+    "prefix": "\\eta",
+    "body": [
+      "\\eta"
+    ],
+    "description": "η"
+  },
+  "theta": {
+    "scope": "latex",
+    "prefix": "\\theta",
+    "body": [
+      "\\theta"
+    ],
+    "description": "θ"
+  },
+  "iota": {
+    "scope": "latex",
+    "prefix": "\\iota",
+    "body": [
+      "\\iota"
+    ],
+    "description": "ι"
+  },
+  "kappa": {
+    "scope": "latex",
+    "prefix": "\\kappa",
+    "body": [
+      "\\kappa"
+    ],
+    "description": "κ"
+  },
+  "lambda": {
+    "scope": "latex",
+    "prefix": "\\lambda",
+    "body": [
+      "\\lambda"
+    ],
+    "description": "λ"
+  },
+  "mu": {
+    "scope": "latex",
+    "prefix": "\\mu",
+    "body": [
+      "\\mu"
+    ],
+    "description": "μ"
+  },
+  "nu": {
+    "scope": "latex",
+    "prefix": "\\nu",
+    "body": [
+      "\\nu"
+    ],
+    "description": "ν"
+  },
+  "xi": {
+    "scope": "latex",
+    "prefix": "\\xi",
+    "body": [
+      "\\xi"
+    ],
+    "description": "ξ"
+  },
+  "omicron": {
+    "scope": "latex",
+    "prefix": "\\omicron",
+    "body": [
+      "\\omicron"
+    ],
+    "description": "ο"
+  },
+  "pi": {
+    "scope": "latex",
+    "prefix": "\\pi",
+    "body": [
+      "\\pi"
+    ],
+    "description": "π"
+  },
+  "rho": {
+    "scope": "latex",
+    "prefix": "\\rho",
+    "body": [
+      "\\rho"
+    ],
+    "description": "ρ"
+  },
+  "sigma": {
+    "scope": "latex",
+    "prefix": "\\sigma",
+    "body": [
+      "\\sigma"
+    ],
+    "description": "σ"
+  },
+  "tau": {
+    "scope": "latex",
+    "prefix": "\\tau",
+    "body": [
+      "\\tau"
+    ],
+    "description": "τ"
+  },
+  "upsilon": {
+    "scope": "latex",
+    "prefix": "\\upsilon",
+    "body": [
+      "\\upsilon"
+    ],
+    "description": "υ"
+  },
+  "phi": {
+    "scope": "latex",
+    "prefix": "\\phi",
+    "body": [
+      "\\phi"
+    ],
+    "description": "φ"
+  },
+  "chi": {
+    "scope": "latex",
+    "prefix": "\\chi",
+    "body": [
+      "\\chi"
+    ],
+    "description": "χ"
+  },
+  "psi": {
+    "scope": "latex",
+    "prefix": "\\psi",
+    "body": [
+      "\\psi"
+    ],
+    "description": "ψ"
+  },
+  "omega": {
+    "scope": "latex",
+    "prefix": "\\omega",
+    "body": [
+      "\\omega"
+    ],
+    "description": "ω"
+  },
+  "sqrt": {
+    "scope": "latex",
+    "prefix": "\\sqrt",
+    "body": [
+      "\\sqrt{$0}"
+    ],
+    "description": "√a"
+  },
+  "not": {
+    "scope": "latex",
+    "prefix": "\\not",
+    "body": [
+      "\\not{$0}"
+    ],
+    "description": "̸a"
+  },
+  "url": {
+    "scope": "latex",
+    "prefix": "\\url",
+    "body": [
+      "\\url{$0}"
+    ],
+    "description": "\\url{a}"
+  },
+  "cancel": {
+    "scope": "latex",
+    "prefix": "\\cancel",
+    "body": [
+      "\\cancel{$0}"
+    ],
+    "description": "\\cancel{a}"
+  },
+  "bcancel": {
+    "scope": "latex",
+    "prefix": "\\bcancel",
+    "body": [
+      "\\bcancel{$0}"
+    ],
+    "description": "\\bcancel{a}"
+  },
+  "xcancel": {
+    "scope": "latex",
+    "prefix": "\\xcancel",
+    "body": [
+      "\\xcancel{$0}"
+    ],
+    "description": "\\xcancel{a}"
+  },
+  "sout": {
+    "scope": "latex",
+    "prefix": "\\sout",
+    "body": [
+      "\\sout{$0}"
+    ],
+    "description": "\\sout{a}"
+  },
+  "boxed": {
+    "scope": "latex",
+    "prefix": "\\boxed",
+    "body": [
+      "\\boxed{$0}"
+    ],
+    "description": "\\boxed{a}"
+  },
+  "phase": {
+    "scope": "latex",
+    "prefix": "\\phase",
+    "body": [
+      "\\phase{$0}"
+    ],
+    "description": "\\phase{a}"
+  },
+  "tag": {
+    "scope": "latex",
+    "prefix": "\\tag",
+    "body": [
+      "\\tag{$0}"
+    ],
+    "description": "\\tag{a}"
+  },
+  "tag*": {
+    "scope": "latex",
+    "prefix": "\\tag*",
+    "body": [
+      "\\tag*{$0}"
+    ],
+    "description": "\\tag*{a}"
+  },
+  "raisebox": {
+    "scope": "latex",
+    "prefix": "\\raisebox",
+    "body": [
+      "\\raisebox{$0}"
+    ],
+    "description": "\\raisebox{a}"
+  },
+  "kern": {
+    "scope": "latex",
+    "prefix": "\\kern",
+    "body": [
+      "\\kern{$0}"
+    ],
+    "description": "\\kern{a}"
+  },
+  "mkern": {
+    "scope": "latex",
+    "prefix": "\\mkern",
+    "body": [
+      "\\mkern{$0}"
+    ],
+    "description": "\\mkern{a}"
+  },
+  "mskip": {
+    "scope": "latex",
+    "prefix": "\\mskip",
+    "body": [
+      "\\mskip{$0}"
+    ],
+    "description": "\\mskip{a}"
+  },
+  "hskip": {
+    "scope": "latex",
+    "prefix": "\\hskip",
+    "body": [
+      "\\hskip{$0}"
+    ],
+    "description": "\\hskip{a}"
+  },
+  "hspace": {
+    "scope": "latex",
+    "prefix": "\\hspace",
+    "body": [
+      "\\hspace{$0}"
+    ],
+    "description": "\\hspace{a}"
+  },
+  "hspace*": {
+    "scope": "latex",
+    "prefix": "\\hspace*",
+    "body": [
+      "\\hspace*{$0}"
+    ],
+    "description": "\\hspace*{a}"
+  },
+  "phantom": {
+    "scope": "latex",
+    "prefix": "\\phantom",
+    "body": [
+      "\\phantom{$0}"
+    ],
+    "description": "\\phantom{a}"
+  },
+  "hphantom": {
+    "scope": "latex",
+    "prefix": "\\hphantom",
+    "body": [
+      "\\hphantom{$0}"
+    ],
+    "description": "\\hphantom{a}"
+  },
+  "vphantom": {
+    "scope": "latex",
+    "prefix": "\\vphantom",
+    "body": [
+      "\\vphantom{$0}"
+    ],
+    "description": "\\vphantom{a}"
+  },
+  "bra": {
+    "scope": "latex",
+    "prefix": "\\bra",
+    "body": [
+      "\\bra{$0}"
+    ],
+    "description": "\\bra{a}"
+  },
+  "ket": {
+    "scope": "latex",
+    "prefix": "\\ket",
+    "body": [
+      "\\ket{$0}"
+    ],
+    "description": "\\ket{a}"
+  },
+  "braket": {
+    "scope": "latex",
+    "prefix": "\\braket",
+    "body": [
+      "\\braket{$0}"
+    ],
+    "description": "\\braket{a}"
+  },
+  "Bra": {
+    "scope": "latex",
+    "prefix": "\\Bra",
+    "body": [
+      "\\Bra{$0}"
+    ],
+    "description": "\\Bra{a}"
+  },
+  "Ket": {
+    "scope": "latex",
+    "prefix": "\\Ket",
+    "body": [
+      "\\Ket{$0}"
+    ],
+    "description": "\\Ket{a}"
+  },
+  "Braket": {
+    "scope": "latex",
+    "prefix": "\\Braket",
+    "body": [
+      "\\Braket{$0}"
+    ],
+    "description": "\\Braket{a}"
+  },
+  "Huge": {
+    "scope": "latex",
+    "prefix": "\\Huge",
+    "body": [
+      "\\Huge{$0}"
+    ],
+    "description": "{\\Huge a}"
+  },
+  "huge": {
+    "scope": "latex",
+    "prefix": "\\huge",
+    "body": [
+      "\\huge{$0}"
+    ],
+    "description": "{\\huge a}"
+  },
+  "LARGE": {
+    "scope": "latex",
+    "prefix": "\\LARGE",
+    "body": [
+      "\\LARGE{$0}"
+    ],
+    "description": "{\\LARGE a}"
+  },
+  "Large": {
+    "scope": "latex",
+    "prefix": "\\Large",
+    "body": [
+      "\\Large{$0}"
+    ],
+    "description": "{\\Large a}"
+  },
+  "large": {
+    "scope": "latex",
+    "prefix": "\\large",
+    "body": [
+      "\\large{$0}"
+    ],
+    "description": "{\\large a}"
+  },
+  "normalsize": {
+    "scope": "latex",
+    "prefix": "\\normalsize",
+    "body": [
+      "\\normalsize{$0}"
+    ],
+    "description": "{\\normalsize a}"
+  },
+  "small": {
+    "scope": "latex",
+    "prefix": "\\small",
+    "body": [
+      "\\small{$0}"
+    ],
+    "description": "{\\small a}"
+  },
+  "footnotesize": {
+    "scope": "latex",
+    "prefix": "\\footnotesize",
+    "body": [
+      "\\footnotesize{$0}"
+    ],
+    "description": "{\\footnotesize a}"
+  },
+  "scriptsize": {
+    "scope": "latex",
+    "prefix": "\\scriptsize",
+    "body": [
+      "\\scriptsize{$0}"
+    ],
+    "description": "{\\scriptsize a}"
+  },
+  "tiny": {
+    "scope": "latex",
+    "prefix": "\\tiny",
+    "body": [
+      "\\tiny{$0}"
+    ],
+    "description": "{\\tiny a}"
+  },
+  "left": {
+    "scope": "latex",
+    "prefix": "\\left",
+    "body": [
+      "\\left{$0}"
+    ],
+    "description": "\\left a"
+  },
+  "middle": {
+    "scope": "latex",
+    "prefix": "\\middle",
+    "body": [
+      "\\middle{$0}"
+    ],
+    "description": "\\middle a"
+  },
+  "right": {
+    "scope": "latex",
+    "prefix": "\\right",
+    "body": [
+      "\\right{$0}"
+    ],
+    "description": "\\right a"
+  },
+  "big": {
+    "scope": "latex",
+    "prefix": "\\big",
+    "body": [
+      "\\big{$0}"
+    ],
+    "description": "\\big a"
+  },
+  "bigl": {
+    "scope": "latex",
+    "prefix": "\\bigl",
+    "body": [
+      "\\bigl{$0}"
+    ],
+    "description": "\\bigl a"
+  },
+  "bigm": {
+    "scope": "latex",
+    "prefix": "\\bigm",
+    "body": [
+      "\\bigm{$0}"
+    ],
+    "description": "\\bigm a"
+  },
+  "bigr": {
+    "scope": "latex",
+    "prefix": "\\bigr",
+    "body": [
+      "\\bigr{$0}"
+    ],
+    "description": "\\bigr a"
+  },
+  "Big": {
+    "scope": "latex",
+    "prefix": "\\Big",
+    "body": [
+      "\\Big{$0}"
+    ],
+    "description": "\\Big a"
+  },
+  "Bigl": {
+    "scope": "latex",
+    "prefix": "\\Bigl",
+    "body": [
+      "\\Bigl{$0}"
+    ],
+    "description": "\\Bigl a"
+  },
+  "Bigm": {
+    "scope": "latex",
+    "prefix": "\\Bigm",
+    "body": [
+      "\\Bigm{$0}"
+    ],
+    "description": "\\Bigm a"
+  },
+  "Bigr": {
+    "scope": "latex",
+    "prefix": "\\Bigr",
+    "body": [
+      "\\Bigr{$0}"
+    ],
+    "description": "\\Bigr a"
+  },
+  "bigg": {
+    "scope": "latex",
+    "prefix": "\\bigg",
+    "body": [
+      "\\bigg{$0}"
+    ],
+    "description": "\\bigg a"
+  },
+  "biggl": {
+    "scope": "latex",
+    "prefix": "\\biggl",
+    "body": [
+      "\\biggl{$0}"
+    ],
+    "description": "\\biggl a"
+  },
+  "biggm": {
+    "scope": "latex",
+    "prefix": "\\biggm",
+    "body": [
+      "\\biggm{$0}"
+    ],
+    "description": "\\biggm a"
+  },
+  "biggr": {
+    "scope": "latex",
+    "prefix": "\\biggr",
+    "body": [
+      "\\biggr{$0}"
+    ],
+    "description": "\\biggr a"
+  },
+  "Bigg": {
+    "scope": "latex",
+    "prefix": "\\Bigg",
+    "body": [
+      "\\Bigg{$0}"
+    ],
+    "description": "\\Bigg a"
+  },
+  "Biggl": {
+    "scope": "latex",
+    "prefix": "\\Biggl",
+    "body": [
+      "\\Biggl{$0}"
+    ],
+    "description": "\\Biggl a"
+  },
+  "Biggm": {
+    "scope": "latex",
+    "prefix": "\\Biggm",
+    "body": [
+      "\\Biggm{$0}"
+    ],
+    "description": "\\Biggm a"
+  },
+  "Biggr": {
+    "scope": "latex",
+    "prefix": "\\Biggr",
+    "body": [
+      "\\Biggr{$0}"
+    ],
+    "description": "\\Biggr a"
+  },
+  "mathrm": {
+    "scope": "latex",
+    "prefix": "\\mathrm",
+    "body": [
+      "\\mathrm{$0}"
+    ],
+    "description": "\\mathrm{a}"
+  },
+  "mathnormal": {
+    "scope": "latex",
+    "prefix": "\\mathnormal",
+    "body": [
+      "\\mathnormal{$0}"
+    ],
+    "description": "\\mathnormal{a}"
+  },
+  "textrm": {
+    "scope": "latex",
+    "prefix": "\\textrm",
+    "body": [
+      "\\textrm{$0}"
+    ],
+    "description": "\\textrm{a}"
+  },
+  "rm": {
+    "scope": "latex",
+    "prefix": "\\rm",
+    "body": [
+      "\\rm{$0}"
+    ],
+    "description": "{\\rm{a}}"
+  },
+  "textnormal": {
+    "scope": "latex",
+    "prefix": "\\textnormal",
+    "body": [
+      "\\textnormal{$0}"
+    ],
+    "description": "\\textnormal{a}"
+  },
+  "text": {
+    "scope": "latex",
+    "prefix": "\\text",
+    "body": [
+      "\\text{$0}"
+    ],
+    "description": "\\text{a}"
+  },
+  "textup": {
+    "scope": "latex",
+    "prefix": "\\textup",
+    "body": [
+      "\\textup{$0}"
+    ],
+    "description": "\\textup{a}"
+  },
+  "mathit": {
+    "scope": "latex",
+    "prefix": "\\mathit",
+    "body": [
+      "\\mathit{$0}"
+    ],
+    "description": "\\mathit{a}"
+  },
+  "textit": {
+    "scope": "latex",
+    "prefix": "\\textit",
+    "body": [
+      "\\textit{$0}"
+    ],
+    "description": "\\textit{a}"
+  },
+  "it": {
+    "scope": "latex",
+    "prefix": "\\it",
+    "body": [
+      "\\it{$0}"
+    ],
+    "description": "{\\it{a}}"
+  },
+  "emph": {
+    "scope": "latex",
+    "prefix": "\\emph",
+    "body": [
+      "\\emph{$0}"
+    ],
+    "description": "\\emph{a}"
+  },
+  "mathbf": {
+    "scope": "latex",
+    "prefix": "\\mathbf",
+    "body": [
+      "\\mathbf{$0}"
+    ],
+    "description": "\\mathbf{a}"
+  },
+  "textbf": {
+    "scope": "latex",
+    "prefix": "\\textbf",
+    "body": [
+      "\\textbf{$0}"
+    ],
+    "description": "\\textbf{a}"
+  },
+  "bf": {
+    "scope": "latex",
+    "prefix": "\\bf",
+    "body": [
+      "\\bf{$0}"
+    ],
+    "description": "{\\bf{a}}"
+  },
+  "bold": {
+    "scope": "latex",
+    "prefix": "\\bold",
+    "body": [
+      "\\bold{$0}"
+    ],
+    "description": "\\bold{a}"
+  },
+  "boldsymbol": {
+    "scope": "latex",
+    "prefix": "\\boldsymbol",
+    "body": [
+      "\\boldsymbol{$0}"
+    ],
+    "description": "\\boldsymbol{a}"
+  },
+  "bm": {
+    "scope": "latex",
+    "prefix": "\\bm",
+    "body": [
+      "\\bm{$0}"
+    ],
+    "description": "\\bm{a}"
+  },
+  "textmd": {
+    "scope": "latex",
+    "prefix": "\\textmd",
+    "body": [
+      "\\textmd{$0}"
+    ],
+    "description": "\\textmd{a}"
+  },
+  "mathtt": {
+    "scope": "latex",
+    "prefix": "\\mathtt",
+    "body": [
+      "\\mathtt{$0}"
+    ],
+    "description": "\\mathtt{a}"
+  },
+  "texttt": {
+    "scope": "latex",
+    "prefix": "\\texttt",
+    "body": [
+      "\\texttt{$0}"
+    ],
+    "description": "\\texttt{a}"
+  },
+  "tt": {
+    "scope": "latex",
+    "prefix": "\\tt",
+    "body": [
+      "\\tt{$0}"
+    ],
+    "description": "{\\tt{a}}"
+  },
+  "mathsf": {
+    "scope": "latex",
+    "prefix": "\\mathsf",
+    "body": [
+      "\\mathsf{$0}"
+    ],
+    "description": "\\mathsf{a}"
+  },
+  "textsf": {
+    "scope": "latex",
+    "prefix": "\\textsf",
+    "body": [
+      "\\textsf{$0}"
+    ],
+    "description": "\\textsf{a}"
+  },
+  "sf": {
+    "scope": "latex",
+    "prefix": "\\sf",
+    "body": [
+      "\\sf{$0}"
+    ],
+    "description": "{\\sf{a}}"
+  },
+  "mathsfit": {
+    "scope": "latex",
+    "prefix": "\\mathsfit",
+    "body": [
+      "\\mathsfit{$0}"
+    ],
+    "description": "\\mathsfit{a}"
+  },
+  "Bbb": {
+    "scope": "latex",
+    "prefix": "\\Bbb",
+    "body": [
+      "\\Bbb{$0}"
+    ],
+    "description": "\\Bbb{a}"
+  },
+  "mathbb": {
+    "scope": "latex",
+    "prefix": "\\mathbb",
+    "body": [
+      "\\mathbb{$0}"
+    ],
+    "description": "\\mathbb{a}"
+  },
+  "frak": {
+    "scope": "latex",
+    "prefix": "\\frak",
+    "body": [
+      "\\frak{$0}"
+    ],
+    "description": "\\frak{a}"
+  },
+  "mathfrak": {
+    "scope": "latex",
+    "prefix": "\\mathfrak",
+    "body": [
+      "\\mathfrak{$0}"
+    ],
+    "description": "\\mathfrak{a}"
+  },
+  "mathcal": {
+    "scope": "latex",
+    "prefix": "\\mathcal",
+    "body": [
+      "\\mathcal{$0}"
+    ],
+    "description": "\\mathcal{a}"
+  },
+  "cal": {
+    "scope": "latex",
+    "prefix": "\\cal",
+    "body": [
+      "\\cal{$0}"
+    ],
+    "description": "\\cal{a}"
+  },
+  "mathscr": {
+    "scope": "latex",
+    "prefix": "\\mathscr",
+    "body": [
+      "\\mathscr{$0}"
+    ],
+    "description": "\\mathscr{a}"
+  },
+  "acute": {
+    "scope": "latex",
+    "prefix": "\\acute",
+    "body": [
+      "\\acute{$0}"
+    ],
+    "description": "́a"
+  },
+  "bar": {
+    "scope": "latex",
+    "prefix": "\\bar",
+    "body": [
+      "\\bar{$0}"
+    ],
+    "description": "̄a"
+  },
+  "breve": {
+    "scope": "latex",
+    "prefix": "\\breve",
+    "body": [
+      "\\breve{$0}"
+    ],
+    "description": "̆a"
+  },
+  "check": {
+    "scope": "latex",
+    "prefix": "\\check",
+    "body": [
+      "\\check{$0}"
+    ],
+    "description": "\\check{a}"
+  },
+  "dot": {
+    "scope": "latex",
+    "prefix": "\\dot",
+    "body": [
+      "\\dot{$0}"
+    ],
+    "description": "̇a"
+  },
+  "ddot": {
+    "scope": "latex",
+    "prefix": "\\ddot",
+    "body": [
+      "\\ddot{$0}"
+    ],
+    "description": "̈a"
+  },
+  "dddot": {
+    "scope": "latex",
+    "prefix": "\\dddot",
+    "body": [
+      "\\dddot{$0}"
+    ],
+    "description": "\\dddot{a}"
+  },
+  "ddddot": {
+    "scope": "latex",
+    "prefix": "\\ddddot",
+    "body": [
+      "\\ddddot{$0}"
+    ],
+    "description": "\\ddddot{a}"
+  },
+  "grave": {
+    "scope": "latex",
+    "prefix": "\\grave",
+    "body": [
+      "\\grave{$0}"
+    ],
+    "description": "̀a"
+  },
+  "hat": {
+    "scope": "latex",
+    "prefix": "\\hat",
+    "body": [
+      "\\hat{$0}"
+    ],
+    "description": "̂a"
+  },
+  "tilde": {
+    "scope": "latex",
+    "prefix": "\\tilde",
+    "body": [
+      "\\tilde{$0}"
+    ],
+    "description": "̃a"
+  },
+  "mathring": {
+    "scope": "latex",
+    "prefix": "\\mathring",
+    "body": [
+      "\\mathring{$0}"
+    ],
+    "description": "\\mathring{a}"
+  },
+  "widetilde": {
+    "scope": "latex",
+    "prefix": "\\widetilde",
+    "body": [
+      "\\widetilde{$0}"
+    ],
+    "description": "\\widetilde{a}"
+  },
+  "overgroup": {
+    "scope": "latex",
+    "prefix": "\\overgroup",
+    "body": [
+      "\\overgroup{$0}"
+    ],
+    "description": "\\overgroup{a}"
+  },
+  "utilde": {
+    "scope": "latex",
+    "prefix": "\\utilde",
+    "body": [
+      "\\utilde{$0}"
+    ],
+    "description": "\\utilde{a}"
+  },
+  "vec": {
+    "scope": "latex",
+    "prefix": "\\vec",
+    "body": [
+      "\\vec{$0}"
+    ],
+    "description": "\\vec{a}"
+  },
+  "Overrightarrow": {
+    "scope": "latex",
+    "prefix": "\\Overrightarrow",
+    "body": [
+      "\\Overrightarrow{$0}"
+    ],
+    "description": "\\Overrightarrow{a}"
+  },
+  "overleftarrow": {
+    "scope": "latex",
+    "prefix": "\\overleftarrow",
+    "body": [
+      "\\overleftarrow{$0}"
+    ],
+    "description": "\\overleftarrow{a}"
+  },
+  "overrightarrow": {
+    "scope": "latex",
+    "prefix": "\\overrightarrow",
+    "body": [
+      "\\overrightarrow{$0}"
+    ],
+    "description": "\\overrightarrow{a}"
+  },
+  "underleftarrow": {
+    "scope": "latex",
+    "prefix": "\\underleftarrow",
+    "body": [
+      "\\underleftarrow{$0}"
+    ],
+    "description": "\\underleftarrow{a}"
+  },
+  "underrightarrow": {
+    "scope": "latex",
+    "prefix": "\\underrightarrow",
+    "body": [
+      "\\underrightarrow{$0}"
+    ],
+    "description": "\\underrightarrow{a}"
+  },
+  "overleftharpoon": {
+    "scope": "latex",
+    "prefix": "\\overleftharpoon",
+    "body": [
+      "\\overleftharpoon{$0}"
+    ],
+    "description": "\\overleftharpoon{a}"
+  },
+  "overrightharpoon": {
+    "scope": "latex",
+    "prefix": "\\overrightharpoon",
+    "body": [
+      "\\overrightharpoon{$0}"
+    ],
+    "description": "\\overrightharpoon{a}"
+  },
+  "overleftrightarrow": {
+    "scope": "latex",
+    "prefix": "\\overleftrightarrow",
+    "body": [
+      "\\overleftrightarrow{$0}"
+    ],
+    "description": "\\overleftrightarrow{a}"
+  },
+  "underleftrightarrow": {
+    "scope": "latex",
+    "prefix": "\\underleftrightarrow",
+    "body": [
+      "\\underleftrightarrow{$0}"
+    ],
+    "description": "\\underleftrightarrow{a}"
+  },
+  "overbrace": {
+    "scope": "latex",
+    "prefix": "\\overbrace",
+    "body": [
+      "\\overbrace{$0}"
+    ],
+    "description": "\\overbrace{a}"
+  },
+  "underbrace": {
+    "scope": "latex",
+    "prefix": "\\underbrace",
+    "body": [
+      "\\underbrace{$0}"
+    ],
+    "description": "\\underbrace{a}"
+  },
+  "overline": {
+    "scope": "latex",
+    "prefix": "\\overline",
+    "body": [
+      "\\overline{$0}"
+    ],
+    "description": "̅a"
+  },
+  "underline": {
+    "scope": "latex",
+    "prefix": "\\underline",
+    "body": [
+      "\\underline{$0}"
+    ],
+    "description": "\\underline{a}"
+  },
+  "overlinesegment": {
+    "scope": "latex",
+    "prefix": "\\overlinesegment",
+    "body": [
+      "\\overlinesegment{$0}"
+    ],
+    "description": "\\overlinesegment{a}"
+  },
+  "underlinesegment": {
+    "scope": "latex",
+    "prefix": "\\underlinesegment",
+    "body": [
+      "\\underlinesegment{$0}"
+    ],
+    "description": "\\underlinesegment{a}"
+  },
+  "widecheck": {
+    "scope": "latex",
+    "prefix": "\\widecheck",
+    "body": [
+      "\\widecheck{$0}"
+    ],
+    "description": "\\widecheck{a}"
+  },
+  "widehat": {
+    "scope": "latex",
+    "prefix": "\\widehat",
+    "body": [
+      "\\widehat{$0}"
+    ],
+    "description": "\\widehat{a}"
+  },
+  "underbar": {
+    "scope": "latex",
+    "prefix": "\\underbar",
+    "body": [
+      "\\underbar{$0}"
+    ],
+    "description": "\\underbar{a}"
+  },
+  "'": {
+    "scope": "latex",
+    "prefix": "\\'",
+    "body": [
+      "\\'{$0}"
+    ],
+    "description": "́a"
+  },
+  "~": {
+    "scope": "latex",
+    "prefix": "\\~",
+    "body": [
+      "\\~{$0}"
+    ],
+    "description": "̃a"
+  },
+  ".": {
+    "scope": "latex",
+    "prefix": "\\.",
+    "body": [
+      "\\.{$0}"
+    ],
+    "description": "̇a"
+  },
+  "H": {
+    "scope": "latex",
+    "prefix": "\\H",
+    "body": [
+      "\\H{$0}"
+    ],
+    "description": "̋a"
+  },
+  "=": {
+    "scope": "latex",
+    "prefix": "\\=",
+    "body": [
+      "\\={$0}"
+    ],
+    "description": "̄a"
+  },
+  "v": {
+    "scope": "latex",
+    "prefix": "\\v",
+    "body": [
+      "\\v{$0}"
+    ],
+    "description": "̌a"
+  },
+  "^": {
+    "scope": "latex",
+    "prefix": "\\^",
+    "body": [
+      "\\^{$0}"
+    ],
+    "description": "̂a"
+  },
+  "u": {
+    "scope": "latex",
+    "prefix": "\\u",
+    "body": [
+      "\\u{$0}"
+    ],
+    "description": "̆a"
+  },
+  "r": {
+    "scope": "latex",
+    "prefix": "\\r",
+    "body": [
+      "\\r{$0}"
+    ],
+    "description": "̊a"
+  },
+  "frac": {
+    "scope": "latex",
+    "prefix": "\\frac",
+    "body": [
+      "\\frac{$0}{$1}"
+    ],
+    "description": "a/b"
+  },
+  "tfrac": {
+    "scope": "latex",
+    "prefix": "\\tfrac",
+    "body": [
+      "\\tfrac{$0}{$1}"
+    ],
+    "description": "a/b"
+  },
+  "dfrac": {
+    "scope": "latex",
+    "prefix": "\\dfrac",
+    "body": [
+      "\\dfrac{$0}{$1}"
+    ],
+    "description": "a/b"
+  },
+  "cfrac": {
+    "scope": "latex",
+    "prefix": "\\cfrac",
+    "body": [
+      "\\cfrac{$0}{$1}"
+    ],
+    "description": "a/b"
+  },
+  "href": {
+    "scope": "latex",
+    "prefix": "\\href",
+    "body": [
+      "\\href{$0}{$1}"
+    ],
+    "description": "href{a}{b}"
+  },
+  "htmlId": {
+    "scope": "latex",
+    "prefix": "\\htmlId",
+    "body": [
+      "\\htmlId{$0}{$1}"
+    ],
+    "description": "htmlId{a}{b"
+  },
+  "htmlClass": {
+    "scope": "latex",
+    "prefix": "\\htmlClass",
+    "body": [
+      "\\htmlClass{$0}{$1}"
+    ],
+    "description": "htmlClass{a}{b"
+  },
+  "htmlStyle": {
+    "scope": "latex",
+    "prefix": "\\htmlStyle",
+    "body": [
+      "\\htmlStyle{$0}{$1}"
+    ],
+    "description": "htmlStyle{a}{b"
+  },
+  "htmlData": {
+    "scope": "latex",
+    "prefix": "\\htmlData",
+    "body": [
+      "\\htmlData{$0}{$1}"
+    ],
+    "description": "htmlData{a}{b"
+  },
+  "def": {
+    "scope": "latex",
+    "prefix": "\\def",
+    "body": [
+      "\\def$0{$1}"
+    ],
+    "description": "\\def"
+  },
+  "gdef": {
+    "scope": "latex",
+    "prefix": "\\gdef",
+    "body": [
+      "\\gdef$0{$1}"
+    ],
+    "description": "\\gdef"
+  },
+  "newcommand": {
+    "scope": "latex",
+    "prefix": "\\newcommand",
+    "body": [
+      "\\newcommand$0[$1]{$2}"
+    ],
+    "description": "\\newcommand"
+  },
+  "renewcommand": {
+    "scope": "latex",
+    "prefix": "\\renewcommand",
+    "body": [
+      "\\renewcommand$0[$1]{$2}"
+    ],
+    "description": "\\renewcommand"
+  },
+  "providecommand": {
+    "scope": "latex",
+    "prefix": "\\providecommand",
+    "body": [
+      "\\providecommand$0[$1]{$2}"
+    ],
+    "description": "\\providecommand"
+  },
+  "displaystyle": {
+    "scope": "latex",
+    "prefix": "\\displaystyle",
+    "body": [
+      "\\displaystyle {$0}"
+    ],
+    "description": "\\displaystyle"
+  },
+  "textstyle": {
+    "scope": "latex",
+    "prefix": "\\textstyle",
+    "body": [
+      "\\textstyle {$0}"
+    ],
+    "description": "\\textstyle"
+  },
+  "binom": {
+    "scope": "latex",
+    "prefix": "\\binom",
+    "body": [
+      "\\binom{$0}{$1}"
+    ],
+    "description": "\\binom"
+  },
+  "dbinom": {
+    "scope": "latex",
+    "prefix": "\\dbinom",
+    "body": [
+      "\\dbinom{$0}{$1}"
+    ],
+    "description": "\\dbinom"
+  },
+  "tbinom": {
+    "scope": "latex",
+    "prefix": "\\tbinom",
+    "body": [
+      "\\tbinom{$0}{$1}"
+    ],
+    "description": "\\tbinom"
+  },
+  "brace": {
+    "scope": "latex",
+    "prefix": "\\brace",
+    "body": [
+      "{$0 \\brace $1}"
+    ],
+    "description": "\\brace"
+  },
+  "brack": {
+    "scope": "latex",
+    "prefix": "\\brack",
+    "body": [
+      "{$0 \\brack $1}"
+    ],
+    "description": "\\brack"
+  },
+  "choose": {
+    "scope": "latex",
+    "prefix": "\\choose",
+    "body": [
+      "{$0 \\choose $1}"
+    ],
+    "description": "\\choose"
+  },
+  "over": {
+    "scope": "latex",
+    "prefix": "\\over",
+    "body": [
+      "{$0 \\over $1}"
+    ],
+    "description": "\\over"
+  },
+  "align": {
+    "scope": "latex",
+    "prefix": "\\align",
+    "body": [
+      "\\begin{align}\n{$0}\n\\end{align}"
+    ],
+    "description": "\\begin{align}"
+  },
+  "aligned": {
+    "scope": "latex",
+    "prefix": "\\aligned",
+    "body": [
+      "\\begin{aligned}\n{$0}\n\\end{aligned}"
+    ],
+    "description": "\\begin{aligned}"
+  },
+  "alignat": {
+    "scope": "latex",
+    "prefix": "\\alignat",
+    "body": [
+      "\\begin{alignat}\n{$0}\n\\end{alignat}"
+    ],
+    "description": "\\begin{alignat}"
+  },
+  "gather": {
+    "scope": "latex",
+    "prefix": "\\gather",
+    "body": [
+      "\\begin{gather}\n{$0}\n\\end{gather}"
+    ],
+    "description": "\\begin{gather}"
+  },
+  "gathered": {
+    "scope": "latex",
+    "prefix": "\\gathered",
+    "body": [
+      "\\begin{gathered}\n{$0}\n\\end{gathered}"
+    ],
+    "description": "\\begin{gathered}"
+  },
+  "equation": {
+    "scope": "latex",
+    "prefix": "\\equation",
+    "body": [
+      "\\begin{equation}\n{$0}\n\\end{equation}"
+    ],
+    "description": "\\begin{equation}"
+  },
+  "align*": {
+    "scope": "latex",
+    "prefix": "\\align*",
+    "body": [
+      "\\begin{align*}\n{$0}\n\\end{align*}"
+    ],
+    "description": "\\begin{align*}"
+  },
+  "alignat*": {
+    "scope": "latex",
+    "prefix": "\\alignat*",
+    "body": [
+      "\\begin{alignat*}\n{$0}\n\\end{alignat*}"
+    ],
+    "description": "\\begin{alignat*}"
+  },
+  "gather*": {
+    "scope": "latex",
+    "prefix": "\\gather*",
+    "body": [
+      "\\begin{gather*}\n{$0}\n\\end{gather*}"
+    ],
+    "description": "\\begin{gather*}"
+  },
+  "equation*": {
+    "scope": "latex",
+    "prefix": "\\equation*",
+    "body": [
+      "\\begin{equation*}\n{$0}\n\\end{equation*}"
+    ],
+    "description": "\\begin{equation*}"
+  },
+  "cases": {
+    "scope": "latex",
+    "prefix": "\\cases",
+    "body": [
+      "\\begin{cases}\n0, & p \\\\\n1, & q\n\\end{cases}"
+    ],
+    "description": "\\begin{cases}"
+  },
+  "rcases": {
+    "scope": "latex",
+    "prefix": "\\rcases",
+    "body": [
+      "\\begin{rcases}\n0, & p \\\\\n1, & q\n\\end{cases}"
+    ],
+    "description": "\\begin{rcases}"
+  },
+  "matrix": {
+    "scope": "latex",
+    "prefix": "\\matrix",
+    "body": [
+      "\\begin{smallmatrix}\n  a & b \\\\\n  c & d\n\\end{smallmatrix}"
+    ],
+    "description": "\\begin{smallmatrix}"
+  },
+  "CD": {
+    "scope": "latex",
+    "prefix": "\\CD",
+    "body": [
+      "\\begin{CD}\nA @>a>> B \\\\\n@VbVV @AAcA \\\\\nC @= D\n \\end{CD}"
+    ],
+    "description": "\\begin{CD}"
+  },
+  "Q": {
+    "scope": "latex",
+    "prefix": "\\Q",
+    "body": [
+      "\\mathbb{Q}"
+    ],
+    "description": "ℚ"
+  },
+  "C": {
+    "scope": "latex",
+    "prefix": "\\C",
+    "body": [
+      "\\mathbb{C}"
+    ],
+    "description": "ℂ"
+  },
+  "A": {
+    "scope": "latex",
+    "prefix": "\\A",
+    "body": [
+      "\\mathbb{A}"
+    ],
+    "description": "𝔸"
+  },
+  "F": {
+    "scope": "latex",
+    "prefix": "\\F",
+    "body": [
+      "\\mathbb{F}"
+    ],
+    "description": "𝔽"
+  }
+}
