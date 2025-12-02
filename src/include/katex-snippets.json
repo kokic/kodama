@@ -1131,7 +1131,7 @@
     "scope": "latex",
     "prefix": "\\`",
     "body": [
-      "\\`{$0}"
+      "\\`{$1}"
     ],
     "description": "̀a"
   },
@@ -1259,7 +1259,7 @@
     "scope": "latex",
     "prefix": "\\\"",
     "body": [
-      "\\\"{$0}"
+      "\\\"{$1}"
     ],
     "description": "̈a"
   },
@@ -4543,14 +4543,6 @@
     ],
     "description": "%"
   },
-  "\\": {
-    "scope": "latex",
-    "prefix": "\\\\",
-    "body": [
-      "\\\\"
-    ],
-    "description": "\n"
-  },
   "newline": {
     "scope": "latex",
     "prefix": "\\newline",
@@ -5299,7 +5291,7 @@
     "scope": "latex",
     "prefix": "\\sqrt",
     "body": [
-      "\\sqrt{$0}"
+      "\\sqrt{$1}"
     ],
     "description": "√a"
   },
@@ -5307,7 +5299,7 @@
     "scope": "latex",
     "prefix": "\\not",
     "body": [
-      "\\not{$0}"
+      "\\not{$1}"
     ],
     "description": "̸a"
   },
@@ -5315,7 +5307,7 @@
     "scope": "latex",
     "prefix": "\\url",
     "body": [
-      "\\url{$0}"
+      "\\url{$1}"
     ],
     "description": "\\url{a}"
   },
@@ -5323,7 +5315,7 @@
     "scope": "latex",
     "prefix": "\\cancel",
     "body": [
-      "\\cancel{$0}"
+      "\\cancel{$1}"
     ],
     "description": "\\cancel{a}"
   },
@@ -5331,7 +5323,7 @@
     "scope": "latex",
     "prefix": "\\bcancel",
     "body": [
-      "\\bcancel{$0}"
+      "\\bcancel{$1}"
     ],
     "description": "\\bcancel{a}"
   },
@@ -5339,7 +5331,7 @@
     "scope": "latex",
     "prefix": "\\xcancel",
     "body": [
-      "\\xcancel{$0}"
+      "\\xcancel{$1}"
     ],
     "description": "\\xcancel{a}"
   },
@@ -5347,7 +5339,7 @@
     "scope": "latex",
     "prefix": "\\sout",
     "body": [
-      "\\sout{$0}"
+      "\\sout{$1}"
     ],
     "description": "\\sout{a}"
   },
@@ -5355,7 +5347,7 @@
     "scope": "latex",
     "prefix": "\\boxed",
     "body": [
-      "\\boxed{$0}"
+      "\\boxed{$1}"
     ],
     "description": "\\boxed{a}"
   },
@@ -5363,7 +5355,7 @@
     "scope": "latex",
     "prefix": "\\phase",
     "body": [
-      "\\phase{$0}"
+      "\\phase{$1}"
     ],
     "description": "\\phase{a}"
   },
@@ -5371,7 +5363,7 @@
     "scope": "latex",
     "prefix": "\\tag",
     "body": [
-      "\\tag{$0}"
+      "\\tag{$1}"
     ],
     "description": "\\tag{a}"
   },
@@ -5379,7 +5371,7 @@
     "scope": "latex",
     "prefix": "\\tag*",
     "body": [
-      "\\tag*{$0}"
+      "\\tag*{$1}"
     ],
     "description": "\\tag*{a}"
   },
@@ -5387,7 +5379,7 @@
     "scope": "latex",
     "prefix": "\\raisebox",
     "body": [
-      "\\raisebox{$0}"
+      "\\raisebox{$1}"
     ],
     "description": "\\raisebox{a}"
   },
@@ -5395,7 +5387,7 @@
     "scope": "latex",
     "prefix": "\\kern",
     "body": [
-      "\\kern{$0}"
+      "\\kern{$1}"
     ],
     "description": "\\kern{a}"
   },
@@ -5403,7 +5395,7 @@
     "scope": "latex",
     "prefix": "\\mkern",
     "body": [
-      "\\mkern{$0}"
+      "\\mkern{$1}"
     ],
     "description": "\\mkern{a}"
   },
@@ -5411,7 +5403,7 @@
     "scope": "latex",
     "prefix": "\\mskip",
     "body": [
-      "\\mskip{$0}"
+      "\\mskip{$1}"
     ],
     "description": "\\mskip{a}"
   },
@@ -5419,7 +5411,7 @@
     "scope": "latex",
     "prefix": "\\hskip",
     "body": [
-      "\\hskip{$0}"
+      "\\hskip{$1}"
     ],
     "description": "\\hskip{a}"
   },
@@ -5427,7 +5419,7 @@
     "scope": "latex",
     "prefix": "\\hspace",
     "body": [
-      "\\hspace{$0}"
+      "\\hspace{$1}"
     ],
     "description": "\\hspace{a}"
   },
@@ -5435,7 +5427,7 @@
     "scope": "latex",
     "prefix": "\\hspace*",
     "body": [
-      "\\hspace*{$0}"
+      "\\hspace*{$1}"
     ],
     "description": "\\hspace*{a}"
   },
@@ -5443,7 +5435,7 @@
     "scope": "latex",
     "prefix": "\\phantom",
     "body": [
-      "\\phantom{$0}"
+      "\\phantom{$1}"
     ],
     "description": "\\phantom{a}"
   },
@@ -5451,7 +5443,7 @@
     "scope": "latex",
     "prefix": "\\hphantom",
     "body": [
-      "\\hphantom{$0}"
+      "\\hphantom{$1}"
     ],
     "description": "\\hphantom{a}"
   },
@@ -5459,7 +5451,7 @@
     "scope": "latex",
     "prefix": "\\vphantom",
     "body": [
-      "\\vphantom{$0}"
+      "\\vphantom{$1}"
     ],
     "description": "\\vphantom{a}"
   },
@@ -5467,7 +5459,7 @@
     "scope": "latex",
     "prefix": "\\bra",
     "body": [
-      "\\bra{$0}"
+      "\\bra{$1}"
     ],
     "description": "\\bra{a}"
   },
@@ -5475,7 +5467,7 @@
     "scope": "latex",
     "prefix": "\\ket",
     "body": [
-      "\\ket{$0}"
+      "\\ket{$1}"
     ],
     "description": "\\ket{a}"
   },
@@ -5483,7 +5475,7 @@
     "scope": "latex",
     "prefix": "\\braket",
     "body": [
-      "\\braket{$0}"
+      "\\braket{$1}"
     ],
     "description": "\\braket{a}"
   },
@@ -5491,7 +5483,7 @@
     "scope": "latex",
     "prefix": "\\Bra",
     "body": [
-      "\\Bra{$0}"
+      "\\Bra{$1}"
     ],
     "description": "\\Bra{a}"
   },
@@ -5499,7 +5491,7 @@
     "scope": "latex",
     "prefix": "\\Ket",
     "body": [
-      "\\Ket{$0}"
+      "\\Ket{$1}"
     ],
     "description": "\\Ket{a}"
   },
@@ -5507,7 +5499,7 @@
     "scope": "latex",
     "prefix": "\\Braket",
     "body": [
-      "\\Braket{$0}"
+      "\\Braket{$1}"
     ],
     "description": "\\Braket{a}"
   },
@@ -5515,7 +5507,7 @@
     "scope": "latex",
     "prefix": "\\Huge",
     "body": [
-      "\\Huge{$0}"
+      "\\Huge{$1}"
     ],
     "description": "{\\Huge a}"
   },
@@ -5523,7 +5515,7 @@
     "scope": "latex",
     "prefix": "\\huge",
     "body": [
-      "\\huge{$0}"
+      "\\huge{$1}"
     ],
     "description": "{\\huge a}"
   },
@@ -5531,7 +5523,7 @@
     "scope": "latex",
     "prefix": "\\LARGE",
     "body": [
-      "\\LARGE{$0}"
+      "\\LARGE{$1}"
     ],
     "description": "{\\LARGE a}"
   },
@@ -5539,7 +5531,7 @@
     "scope": "latex",
     "prefix": "\\Large",
     "body": [
-      "\\Large{$0}"
+      "\\Large{$1}"
     ],
     "description": "{\\Large a}"
   },
@@ -5547,7 +5539,7 @@
     "scope": "latex",
     "prefix": "\\large",
     "body": [
-      "\\large{$0}"
+      "\\large{$1}"
     ],
     "description": "{\\large a}"
   },
@@ -5555,7 +5547,7 @@
     "scope": "latex",
     "prefix": "\\normalsize",
     "body": [
-      "\\normalsize{$0}"
+      "\\normalsize{$1}"
     ],
     "description": "{\\normalsize a}"
   },
@@ -5563,7 +5555,7 @@
     "scope": "latex",
     "prefix": "\\small",
     "body": [
-      "\\small{$0}"
+      "\\small{$1}"
     ],
     "description": "{\\small a}"
   },
@@ -5571,7 +5563,7 @@
     "scope": "latex",
     "prefix": "\\footnotesize",
     "body": [
-      "\\footnotesize{$0}"
+      "\\footnotesize{$1}"
     ],
     "description": "{\\footnotesize a}"
   },
@@ -5579,7 +5571,7 @@
     "scope": "latex",
     "prefix": "\\scriptsize",
     "body": [
-      "\\scriptsize{$0}"
+      "\\scriptsize{$1}"
     ],
     "description": "{\\scriptsize a}"
   },
@@ -5587,7 +5579,7 @@
     "scope": "latex",
     "prefix": "\\tiny",
     "body": [
-      "\\tiny{$0}"
+      "\\tiny{$1}"
     ],
     "description": "{\\tiny a}"
   },
@@ -5595,7 +5587,7 @@
     "scope": "latex",
     "prefix": "\\left",
     "body": [
-      "\\left{$0}"
+      "\\left{$1}"
     ],
     "description": "\\left a"
   },
@@ -5603,7 +5595,7 @@
     "scope": "latex",
     "prefix": "\\middle",
     "body": [
-      "\\middle{$0}"
+      "\\middle{$1}"
     ],
     "description": "\\middle a"
   },
@@ -5611,7 +5603,7 @@
     "scope": "latex",
     "prefix": "\\right",
     "body": [
-      "\\right{$0}"
+      "\\right{$1}"
     ],
     "description": "\\right a"
   },
@@ -5619,7 +5611,7 @@
     "scope": "latex",
     "prefix": "\\big",
     "body": [
-      "\\big{$0}"
+      "\\big{$1}"
     ],
     "description": "\\big a"
   },
@@ -5627,7 +5619,7 @@
     "scope": "latex",
     "prefix": "\\bigl",
     "body": [
-      "\\bigl{$0}"
+      "\\bigl{$1}"
     ],
     "description": "\\bigl a"
   },
@@ -5635,7 +5627,7 @@
     "scope": "latex",
     "prefix": "\\bigm",
     "body": [
-      "\\bigm{$0}"
+      "\\bigm{$1}"
     ],
     "description": "\\bigm a"
   },
@@ -5643,7 +5635,7 @@
     "scope": "latex",
     "prefix": "\\bigr",
     "body": [
-      "\\bigr{$0}"
+      "\\bigr{$1}"
     ],
     "description": "\\bigr a"
   },
@@ -5651,7 +5643,7 @@
     "scope": "latex",
     "prefix": "\\Big",
     "body": [
-      "\\Big{$0}"
+      "\\Big{$1}"
     ],
     "description": "\\Big a"
   },
@@ -5659,7 +5651,7 @@
     "scope": "latex",
     "prefix": "\\Bigl",
     "body": [
-      "\\Bigl{$0}"
+      "\\Bigl{$1}"
     ],
     "description": "\\Bigl a"
   },
@@ -5667,7 +5659,7 @@
     "scope": "latex",
     "prefix": "\\Bigm",
     "body": [
-      "\\Bigm{$0}"
+      "\\Bigm{$1}"
     ],
     "description": "\\Bigm a"
   },
@@ -5675,7 +5667,7 @@
     "scope": "latex",
     "prefix": "\\Bigr",
     "body": [
-      "\\Bigr{$0}"
+      "\\Bigr{$1}"
     ],
     "description": "\\Bigr a"
   },
@@ -5683,7 +5675,7 @@
     "scope": "latex",
     "prefix": "\\bigg",
     "body": [
-      "\\bigg{$0}"
+      "\\bigg{$1}"
     ],
     "description": "\\bigg a"
   },
@@ -5691,7 +5683,7 @@
     "scope": "latex",
     "prefix": "\\biggl",
     "body": [
-      "\\biggl{$0}"
+      "\\biggl{$1}"
     ],
     "description": "\\biggl a"
   },
@@ -5699,7 +5691,7 @@
     "scope": "latex",
     "prefix": "\\biggm",
     "body": [
-      "\\biggm{$0}"
+      "\\biggm{$1}"
     ],
     "description": "\\biggm a"
   },
@@ -5707,7 +5699,7 @@
     "scope": "latex",
     "prefix": "\\biggr",
     "body": [
-      "\\biggr{$0}"
+      "\\biggr{$1}"
     ],
     "description": "\\biggr a"
   },
@@ -5715,7 +5707,7 @@
     "scope": "latex",
     "prefix": "\\Bigg",
     "body": [
-      "\\Bigg{$0}"
+      "\\Bigg{$1}"
     ],
     "description": "\\Bigg a"
   },
@@ -5723,7 +5715,7 @@
     "scope": "latex",
     "prefix": "\\Biggl",
     "body": [
-      "\\Biggl{$0}"
+      "\\Biggl{$1}"
     ],
     "description": "\\Biggl a"
   },
@@ -5731,7 +5723,7 @@
     "scope": "latex",
     "prefix": "\\Biggm",
     "body": [
-      "\\Biggm{$0}"
+      "\\Biggm{$1}"
     ],
     "description": "\\Biggm a"
   },
@@ -5739,7 +5731,7 @@
     "scope": "latex",
     "prefix": "\\Biggr",
     "body": [
-      "\\Biggr{$0}"
+      "\\Biggr{$1}"
     ],
     "description": "\\Biggr a"
   },
@@ -5747,7 +5739,7 @@
     "scope": "latex",
     "prefix": "\\mathrm",
     "body": [
-      "\\mathrm{$0}"
+      "\\mathrm{$1}"
     ],
     "description": "\\mathrm{a}"
   },
@@ -5755,7 +5747,7 @@
     "scope": "latex",
     "prefix": "\\mathnormal",
     "body": [
-      "\\mathnormal{$0}"
+      "\\mathnormal{$1}"
     ],
     "description": "\\mathnormal{a}"
   },
@@ -5763,7 +5755,7 @@
     "scope": "latex",
     "prefix": "\\textrm",
     "body": [
-      "\\textrm{$0}"
+      "\\textrm{$1}"
     ],
     "description": "\\textrm{a}"
   },
@@ -5771,7 +5763,7 @@
     "scope": "latex",
     "prefix": "\\rm",
     "body": [
-      "\\rm{$0}"
+      "\\rm{$1}"
     ],
     "description": "{\\rm{a}}"
   },
@@ -5779,7 +5771,7 @@
     "scope": "latex",
     "prefix": "\\textnormal",
     "body": [
-      "\\textnormal{$0}"
+      "\\textnormal{$1}"
     ],
     "description": "\\textnormal{a}"
   },
@@ -5787,7 +5779,7 @@
     "scope": "latex",
     "prefix": "\\text",
     "body": [
-      "\\text{$0}"
+      "\\text{$1}"
     ],
     "description": "\\text{a}"
   },
@@ -5795,7 +5787,7 @@
     "scope": "latex",
     "prefix": "\\textup",
     "body": [
-      "\\textup{$0}"
+      "\\textup{$1}"
     ],
     "description": "\\textup{a}"
   },
@@ -5803,7 +5795,7 @@
     "scope": "latex",
     "prefix": "\\mathit",
     "body": [
-      "\\mathit{$0}"
+      "\\mathit{$1}"
     ],
     "description": "\\mathit{a}"
   },
@@ -5811,7 +5803,7 @@
     "scope": "latex",
     "prefix": "\\textit",
     "body": [
-      "\\textit{$0}"
+      "\\textit{$1}"
     ],
     "description": "\\textit{a}"
   },
@@ -5819,7 +5811,7 @@
     "scope": "latex",
     "prefix": "\\it",
     "body": [
-      "\\it{$0}"
+      "\\it{$1}"
     ],
     "description": "{\\it{a}}"
   },
@@ -5827,7 +5819,7 @@
     "scope": "latex",
     "prefix": "\\emph",
     "body": [
-      "\\emph{$0}"
+      "\\emph{$1}"
     ],
     "description": "\\emph{a}"
   },
@@ -5835,7 +5827,7 @@
     "scope": "latex",
     "prefix": "\\mathbf",
     "body": [
-      "\\mathbf{$0}"
+      "\\mathbf{$1}"
     ],
     "description": "\\mathbf{a}"
   },
@@ -5843,7 +5835,7 @@
     "scope": "latex",
     "prefix": "\\textbf",
     "body": [
-      "\\textbf{$0}"
+      "\\textbf{$1}"
     ],
     "description": "\\textbf{a}"
   },
@@ -5851,7 +5843,7 @@
     "scope": "latex",
     "prefix": "\\bf",
     "body": [
-      "\\bf{$0}"
+      "\\bf{$1}"
     ],
     "description": "{\\bf{a}}"
   },
@@ -5859,7 +5851,7 @@
     "scope": "latex",
     "prefix": "\\bold",
     "body": [
-      "\\bold{$0}"
+      "\\bold{$1}"
     ],
     "description": "\\bold{a}"
   },
@@ -5867,7 +5859,7 @@
     "scope": "latex",
     "prefix": "\\boldsymbol",
     "body": [
-      "\\boldsymbol{$0}"
+      "\\boldsymbol{$1}"
     ],
     "description": "\\boldsymbol{a}"
   },
@@ -5875,7 +5867,7 @@
     "scope": "latex",
     "prefix": "\\bm",
     "body": [
-      "\\bm{$0}"
+      "\\bm{$1}"
     ],
     "description": "\\bm{a}"
   },
@@ -5883,7 +5875,7 @@
     "scope": "latex",
     "prefix": "\\textmd",
     "body": [
-      "\\textmd{$0}"
+      "\\textmd{$1}"
     ],
     "description": "\\textmd{a}"
   },
@@ -5891,7 +5883,7 @@
     "scope": "latex",
     "prefix": "\\mathtt",
     "body": [
-      "\\mathtt{$0}"
+      "\\mathtt{$1}"
     ],
     "description": "\\mathtt{a}"
   },
@@ -5899,7 +5891,7 @@
     "scope": "latex",
     "prefix": "\\texttt",
     "body": [
-      "\\texttt{$0}"
+      "\\texttt{$1}"
     ],
     "description": "\\texttt{a}"
   },
@@ -5907,7 +5899,7 @@
     "scope": "latex",
     "prefix": "\\tt",
     "body": [
-      "\\tt{$0}"
+      "\\tt{$1}"
     ],
     "description": "{\\tt{a}}"
   },
@@ -5915,7 +5907,7 @@
     "scope": "latex",
     "prefix": "\\mathsf",
     "body": [
-      "\\mathsf{$0}"
+      "\\mathsf{$1}"
     ],
     "description": "\\mathsf{a}"
   },
@@ -5923,7 +5915,7 @@
     "scope": "latex",
     "prefix": "\\textsf",
     "body": [
-      "\\textsf{$0}"
+      "\\textsf{$1}"
     ],
     "description": "\\textsf{a}"
   },
@@ -5931,7 +5923,7 @@
     "scope": "latex",
     "prefix": "\\sf",
     "body": [
-      "\\sf{$0}"
+      "\\sf{$1}"
     ],
     "description": "{\\sf{a}}"
   },
@@ -5939,7 +5931,7 @@
     "scope": "latex",
     "prefix": "\\mathsfit",
     "body": [
-      "\\mathsfit{$0}"
+      "\\mathsfit{$1}"
     ],
     "description": "\\mathsfit{a}"
   },
@@ -5947,7 +5939,7 @@
     "scope": "latex",
     "prefix": "\\Bbb",
     "body": [
-      "\\Bbb{$0}"
+      "\\Bbb{$1}"
     ],
     "description": "\\Bbb{a}"
   },
@@ -5955,7 +5947,7 @@
     "scope": "latex",
     "prefix": "\\mathbb",
     "body": [
-      "\\mathbb{$0}"
+      "\\mathbb{$1}"
     ],
     "description": "\\mathbb{a}"
   },
@@ -5963,7 +5955,7 @@
     "scope": "latex",
     "prefix": "\\frak",
     "body": [
-      "\\frak{$0}"
+      "\\frak{$1}"
     ],
     "description": "\\frak{a}"
   },
@@ -5971,7 +5963,7 @@
     "scope": "latex",
     "prefix": "\\mathfrak",
     "body": [
-      "\\mathfrak{$0}"
+      "\\mathfrak{$1}"
     ],
     "description": "\\mathfrak{a}"
   },
@@ -5979,7 +5971,7 @@
     "scope": "latex",
     "prefix": "\\mathcal",
     "body": [
-      "\\mathcal{$0}"
+      "\\mathcal{$1}"
     ],
     "description": "\\mathcal{a}"
   },
@@ -5987,7 +5979,7 @@
     "scope": "latex",
     "prefix": "\\cal",
     "body": [
-      "\\cal{$0}"
+      "\\cal{$1}"
     ],
     "description": "\\cal{a}"
   },
@@ -5995,7 +5987,7 @@
     "scope": "latex",
     "prefix": "\\mathscr",
     "body": [
-      "\\mathscr{$0}"
+      "\\mathscr{$1}"
     ],
     "description": "\\mathscr{a}"
   },
@@ -6003,7 +5995,7 @@
     "scope": "latex",
     "prefix": "\\acute",
     "body": [
-      "\\acute{$0}"
+      "\\acute{$1}"
     ],
     "description": "́a"
   },
@@ -6011,7 +6003,7 @@
     "scope": "latex",
     "prefix": "\\bar",
     "body": [
-      "\\bar{$0}"
+      "\\bar{$1}"
     ],
     "description": "̄a"
   },
@@ -6019,7 +6011,7 @@
     "scope": "latex",
     "prefix": "\\breve",
     "body": [
-      "\\breve{$0}"
+      "\\breve{$1}"
     ],
     "description": "̆a"
   },
@@ -6027,7 +6019,7 @@
     "scope": "latex",
     "prefix": "\\check",
     "body": [
-      "\\check{$0}"
+      "\\check{$1}"
     ],
     "description": "\\check{a}"
   },
@@ -6035,7 +6027,7 @@
     "scope": "latex",
     "prefix": "\\dot",
     "body": [
-      "\\dot{$0}"
+      "\\dot{$1}"
     ],
     "description": "̇a"
   },
@@ -6043,7 +6035,7 @@
     "scope": "latex",
     "prefix": "\\ddot",
     "body": [
-      "\\ddot{$0}"
+      "\\ddot{$1}"
     ],
     "description": "̈a"
   },
@@ -6051,7 +6043,7 @@
     "scope": "latex",
     "prefix": "\\dddot",
     "body": [
-      "\\dddot{$0}"
+      "\\dddot{$1}"
     ],
     "description": "\\dddot{a}"
   },
@@ -6059,7 +6051,7 @@
     "scope": "latex",
     "prefix": "\\ddddot",
     "body": [
-      "\\ddddot{$0}"
+      "\\ddddot{$1}"
     ],
     "description": "\\ddddot{a}"
   },
@@ -6067,7 +6059,7 @@
     "scope": "latex",
     "prefix": "\\grave",
     "body": [
-      "\\grave{$0}"
+      "\\grave{$1}"
     ],
     "description": "̀a"
   },
@@ -6075,7 +6067,7 @@
     "scope": "latex",
     "prefix": "\\hat",
     "body": [
-      "\\hat{$0}"
+      "\\hat{$1}"
     ],
     "description": "̂a"
   },
@@ -6083,7 +6075,7 @@
     "scope": "latex",
     "prefix": "\\tilde",
     "body": [
-      "\\tilde{$0}"
+      "\\tilde{$1}"
     ],
     "description": "̃a"
   },
@@ -6091,7 +6083,7 @@
     "scope": "latex",
     "prefix": "\\mathring",
     "body": [
-      "\\mathring{$0}"
+      "\\mathring{$1}"
     ],
     "description": "\\mathring{a}"
   },
@@ -6099,7 +6091,7 @@
     "scope": "latex",
     "prefix": "\\widetilde",
     "body": [
-      "\\widetilde{$0}"
+      "\\widetilde{$1}"
     ],
     "description": "\\widetilde{a}"
   },
@@ -6107,7 +6099,7 @@
     "scope": "latex",
     "prefix": "\\overgroup",
     "body": [
-      "\\overgroup{$0}"
+      "\\overgroup{$1}"
     ],
     "description": "\\overgroup{a}"
   },
@@ -6115,7 +6107,7 @@
     "scope": "latex",
     "prefix": "\\utilde",
     "body": [
-      "\\utilde{$0}"
+      "\\utilde{$1}"
     ],
     "description": "\\utilde{a}"
   },
@@ -6123,7 +6115,7 @@
     "scope": "latex",
     "prefix": "\\vec",
     "body": [
-      "\\vec{$0}"
+      "\\vec{$1}"
     ],
     "description": "\\vec{a}"
   },
@@ -6131,7 +6123,7 @@
     "scope": "latex",
     "prefix": "\\Overrightarrow",
     "body": [
-      "\\Overrightarrow{$0}"
+      "\\Overrightarrow{$1}"
     ],
     "description": "\\Overrightarrow{a}"
   },
@@ -6139,7 +6131,7 @@
     "scope": "latex",
     "prefix": "\\overleftarrow",
     "body": [
-      "\\overleftarrow{$0}"
+      "\\overleftarrow{$1}"
     ],
     "description": "\\overleftarrow{a}"
   },
@@ -6147,7 +6139,7 @@
     "scope": "latex",
     "prefix": "\\overrightarrow",
     "body": [
-      "\\overrightarrow{$0}"
+      "\\overrightarrow{$1}"
     ],
     "description": "\\overrightarrow{a}"
   },
@@ -6155,7 +6147,7 @@
     "scope": "latex",
     "prefix": "\\underleftarrow",
     "body": [
-      "\\underleftarrow{$0}"
+      "\\underleftarrow{$1}"
     ],
     "description": "\\underleftarrow{a}"
   },
@@ -6163,7 +6155,7 @@
     "scope": "latex",
     "prefix": "\\underrightarrow",
     "body": [
-      "\\underrightarrow{$0}"
+      "\\underrightarrow{$1}"
     ],
     "description": "\\underrightarrow{a}"
   },
@@ -6171,7 +6163,7 @@
     "scope": "latex",
     "prefix": "\\overleftharpoon",
     "body": [
-      "\\overleftharpoon{$0}"
+      "\\overleftharpoon{$1}"
     ],
     "description": "\\overleftharpoon{a}"
   },
@@ -6179,7 +6171,7 @@
     "scope": "latex",
     "prefix": "\\overrightharpoon",
     "body": [
-      "\\overrightharpoon{$0}"
+      "\\overrightharpoon{$1}"
     ],
     "description": "\\overrightharpoon{a}"
   },
@@ -6187,7 +6179,7 @@
     "scope": "latex",
     "prefix": "\\overleftrightarrow",
     "body": [
-      "\\overleftrightarrow{$0}"
+      "\\overleftrightarrow{$1}"
     ],
     "description": "\\overleftrightarrow{a}"
   },
@@ -6195,7 +6187,7 @@
     "scope": "latex",
     "prefix": "\\underleftrightarrow",
     "body": [
-      "\\underleftrightarrow{$0}"
+      "\\underleftrightarrow{$1}"
     ],
     "description": "\\underleftrightarrow{a}"
   },
@@ -6203,7 +6195,7 @@
     "scope": "latex",
     "prefix": "\\overbrace",
     "body": [
-      "\\overbrace{$0}"
+      "\\overbrace{$1}"
     ],
     "description": "\\overbrace{a}"
   },
@@ -6211,7 +6203,7 @@
     "scope": "latex",
     "prefix": "\\underbrace",
     "body": [
-      "\\underbrace{$0}"
+      "\\underbrace{$1}"
     ],
     "description": "\\underbrace{a}"
   },
@@ -6219,7 +6211,7 @@
     "scope": "latex",
     "prefix": "\\overline",
     "body": [
-      "\\overline{$0}"
+      "\\overline{$1}"
     ],
     "description": "̅a"
   },
@@ -6227,7 +6219,7 @@
     "scope": "latex",
     "prefix": "\\underline",
     "body": [
-      "\\underline{$0}"
+      "\\underline{$1}"
     ],
     "description": "\\underline{a}"
   },
@@ -6235,7 +6227,7 @@
     "scope": "latex",
     "prefix": "\\overlinesegment",
     "body": [
-      "\\overlinesegment{$0}"
+      "\\overlinesegment{$1}"
     ],
     "description": "\\overlinesegment{a}"
   },
@@ -6243,7 +6235,7 @@
     "scope": "latex",
     "prefix": "\\underlinesegment",
     "body": [
-      "\\underlinesegment{$0}"
+      "\\underlinesegment{$1}"
     ],
     "description": "\\underlinesegment{a}"
   },
@@ -6251,7 +6243,7 @@
     "scope": "latex",
     "prefix": "\\widecheck",
     "body": [
-      "\\widecheck{$0}"
+      "\\widecheck{$1}"
     ],
     "description": "\\widecheck{a}"
   },
@@ -6259,7 +6251,7 @@
     "scope": "latex",
     "prefix": "\\widehat",
     "body": [
-      "\\widehat{$0}"
+      "\\widehat{$1}"
     ],
     "description": "\\widehat{a}"
   },
@@ -6267,7 +6259,7 @@
     "scope": "latex",
     "prefix": "\\underbar",
     "body": [
-      "\\underbar{$0}"
+      "\\underbar{$1}"
     ],
     "description": "\\underbar{a}"
   },
@@ -6275,7 +6267,7 @@
     "scope": "latex",
     "prefix": "\\'",
     "body": [
-      "\\'{$0}"
+      "\\'{$1}"
     ],
     "description": "́a"
   },
@@ -6283,7 +6275,7 @@
     "scope": "latex",
     "prefix": "\\~",
     "body": [
-      "\\~{$0}"
+      "\\~{$1}"
     ],
     "description": "̃a"
   },
@@ -6291,7 +6283,7 @@
     "scope": "latex",
     "prefix": "\\.",
     "body": [
-      "\\.{$0}"
+      "\\.{$1}"
     ],
     "description": "̇a"
   },
@@ -6299,7 +6291,7 @@
     "scope": "latex",
     "prefix": "\\H",
     "body": [
-      "\\H{$0}"
+      "\\H{$1}"
     ],
     "description": "̋a"
   },
@@ -6307,7 +6299,7 @@
     "scope": "latex",
     "prefix": "\\=",
     "body": [
-      "\\={$0}"
+      "\\={$1}"
     ],
     "description": "̄a"
   },
@@ -6315,7 +6307,7 @@
     "scope": "latex",
     "prefix": "\\v",
     "body": [
-      "\\v{$0}"
+      "\\v{$1}"
     ],
     "description": "̌a"
   },
@@ -6323,7 +6315,7 @@
     "scope": "latex",
     "prefix": "\\^",
     "body": [
-      "\\^{$0}"
+      "\\^{$1}"
     ],
     "description": "̂a"
   },
@@ -6331,7 +6323,7 @@
     "scope": "latex",
     "prefix": "\\u",
     "body": [
-      "\\u{$0}"
+      "\\u{$1}"
     ],
     "description": "̆a"
   },
@@ -6339,7 +6331,7 @@
     "scope": "latex",
     "prefix": "\\r",
     "body": [
-      "\\r{$0}"
+      "\\r{$1}"
     ],
     "description": "̊a"
   },
@@ -6347,7 +6339,7 @@
     "scope": "latex",
     "prefix": "\\frac",
     "body": [
-      "\\frac{$0}{$1}"
+      "\\frac{$1}{$2}"
     ],
     "description": "a/b"
   },
@@ -6355,7 +6347,7 @@
     "scope": "latex",
     "prefix": "\\tfrac",
     "body": [
-      "\\tfrac{$0}{$1}"
+      "\\tfrac{$1}{$2}"
     ],
     "description": "a/b"
   },
@@ -6363,7 +6355,7 @@
     "scope": "latex",
     "prefix": "\\dfrac",
     "body": [
-      "\\dfrac{$0}{$1}"
+      "\\dfrac{$1}{$2}"
     ],
     "description": "a/b"
   },
@@ -6371,7 +6363,7 @@
     "scope": "latex",
     "prefix": "\\cfrac",
     "body": [
-      "\\cfrac{$0}{$1}"
+      "\\cfrac{$1}{$2}"
     ],
     "description": "a/b"
   },
@@ -6379,7 +6371,7 @@
     "scope": "latex",
     "prefix": "\\href",
     "body": [
-      "\\href{$0}{$1}"
+      "\\href{$1}{$2}"
     ],
     "description": "href{a}{b}"
   },
@@ -6387,7 +6379,7 @@
     "scope": "latex",
     "prefix": "\\htmlId",
     "body": [
-      "\\htmlId{$0}{$1}"
+      "\\htmlId{$1}{$2}"
     ],
     "description": "htmlId{a}{b"
   },
@@ -6395,7 +6387,7 @@
     "scope": "latex",
     "prefix": "\\htmlClass",
     "body": [
-      "\\htmlClass{$0}{$1}"
+      "\\htmlClass{$1}{$2}"
     ],
     "description": "htmlClass{a}{b"
   },
@@ -6403,7 +6395,7 @@
     "scope": "latex",
     "prefix": "\\htmlStyle",
     "body": [
-      "\\htmlStyle{$0}{$1}"
+      "\\htmlStyle{$1}{$2}"
     ],
     "description": "htmlStyle{a}{b"
   },
@@ -6411,7 +6403,7 @@
     "scope": "latex",
     "prefix": "\\htmlData",
     "body": [
-      "\\htmlData{$0}{$1}"
+      "\\htmlData{$1}{$2}"
     ],
     "description": "htmlData{a}{b"
   },
@@ -6419,7 +6411,7 @@
     "scope": "latex",
     "prefix": "\\def",
     "body": [
-      "\\def$0{$1}"
+      "\\def$1{$2}"
     ],
     "description": "\\def"
   },
@@ -6427,7 +6419,7 @@
     "scope": "latex",
     "prefix": "\\gdef",
     "body": [
-      "\\gdef$0{$1}"
+      "\\gdef$1{$2}"
     ],
     "description": "\\gdef"
   },
@@ -6435,7 +6427,7 @@
     "scope": "latex",
     "prefix": "\\newcommand",
     "body": [
-      "\\newcommand$0[$1]{$2}"
+      "\\newcommand$1[$2]{$2}"
     ],
     "description": "\\newcommand"
   },
@@ -6443,7 +6435,7 @@
     "scope": "latex",
     "prefix": "\\renewcommand",
     "body": [
-      "\\renewcommand$0[$1]{$2}"
+      "\\renewcommand$1[$2]{$2}"
     ],
     "description": "\\renewcommand"
   },
@@ -6451,7 +6443,7 @@
     "scope": "latex",
     "prefix": "\\providecommand",
     "body": [
-      "\\providecommand$0[$1]{$2}"
+      "\\providecommand$1[$2]{$2}"
     ],
     "description": "\\providecommand"
   },
@@ -6459,7 +6451,7 @@
     "scope": "latex",
     "prefix": "\\displaystyle",
     "body": [
-      "\\displaystyle {$0}"
+      "\\displaystyle {$1}"
     ],
     "description": "\\displaystyle"
   },
@@ -6467,7 +6459,7 @@
     "scope": "latex",
     "prefix": "\\textstyle",
     "body": [
-      "\\textstyle {$0}"
+      "\\textstyle {$1}"
     ],
     "description": "\\textstyle"
   },
@@ -6475,7 +6467,7 @@
     "scope": "latex",
     "prefix": "\\binom",
     "body": [
-      "\\binom{$0}{$1}"
+      "\\binom{$1}{$2}"
     ],
     "description": "\\binom"
   },
@@ -6483,7 +6475,7 @@
     "scope": "latex",
     "prefix": "\\dbinom",
     "body": [
-      "\\dbinom{$0}{$1}"
+      "\\dbinom{$1}{$2}"
     ],
     "description": "\\dbinom"
   },
@@ -6491,7 +6483,7 @@
     "scope": "latex",
     "prefix": "\\tbinom",
     "body": [
-      "\\tbinom{$0}{$1}"
+      "\\tbinom{$1}{$2}"
     ],
     "description": "\\tbinom"
   },
@@ -6499,7 +6491,7 @@
     "scope": "latex",
     "prefix": "\\brace",
     "body": [
-      "{$0 \\brace $1}"
+      "{$1 \\brace $2}"
     ],
     "description": "\\brace"
   },
@@ -6507,7 +6499,7 @@
     "scope": "latex",
     "prefix": "\\brack",
     "body": [
-      "{$0 \\brack $1}"
+      "{$1 \\brack $2}"
     ],
     "description": "\\brack"
   },
@@ -6515,7 +6507,7 @@
     "scope": "latex",
     "prefix": "\\choose",
     "body": [
-      "{$0 \\choose $1}"
+      "{$1 \\choose $2}"
     ],
     "description": "\\choose"
   },
@@ -6523,7 +6515,7 @@
     "scope": "latex",
     "prefix": "\\over",
     "body": [
-      "{$0 \\over $1}"
+      "{$1 \\over $2}"
     ],
     "description": "\\over"
   },
@@ -6531,7 +6523,7 @@
     "scope": "latex",
     "prefix": "\\align",
     "body": [
-      "\\begin{align}\n{$0}\n\\end{align}"
+      "\\begin{align}\n$1\n\\end{align}"
     ],
     "description": "\\begin{align}"
   },
@@ -6539,7 +6531,7 @@
     "scope": "latex",
     "prefix": "\\aligned",
     "body": [
-      "\\begin{aligned}\n{$0}\n\\end{aligned}"
+      "\\begin{aligned}\n$1\n\\end{aligned}"
     ],
     "description": "\\begin{aligned}"
   },
@@ -6547,7 +6539,7 @@
     "scope": "latex",
     "prefix": "\\alignat",
     "body": [
-      "\\begin{alignat}\n{$0}\n\\end{alignat}"
+      "\\begin{alignat}\n$1\n\\end{alignat}"
     ],
     "description": "\\begin{alignat}"
   },
@@ -6555,7 +6547,7 @@
     "scope": "latex",
     "prefix": "\\gather",
     "body": [
-      "\\begin{gather}\n{$0}\n\\end{gather}"
+      "\\begin{gather}\n$1\n\\end{gather}"
     ],
     "description": "\\begin{gather}"
   },
@@ -6563,7 +6555,7 @@
     "scope": "latex",
     "prefix": "\\gathered",
     "body": [
-      "\\begin{gathered}\n{$0}\n\\end{gathered}"
+      "\\begin{gathered}\n$1\n\\end{gathered}"
     ],
     "description": "\\begin{gathered}"
   },
@@ -6571,7 +6563,7 @@
     "scope": "latex",
     "prefix": "\\equation",
     "body": [
-      "\\begin{equation}\n{$0}\n\\end{equation}"
+      "\\begin{equation}\n$1\n\\end{equation}"
     ],
     "description": "\\begin{equation}"
   },
@@ -6579,7 +6571,7 @@
     "scope": "latex",
     "prefix": "\\align*",
     "body": [
-      "\\begin{align*}\n{$0}\n\\end{align*}"
+      "\\begin{align*}\n$1\n\\end{align*}"
     ],
     "description": "\\begin{align*}"
   },
@@ -6587,7 +6579,7 @@
     "scope": "latex",
     "prefix": "\\alignat*",
     "body": [
-      "\\begin{alignat*}\n{$0}\n\\end{alignat*}"
+      "\\begin{alignat*}\n$1\n\\end{alignat*}"
     ],
     "description": "\\begin{alignat*}"
   },
@@ -6595,7 +6587,7 @@
     "scope": "latex",
     "prefix": "\\gather*",
     "body": [
-      "\\begin{gather*}\n{$0}\n\\end{gather*}"
+      "\\begin{gather*}\n$1\n\\end{gather*}"
     ],
     "description": "\\begin{gather*}"
   },
@@ -6603,7 +6595,7 @@
     "scope": "latex",
     "prefix": "\\equation*",
     "body": [
-      "\\begin{equation*}\n{$0}\n\\end{equation*}"
+      "\\begin{equation*}\n$1\n\\end{equation*}"
     ],
     "description": "\\begin{equation*}"
   },
@@ -6611,7 +6603,7 @@
     "scope": "latex",
     "prefix": "\\cases",
     "body": [
-      "\\begin{cases}\n0, & p \\\\\n1, & q\n\\end{cases}"
+      "\\begin{cases}\n0, & p \\\\\\\\\n1, & q\n\\end{cases}"
     ],
     "description": "\\begin{cases}"
   },
@@ -6619,7 +6611,7 @@
     "scope": "latex",
     "prefix": "\\rcases",
     "body": [
-      "\\begin{rcases}\n0, & p \\\\\n1, & q\n\\end{cases}"
+      "\\begin{rcases}\n0, & p \\\\\\\\\n1, & q\n\\end{cases}"
     ],
     "description": "\\begin{rcases}"
   },
@@ -6627,7 +6619,55 @@
     "scope": "latex",
     "prefix": "\\matrix",
     "body": [
-      "\\begin{smallmatrix}\n  a & b \\\\\n  c & d\n\\end{smallmatrix}"
+      "\\begin{matrix}\n  a & b \\\\\\\\\n  c & d\n\\end{matrix}"
+    ],
+    "description": "\\begin{matrix}"
+  },
+  "pmatrix": {
+    "scope": "latex",
+    "prefix": "\\pmatrix",
+    "body": [
+      "\\begin{pmatrix}\n  a & b \\\\\\\\\n  c & d\n\\end{pmatrix}"
+    ],
+    "description": "\\begin{pmatrix}"
+  },
+  "bmatrix": {
+    "scope": "latex",
+    "prefix": "\\bmatrix",
+    "body": [
+      "\\begin{bmatrix}\n  a & b \\\\\\\\\n  c & d\n\\end{bmatrix}"
+    ],
+    "description": "\\begin{bmatrix}"
+  },
+  "vmatrix": {
+    "scope": "latex",
+    "prefix": "\\vmatrix",
+    "body": [
+      "\\begin{vmatrix}\n  a & b \\\\\\\\\n  c & d\n\\end{vmatrix}"
+    ],
+    "description": "\\begin{vmatrix}"
+  },
+  "Vmatrix": {
+    "scope": "latex",
+    "prefix": "\\Vmatrix",
+    "body": [
+      "\\begin{Vmatrix}\n  a & b \\\\\\\\\n  c & d\n\\end{Vmatrix}"
+    ],
+    "description": "\\begin{Vmatrix}"
+  },
+  "Bmatrix": {
+    "scope": "latex",
+    "prefix": "\\Bmatrix",
+    "body": [
+      "\\begin{Bmatrix}\n  a & b \\\\\\\\\n  c & d\n\\end{Bmatrix}"
+    ],
+    "description": "\\begin{Bmatrix}"
+  },
+  "smallmatrix": {
+    "scope": "latex",
+    "prefix": "\\smallmatrix",
+    "body": [
+      "\\begin{smallmatrix}\n  a & b \\\\\\\\\n  c & d\n\\end{smallmatrix}"
     ],
     "description": "\\begin{smallmatrix}"
   },
@@ -6635,9 +6675,17 @@
     "scope": "latex",
     "prefix": "\\CD",
     "body": [
-      "\\begin{CD}\nA @>a>> B \\\\\n@VbVV @AAcA \\\\\nC @= D\n \\end{CD}"
+      "\\begin{CD}\nA @>a>> B \\\\\\\\\n@VbVV @AAcA \\\\\\\\\nC @= D\n \\end{CD}"
     ],
     "description": "\\begin{CD}"
+  },
+  "array": {
+    "scope": "latex",
+    "prefix": "\\array",
+    "body": [
+      "\\def\\arraystretch{1.5}\\begin{array}{c|c}\n  a & b \\\\\\\\\n  c & d\n\\end{array}"
+    ],
+    "description": "\\begin{array}"
   },
   "Q": {
     "scope": "latex",

@@ -17,13 +17,20 @@ mod recorder;
 mod slug;
 mod typst_cli;
 
-use clap::Parser;
+use clap::{
+    builder::{
+        styling::{AnsiColor, Effects},
+        Styles,
+    },
+    Parser,
+};
 
 use crate::cli::{
     build::BuildCommand,
     init::InitCommand,
     new::{NewCommand, NewCommandCli},
-    serve::ServeCommand, snip::SnipCommand,
+    serve::ServeCommand,
+    snip::SnipCommand,
 };
 
 #[rustfmt::skip]
@@ -35,8 +42,12 @@ const AFTER_HELP: &str = color_print::cstr!("\
   <s>Forum:</>      https://discord.gg/mbeF8J6rXX
 ");
 
+const STYLES: Styles = Styles::styled()
+    .literal(AnsiColor::Cyan.on_default().effects(Effects::BOLD))
+    .placeholder(AnsiColor::Blue.on_default());
+
 #[derive(Parser)]
-#[command(version, about, long_about = None, after_help = AFTER_HELP)]
+#[command(version, about, long_about = None, after_help = AFTER_HELP, styles=STYLES)]
 struct Cli {
     #[command(subcommand)]
     command: Command,
