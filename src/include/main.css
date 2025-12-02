@@ -424,6 +424,7 @@ a.slug {
   box-shadow: none;
   text-decoration-line: underline;
   text-decoration-style: dotted;
+  word-wrap: break-word;
 }
 
 .slug,
