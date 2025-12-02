@@ -70,10 +70,10 @@ impl<'a> HTMLParser<'a> {
                 format!(r#"?<real{}>"#, alt)
             }
             fn kodama(alt: u8) -> String {
-                format!(r#"kodama(?<tag{}>meta|embed|local)"#, alt)
+                format!(r#"kodama-(?<tag{}>meta|embed|local)"#, alt)
             }
             fn local(alt: u8) -> String {
-                format!(r#"kodama(?<tag{}>local)"#, alt)
+                format!(r#"kodama-(?<tag{}>local)"#, alt)
             }
             fn attrs(alt: u8) -> String {
                 format!(
