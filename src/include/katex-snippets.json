@@ -6683,7 +6683,7 @@
     "scope": "latex",
     "prefix": "\\array",
     "body": [
-      "\\def\\arraystretch{1.5}\\begin{array}{c|c}\n  a & b \\\\\\\\\n  c & d\n\\end{array}"
+      "\\def\\arraystretch{1.5}\n\\begin{array}{c|c}\n  a & b \\\\\\\\\n  c & d\n\\end{array}"
     ],
     "description": "\\begin{array}"
   },
