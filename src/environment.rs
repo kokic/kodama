@@ -108,6 +108,7 @@ pub fn is_serve() -> bool {
     matches!(get_environment().build_mode, BuildMode::Serve)
 }
 
+#[allow(dead_code)]
 pub fn is_build() -> bool {
     matches!(get_environment().build_mode, BuildMode::Build)
 }
@@ -347,7 +348,7 @@ pub fn is_hash_updated<P: AsRef<Utf8Path>>(content: &str, hash_path: P) -> (bool
 /// Checks whether the file has been modified by comparing its current hash with the stored hash.
 /// If the file is modified, updates the stored hash to reflect the latest state.
 pub fn verify_and_file_hash<P: AsRef<Utf8Path>>(relative_path: P) -> eyre::Result<bool> {
-    if crate::environment::is_build() {
+    if *crate::cli::build::enable_no_cache() {
         return Ok(true);
     }
 
@@ -371,7 +372,7 @@ pub fn verify_update_hash<P: AsRef<Utf8Path>>(
     path: P,
     content: &str,
 ) -> Result<bool, std::io::Error> {
-    if crate::environment::is_build() {
+    if *crate::cli::build::enable_no_cache() {
         return Ok(true);
     }
 
