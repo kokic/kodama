@@ -78,10 +78,8 @@ pub static CUSTOM_STYLE_HTML: LazyLock<String> = LazyLock::new(|| {
     std::fs::read_to_string(root_dir().join("import-style.html")).unwrap_or_default()
 });
 
-pub static CUSTOM_FONTS_HTML: LazyLock<String> = LazyLock::new(|| {
-    fs::read_to_string(root_dir().join("import-fonts.html"))
-        .unwrap_or(include_str!("include/import-fonts.html").to_string())
-});
+pub static CUSTOM_FONTS_HTML: LazyLock<String> =
+    LazyLock::new(|| fs::read_to_string(root_dir().join("import-fonts.html")).unwrap_or_default());
 
 pub static CUSTOM_MATH_HTML: LazyLock<String> = LazyLock::new(|| {
     fs::read_to_string(root_dir().join("import-math.html"))
