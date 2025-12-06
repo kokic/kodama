@@ -1,9 +1,25 @@
+html {
+  font-size: 16px;
+}
+
 :root body {
   color-scheme: light dark;
   --content-gap: 15px;
   --radius: 5px;
   --article-max-width: 90ex;
   --toc-max-width: 90ex;
+
+  /* root font size: 16px */
+  --pre-font-size: 0.917rem; /* 11pt; */
+  --code-font-size: 1rem;
+  --katex-font-size: 1.25rem;
+  --details-h1-font-size: 1.2rem;
+  --section-details-h1-font-size: 1.083rem; /* 13pt */
+  --article-details-h1-font-size: 1.5rem; 
+  --article-details-h1-taxon-font-size: 1.35rem; /* 0.9em */
+  --logo-font-size: 1.5rem; /* 24px; */
+  --footer-h2-font-size: 1.167rem; /* 14pt; */
+  --p-line-height: 1.55rem;
 
   --text-color: black;
   --toc-link-color: #555;
@@ -50,6 +66,7 @@
 body {
   color: var(--text-color);
   font-optical-sizing: auto;
+  font-size: 1rem;
   hyphens: auto;
   background-color: var(--background-color);
 }
@@ -61,14 +78,14 @@ code {
 
 p,
 pre {
-  line-height: 1.55;
+  line-height: var(--p-line-height);
 }
 
 pre {
   border-radius: var(--radius);
   background-color: var(--background-color-pre);
   padding: 0.5em;
-  font-size: 11pt;
+  font-size: var(--pre-font-size);
   margin-top: 0em;
   overflow-x: auto;
   white-space: pre-wrap;
@@ -82,7 +99,7 @@ code {
   border-radius: var(--radius);
   background-color: var(--background-color-code);
   padding: 0.2em;
-  font-size: 1em;
+  font-size: var(--code-font-size);
 }
 
 em {
@@ -156,7 +173,7 @@ pre>code {
 }
 
 .katex .mfrac .frac-line {
-  font-size: 1.25em;
+  font-size: var(--katex-font-size);
 }
 
 p:has(span.katex-html:empty) {
@@ -231,7 +248,7 @@ details>summary::-webkit-details-marker {
 }
 
 details h1 {
-  font-size: 1.2em;
+  font-size: var(--details-h1-font-size);
   display: inline;
 }
 
@@ -244,12 +261,8 @@ span.taxon {
   font-weight: 500;
 }
 
-section .block[data-taxon] details>summary>header>h1 {
-  font-size: 13pt;
-}
-
 article>section>details>summary>header>h1 {
-  font-size: 1.5em;
+  font-size: var(--article-details-h1-font-size);
 }
 
 article>section>details>summary>header {
@@ -259,7 +272,7 @@ article>section>details>summary>header {
 
 article>section>details>summary>header>h1>.taxon {
   display: block;
-  font-size: 0.9em;
+  font-size: var(--article-details-h1-taxon-font-size);
   color: var(--article-taxon-color);
   padding-bottom: 5pt;
 }
@@ -352,7 +365,7 @@ ol {
 
 .logo {
   font-weight: 600;
-  font-size: 24px;
+  font-size: var(--logo-font-size);
 }
 
 section section[data-taxon="Reference"]>details>summary>header>h1>.taxon,
@@ -362,7 +375,7 @@ section section[data-taxon="Person"]>details>summary>header>h1>.taxon {
 
 section .block[data-taxon]>header>h1,
 section .block[data-taxon] details>summary>header>h1 {
-  font-size: 13pt;
+  font-size: var(--section-details-h1-font-size);
 }
 
 footer>section {
@@ -370,7 +383,7 @@ footer>section {
 }
 
 footer h2 {
-  font-size: 14pt;
+  font-size: var(--footer-h2-font-size);
 }
 
 .metadata ul {
