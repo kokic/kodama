@@ -138,7 +138,10 @@ impl CompileState {
                             /*
                              * Making oneself the content of a backlink should not be expected behavior.
                              */
-                            if link_slug != slug && is_enable_backlinks(shallows, link_slug) {
+                            if link_slug != slug
+                                && is_enable_backlinks(shallows, link_slug)
+                                && is_backlink(shallows, slug)
+                            {
                                 callback.insert_backlinks(link_slug, vec![slug]);
                             }
 
@@ -240,6 +243,16 @@ fn is_reference(shallows: &Shallows, slug: Slug) -> bool {
             let metadata = &s.metadata;
             metadata.is_asref().unwrap_or(environment::asref())
                 || Taxon::is_reference(metadata.data_taxon().map_or("", String::as_str))
+        })
+        .unwrap_or(false)
+}
+
+fn is_backlink(shallows: &Shallows, slug: Slug) -> bool {
+    shallows
+        .get(&slug)
+        .map(|s| {
+            let metadata = &s.metadata;
+            metadata.is_asback().unwrap_or(true)
         })
         .unwrap_or(false)
 }

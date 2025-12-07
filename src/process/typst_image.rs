@@ -13,7 +13,7 @@ use crate::{
     path_utils,
     recorder::State,
     slug::Slug,
-    typst_cli::{self, write_to_inline_html, InlineConfig},
+    typst_cli::{self, write_to_inline_html},
 };
 
 use super::processer::url_action;
@@ -107,32 +107,28 @@ impl<'e, E: Iterator<Item = Event<'e>>> Iterator for TypstImage<E> {
                     State::InlineTypst => {
                         let shareds = self.shareds.join("\n");
                         let args: Vec<&str> = self.url.as_ref().unwrap().split("-").collect();
-                        let mut args = &args[1..];
+                        let args = &args[1..];
                         let mut auto_math_mode: bool = false;
                         if args.contains(&"math") {
                             auto_math_mode = true;
-                            args = &args[1..];
                         }
 
                         let mut inline_typst = self.content.take().unwrap();
+                        inline_typst = smart_punctuation_reverse(&inline_typst);
+
                         if auto_math_mode {
-                            inline_typst = format!("${inline_typst}$");
+                            inline_typst = format!("${}$", inline_typst);
                         }
 
                         let inline_typst = format!("{shareds}\n{inline_typst}");
-                        let x = args.first();
-                        let config = InlineConfig {
-                            margin_x: x.map(|s| s.to_string()),
-                            margin_y: args.get(1).or(x).map(|s| s.to_string()),
-                        };
-                        let html = match typst_cli::source_to_inline_svg(&inline_typst, config) {
+                        let html = match typst_cli::source_to_inline_svg(&inline_typst) {
                             Ok(svg) => svg,
                             Err(err) => {
                                 color_print::ceprintln!("<r>{:?} at {}</>", err, self.current_slug);
                                 String::new()
                             }
                         };
-                        
+
                         self.exit();
                         return Some(Event::Html(html.into()));
                     }
@@ -216,4 +212,14 @@ fn typst_path(current_slug: Slug, url: &str) -> Utf8PathBuf {
     } else {
         path
     }
+}
+
+/// Reverses smart punctuation to plain ASCII characters.
+fn smart_punctuation_reverse(s: &str) -> String {
+    s.replace("“", "\"")
+        .replace("”", "\"")
+        .replace("‘", "'")
+        .replace("’", "'")
+        .replace("–", "--")
+        .replace("—", "---")
 }

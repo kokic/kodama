@@ -49,12 +49,18 @@ pub const KEY_COLLECT: &str = "collect";
 
 /// `asref: bool`:
 /// Controls whether the current page process as reference.
+/// Default is `false`.
 pub const KEY_ASREF: &str = "asref";
+
+/// `asback: bool`:
+/// Controls whether the current page process as backlink.
+/// Default is `true`.
+pub const KEY_ASBACK: &str = "asback";
 
 /// `footer-mode: embed | link`
 pub const KEY_FOOTER_MODE: &str = "footer-mode";
 
-const PRESET_METADATA: [&str; 12] = [
+const PRESET_METADATA: [&str; 13] = [
     KEY_TITLE,
     KEY_SLUG,
     KEY_EXT,
@@ -66,6 +72,7 @@ const PRESET_METADATA: [&str; 12] = [
     KEY_REFERENCES,
     KEY_COLLECT,
     KEY_ASREF,
+    KEY_ASBACK,
     KEY_FOOTER_MODE,
 ];
 
@@ -144,6 +151,10 @@ where
 
     fn is_asref(&self) -> Option<bool> {
         self.get_bool(KEY_ASREF)
+    }
+
+    fn is_asback(&self) -> Option<bool> {
+        self.get_bool(KEY_ASBACK)
     }
 }
 

@@ -1,6 +1,8 @@
 // Copyright (c) 2025 Kodama Project. All rights reserved.
 // Released under the GPL-3.0 license as described in the file LICENSE.
-// Authors: Alias Qli (@AliasQli)
+// Authors: Alias Qli (@AliasQli), Kokic (@kokic)
+
+#let html-math-font-size = 15.525pt;
 
 /*
 There are some external inputs:
@@ -23,7 +25,7 @@ There are some external inputs:
     attrs.insert("value", repri(value))
   }
 
-  html.elem("kodamameta", v, attrs: attrs)
+  html.elem("kodama-meta", v, attrs: attrs)
 }
 
 #let embed(url, title, numbering: false, open: true, catalog: true) = {
@@ -35,7 +37,7 @@ There are some external inputs:
     attrs.insert("value", repri(title))
   }
 
-  html.elem("kodamaembed", v, attrs: attrs)
+  html.elem("kodama-embed", v, attrs: attrs)
 }
 
 #let local(slug, text) = html.elem(
@@ -49,7 +51,7 @@ There are some external inputs:
       attrs.insert("value", repri(text))
     }
 
-    html.elem("kodamalocal", v, attrs: attrs)
+    html.elem("kodama-local", v, attrs: attrs)
   },
 )
 
