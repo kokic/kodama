@@ -15,8 +15,8 @@ html {
   --pre-font-size: 0.917rem;
   --code-font-size: 1rem;
   /* If this value is not 1rem, the CJK text in Typst will not match the size of the CJK text in KaTeX. */
-  --katex-font-size: 1.15rem;
-  --katex-frac-line-font-size: 1.25rem;
+  --katex-font-size: 1.15em;
+  --katex-frac-line-font-size: 1.25em;
   --details-h1-font-size: 1.2rem;
   /* 13pt */
   --section-details-h1-font-size: 1.083rem;
