@@ -45,29 +45,17 @@ pub fn html_to_body_content(html: &str) -> String {
     content.to_string()
 }
 
-pub struct InlineConfig {
-    pub margin_x: Option<String>,
-    pub margin_y: Option<String>,
-}
+pub fn source_to_inline_svg(src: &str) -> eyre::Result<String> {
+    let svg = source_to_html(format!("{}{}", include_str!("include/html-math.typ"), src).as_str())?;
 
-impl InlineConfig {
-    pub fn default_margin() -> String {
-        "0em".to_string()
-    }
-}
+    let start_pos = svg.find("<p>").expect(concat!(file!(), '#', line!())) + 3;
+    let end_pos = svg.rfind("</p>").expect(concat!(file!(), '#', line!()));
+    let content = &svg[start_pos..end_pos];
 
-pub fn source_to_inline_svg(src: &str, config: InlineConfig) -> eyre::Result<String> {
-    let styles = format!(
-        r#"
-#set page(width: auto, height: auto, margin: (x: {}, y: {}), fill: rgb(0, 0, 0, 0)); 
-#set text(size: 15.427pt, top-edge: "bounds", bottom-edge: "bounds");
-    "#,
-        config.margin_x.unwrap_or(InlineConfig::default_margin()),
-        config.margin_y.unwrap_or(InlineConfig::default_margin())
-    );
-    let svg = source_to_svg(format!("{}{}", styles, src).as_str())?;
-
-    Ok(format!("\n{}\n", html_flake::html_inline_typst_span(&svg)))
+    Ok(format!(
+        "\n{}\n",
+        html_flake::html_inline_typst_span(content)
+    ))
 }
 
 pub fn file_to_html(rel_path: &str, root_dir: &str) -> eyre::Result<String> {
@@ -101,12 +89,13 @@ fn to_html_string<P: AsRef<Utf8Path>>(rel_path: P, root_dir: P) -> eyre::Result<
     })
 }
 
-fn source_to_svg(src: &str) -> eyre::Result<String> {
+fn source_to_html(src: &str) -> eyre::Result<String> {
     let root_dir = environment::trees_dir();
 
     let mut typst = Command::new("typst")
         .arg("c")
-        .arg("-f=svg")
+        .arg("-f=html")
+        .arg("--features=html")
         .arg(format!("--root={}", root_dir))
         .arg("-")
         .arg("-")
@@ -169,6 +158,8 @@ pub fn write_svg<P: AsRef<Utf8Path>>(typst_path: P, svg_path: P) -> eyre::Result
 fn failed_in_file(src_pos: &'static str, file_path: &str, stderr: std::borrow::Cow<'_, str>) {
     color_print::ceprintln!(
         "<r>Command failed in {}: \n  In file {}, {}</>",
-        src_pos, file_path, stderr
+        src_pos,
+        file_path,
+        stderr
     );
 }

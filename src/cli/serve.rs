@@ -31,7 +31,7 @@ pub struct ServeCommand {
 /// This function invoked the [`config::init_environment`] function to initialize the environment]
 pub fn serve(command: &ServeCommand) -> eyre::Result<()> {
     let serve_build = || -> eyre::Result<()> {
-        build_with(&command.config, BuildMode::Serve, command.verbose, command.verbose_skip)?;
+        build_with(&command.config, BuildMode::Serve, command.verbose, command.verbose_skip, false)?;
         Ok(())
     };
 

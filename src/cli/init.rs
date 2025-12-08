@@ -10,6 +10,10 @@ pub struct InitCommand {
     /// Path to the new site.
     #[arg(default_value = "./")]
     pub path: Utf8PathBuf,
+
+    /// Do not create Typst library files.
+    #[arg(alias = "nt", long, default_value_t = false)]
+    pub no_typst: bool,
 }
 
 pub fn init(command: &InitCommand) -> eyre::Result<()> {
@@ -18,6 +22,6 @@ pub fn init(command: &InitCommand) -> eyre::Result<()> {
         return Err(eyre::eyre!("Does not exist: {}", site_path));
     }
 
-    add_project_files(site_path)?;
+    add_project_files(site_path, command.no_typst)?;
     Ok(())
 }

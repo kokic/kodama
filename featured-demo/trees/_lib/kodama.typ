@@ -1,12 +1,45 @@
 // Copyright (c) 2025 Kodama Project. All rights reserved.
 // Released under the GPL-3.0 license as described in the file LICENSE.
-// Authors: Alias Qli (@AliasQli)
+// Authors: Alias Qli (@AliasQli), Kokic (@kokic)
 
 /*
 There are some external inputs:
   sys.inputs.path: relative path of the typst file
   sys.inputs.random: a random number in 0..INT64_MAX (note, it's a string)
 */
+
+#let target() = {
+  if "target" in dictionary(std) { std.target() } else { "paged" }
+}
+
+// get the bounding box of an equation
+#let bounded(eq) = text(top-edge: "bounds", bottom-edge: "bounds", eq)
+
+// a dict that stores the height of equations
+#let eq_height_dict = state("eq_height_dict", (:))
+
+#let inside_pin = state("inside_pin", false)
+
+// when called, retrieves the height of the equation, which is then stored in a state variable
+#let pin(label) = context {
+  let height = here().position().y
+  eq_height_dict.update(it => {
+    if label in it.keys() or height < 0.000001pt {
+      it
+    } else {
+      it.insert(label, height)
+      it
+    }
+  })
+}
+
+// insert a function call `pin(label)`` at the start of the equation.
+#let add_pin(eq) = {
+  let label = repr(eq)
+  inside_pin.update(true)
+  $ inline(pin(label)#bounded(eq)) $
+  inside_pin.update(false)
+}
 
 #let repri(r) = if type(r) == str {
   r
@@ -23,7 +56,7 @@ There are some external inputs:
     attrs.insert("value", repri(value))
   }
 
-  html.elem("kodamameta", v, attrs: attrs)
+  html.elem("kodama-meta", v, attrs: attrs)
 }
 
 #let embed(url, title, numbering: false, open: true, catalog: true) = {
@@ -35,7 +68,7 @@ There are some external inputs:
     attrs.insert("value", repri(title))
   }
 
-  html.elem("kodamaembed", v, attrs: attrs)
+  html.elem("kodama-embed", v, attrs: attrs)
 }
 
 #let local(slug, text) = html.elem(
@@ -49,7 +82,7 @@ There are some external inputs:
       attrs.insert("value", repri(text))
     }
 
-    html.elem("kodamalocal", v, attrs: attrs)
+    html.elem("kodama-local", v, attrs: attrs)
   },
 )
 

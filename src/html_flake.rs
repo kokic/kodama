@@ -81,7 +81,8 @@ pub fn html_header(
     let serve_edit = environment::editor_url();
     let deploy_edit = environment::deploy_edit_url();
     let edit_text = environment::get_edit_text();
-
+    
+    let edit_class = "edit";
     let edit_url = match (is_serve, serve_edit, deploy_edit) {
         (true, Some(prefix), _) => {
             let source_path = input_path(format!("{}.{}", slug_str, ext))
@@ -90,12 +91,12 @@ pub fn html_header(
             let source_url = url::Url::from_file_path(source_path).unwrap();
             let base = url::Url::parse(prefix).unwrap();
             let editor_url = base.join(source_url.path()).unwrap();
-            html!(a class="slug" href={editor_url.to_string()} { (edit_text) })
+            html!(a class=edit_class href={editor_url.to_string()} { (edit_text) })
         }
         (false, _, Some(prefix)) => {
             let source_path = format!("{}.{}", slug_str, ext);
             let editor_url = format!("{}{}", prefix, source_path);
-            html!(a class="slug" href={editor_url.to_string()} { (edit_text) })
+            html!(a class=edit_class href={editor_url.to_string()} { (edit_text) })
         }
         _ => String::default(),
     };
@@ -245,12 +246,15 @@ pub fn html_doc(
             (format!("<title>{page_title}</title>"))
             (format!(r#"<link rel="icon" href="{}assets/favicon.ico" />"#, base_url))
             (html_import_meta())
-            (html_static_css())
-            (html_dynamic_css())
-            (html_import_style())
             (html_import_fonts())
             (html_scripts())
+            // math should be loaded after scripts to handle dynamic content
             (html_import_math())
+            // main styles should be loaded after math to override formula font size
+            (html_static_css())
+            (html_dynamic_css())
+            // custom styles should be loaded last to override other styles
+            (html_import_style())
         }
         body {
             (header_html)

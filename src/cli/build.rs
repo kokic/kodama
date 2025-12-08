@@ -28,10 +28,15 @@ pub struct BuildCommand {
     /// Enable verbose skip output.
     #[arg(long, default_value_t = false)]
     verbose_skip: bool,
+
+    /// Rebuild all files, ignoring any caches.
+    #[arg(visible_alias = "nc", long, default_value_t = false)]
+    no_cache: bool,
 }
 
 static VERBOSE: OnceLock<bool> = OnceLock::new();
 static VERBOSE_SKIP: OnceLock<bool> = OnceLock::new();
+static NO_CACHE: OnceLock<bool> = OnceLock::new();
 
 pub fn verbose() -> &'static bool {
     VERBOSE.get().unwrap_or(&false)
@@ -41,15 +46,20 @@ pub fn verbose_skip() -> &'static bool {
     VERBOSE_SKIP.get().unwrap_or(&false)
 }
 
-/// This function invoked the [`environment::init_environment`] function to initialize the environment
-pub fn build(command: &BuildCommand) -> eyre::Result<()> {
-    build_with(&command.config, BuildMode::Build, command.verbose, command.verbose_skip)
+pub fn enable_no_cache() -> &'static bool {
+    NO_CACHE.get().unwrap_or(&false)
 }
 
-pub fn build_with(config: &str, mode: BuildMode, verbose: bool, verbose_skip: bool) -> eyre::Result<()> {
+/// This function invoked the [`environment::init_environment`] function to initialize the environment
+pub fn build(command: &BuildCommand) -> eyre::Result<()> {
+    build_with(&command.config, BuildMode::Build, command.verbose, command.verbose_skip, command.no_cache)
+}
+
+pub fn build_with(config: &str, mode: BuildMode, verbose: bool, verbose_skip: bool, no_cache: bool) -> eyre::Result<()> {
     environment::init_environment(config.into(), mode)?;
     _ = VERBOSE.set(verbose);
     _ = VERBOSE_SKIP.set(verbose_skip);
+    _ = NO_CACHE.set(no_cache);
 
     if !environment::inline_css() {
         export_css_files().wrap_err("failed to export CSS")?;

@@ -1,0 +1,121 @@
+{
+  "block": {
+    "scope": "markdown",
+    "prefix": "<block>",
+    "body": [
+      "<block taxon=\"\">\n$1\n</block>"
+    ]
+  },
+  "exegesis": {
+    "scope": "markdown",
+    "prefix": "<exegesis>",
+    "body": [
+      "<exegesis>\n$1\n</exegesis>"
+    ]
+  },
+  "definition": {
+    "scope": "markdown",
+    "prefix": "<definition>",
+    "body": [
+      "<definition>\n$1\n</definition>"
+    ]
+  },
+  "proposition": {
+    "scope": "markdown",
+    "prefix": "<proposition>",
+    "body": [
+      "<proposition>\n$1\n</proposition>"
+    ]
+  },
+  "remark": {
+    "scope": "markdown",
+    "prefix": "<remark>",
+    "body": [
+      "<remark>\n$1\n</remark>"
+    ]
+  },
+  "conjecture": {
+    "scope": "markdown",
+    "prefix": "<conjecture>",
+    "body": [
+      "<conjecture>\n$1\n</conjecture>"
+    ]
+  },
+  "postulate": {
+    "scope": "markdown",
+    "prefix": "<postulate>",
+    "body": [
+      "<postulate>\n$1\n</postulate>"
+    ]
+  },
+  "claim": {
+    "scope": "markdown",
+    "prefix": "<claim>",
+    "body": [
+      "<claim>\n$1\n</claim>"
+    ]
+  },
+  "observation": {
+    "scope": "markdown",
+    "prefix": "<observation>",
+    "body": [
+      "<observation>\n$1\n</observation>"
+    ]
+  },
+  "fact": {
+    "scope": "markdown",
+    "prefix": "<fact>",
+    "body": [
+      "<fact>\n$1\n</fact>"
+    ]
+  },
+  "hypothesis": {
+    "scope": "markdown",
+    "prefix": "<hypothesis>",
+    "body": [
+      "<hypothesis>\n$1\n</hypothesis>"
+    ]
+  },
+  "axiom": {
+    "scope": "markdown",
+    "prefix": "<axiom>",
+    "body": [
+      "<axiom>\n$1\n</axiom>"
+    ]
+  },
+  "lemma": {
+    "scope": "markdown",
+    "prefix": "<lemma>",
+    "body": [
+      "<lemma>\n$1\n</lemma>"
+    ]
+  },
+  "theorem": {
+    "scope": "markdown",
+    "prefix": "<theorem>",
+    "body": [
+      "<theorem>\n$1\n</theorem>"
+    ]
+  },
+  "corollary": {
+    "scope": "markdown",
+    "prefix": "<corollary>",
+    "body": [
+      "<corollary>\n$1\n</corollary>"
+    ]
+  },
+  "example": {
+    "scope": "markdown",
+    "prefix": "<example>",
+    "body": [
+      "<example>\n$1\n</example>"
+    ]
+  },
+  "proof": {
+    "scope": "markdown",
+    "prefix": "<proof>",
+    "body": [
+      "<proof>\n$1\n</proof>"
+    ]
+  }
+}

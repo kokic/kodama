@@ -37,6 +37,10 @@ pub struct NewSiteCommand {
     /// Path to the new site.
     #[arg(required = true)]
     pub path: Utf8PathBuf,
+
+    /// Do not create Typst library files.
+    #[arg(alias = "nt", long, default_value_t = false)]
+    pub no_typst: bool,
 }
 
 pub fn new_site(command: &NewSiteCommand) -> eyre::Result<()> {
@@ -48,11 +52,11 @@ pub fn new_site(command: &NewSiteCommand) -> eyre::Result<()> {
     std::fs::create_dir_all(site_path).wrap_err("failed to create site directory")?;
     println!("Created new site at: {}", site_path);
 
-    add_project_files(site_path)?;
+    add_project_files(site_path, command.no_typst)?;
     Ok(())
 }
 
-pub fn add_project_files(site_path: &Utf8Path) -> eyre::Result<()> {
+pub fn add_project_files(site_path: &Utf8Path, no_typst: bool) -> eyre::Result<()> {
     let default_config_path = site_path.join(config::DEFAULT_CONFIG_PATH);
     let default_source_dir = site_path.join(kodama::DEFAULT_SOURCE_DIR);
     let default_assets_dir = site_path.join(kodama::DEFAULT_ASSETS_DIR);
@@ -77,13 +81,15 @@ pub fn add_project_files(site_path: &Utf8Path) -> eyre::Result<()> {
 
     let default_lib_dir = default_source_dir.join("_lib");
 
-    // Create the default Typst library directory `trees/_lib`
-    std::fs::create_dir(&default_lib_dir).wrap_err("failed to create default _lib directory")?;
-
-    std::fs::write(
-        default_lib_dir.join("kodama.typ"),
-        include_str!("../../typst/kodama.typ"),
-    )?;
+    if !no_typst {
+        // Create the default Typst library directory `trees/_lib`
+        std::fs::create_dir(&default_lib_dir)
+            .wrap_err("failed to create default _lib directory")?;        
+        std::fs::write(
+            default_lib_dir.join("kodama.typ"),
+            include_str!("../../typst/kodama.typ"),
+        )?;
+    }
 
     Ok(())
 }
