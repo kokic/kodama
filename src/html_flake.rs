@@ -80,8 +80,11 @@ pub fn html_header(
     let is_serve = environment::is_serve();
     let serve_edit = environment::editor_url();
     let deploy_edit = environment::deploy_edit_url();
+
+    let slug_text = EntryMetaData::to_slug_text(slug_str);
+    let slug_url = environment::full_html_url(*slug);
+
     let edit_text = environment::get_edit_text();
-    
     let edit_class = "edit";
     let edit_url = match (is_serve, serve_edit, deploy_edit) {
         (true, Some(prefix), _) => {
@@ -100,9 +103,6 @@ pub fn html_header(
         }
         _ => String::default(),
     };
-
-    let slug_text = EntryMetaData::to_slug_text(slug_str);
-    let slug_url = environment::full_html_url(*slug);
 
     html!(header {
         h1 {
@@ -211,7 +211,7 @@ pub fn html_header_nav(title: &str, page_title: &str, href: &str) -> String {
     html!(header class="header" {
         nav class="nav" {
             div class="logo" {
-                span onclick={onclick} title={page_title} {
+                span class="cursor-pointer" onclick={onclick} title={page_title} {
                     "« " (title)
                 }
             }
