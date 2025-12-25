@@ -82,6 +82,10 @@ html {
   }
 }
 
+.cursor-pointer {
+  cursor: pointer;
+}
+
 body {
   color: var(--text-color);
   font-optical-sizing: auto;
@@ -117,7 +121,7 @@ pre {
 code {
   border-radius: var(--radius);
   background-color: var(--background-color-code);
-  padding: 0.2rem;
+  padding: 0.1rem;
   font-size: var(--code-font-size);
 }
 
