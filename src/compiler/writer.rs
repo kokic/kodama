@@ -9,7 +9,7 @@ use crate::{
     config::build::FooterMode,
     entry::MetaData,
     environment::{self, verify_update_hash},
-    html_flake,
+    html_flake::{self, html_footer_section},
     slug::Slug,
 };
 
@@ -133,7 +133,7 @@ impl Writer {
                     Writer::footer_section_to_html(footer_mode, section)
                 })
                 .reduce(|s, t| s + &t)
-                .map(|s| html_flake::html_footer_section(references_text, &s))
+                .map(|s| html_footer_section("references", references_text, &s))
                 .unwrap_or_default()
         } else {
             String::default()
@@ -152,7 +152,7 @@ impl Writer {
                         Writer::footer_section_to_html(footer_mode, section)
                     })
                     .reduce(|s, t| s + &t)
-                    .map(|s| html_flake::html_footer_section(backlinks_text, &s))
+                    .map(|s| html_footer_section("backlinks", backlinks_text, &s))
                     .unwrap_or_default()
             })
             .unwrap_or_default();

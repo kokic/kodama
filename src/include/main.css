@@ -265,7 +265,6 @@ details>summary>header {
   display: inline;
 }
 
-/* no effect */
 details>summary::marker,
 details>summary::-webkit-details-marker {
   display: none;
