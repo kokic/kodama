@@ -25,4 +25,6 @@ A [Typst](https://github.com/typst/typst)-friendly static Zettelkästen site gen
 
 # Community
 
+- QQ Group 1044305570 - 中文交流群. 
 - [Kodama Discord server](https://discord.gg/mbeF8J6rXX) - a place to chat with the project's devs and other community members.
+
