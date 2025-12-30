@@ -31,7 +31,7 @@ pub fn html_footer_section(id: &str, summary: &str, content: &String) -> String 
     let summary = format!("<header><h1>{}</h1></header>", summary);
     let inner_html = format!("{}{}", (html!(summary { (summary) })), content);
     let html_details = format!("<details open>{}</details>", inner_html);
-    html!(section class="block" id={id} { (html_details) })
+    html!(section class="block link-list" id={id} { (html_details) })
 }
 
 pub fn html_section(

@@ -213,6 +213,10 @@ p:has(span.katex-html:empty) {
   display: none;
 }
 
+section + p:empty {
+  display: none;
+}
+
 .katex-display {
   overflow-x: auto;
   overflow-y: hidden;
@@ -329,7 +333,11 @@ section.block>details[open] {
   margin-bottom: 1em;
 }
 
-.link-list>section.block>details {
+section.block.link-list>details {
+  margin-bottom: 0em;
+}
+
+section.block.link-list>details>section.block>details {
   margin-bottom: 0.25em;
 }
 
