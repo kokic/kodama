@@ -2,7 +2,7 @@
 // Released under the GPL-3.0 license as described in the file LICENSE.
 // Authors: Kokic (@kokic), Spore (@s-cerevisiae)
 
-use std::io::Write;
+use std::{io::Write, sync::OnceLock};
 
 use camino::{Utf8Path, Utf8PathBuf};
 use notify::{Config, EventKind, RecommendedWatcher, RecursiveMode, Watcher};
@@ -26,10 +26,22 @@ pub struct ServeCommand {
     /// Enable verbose skip output.
     #[arg(long, default_value_t = false)]
     verbose_skip: bool,
+
+    /// Disable live reload. 
+    #[arg(short, long, default_value_t = false)]
+    disable_reload: bool,
+}
+
+static LIVE_RELOAD: OnceLock<bool> = OnceLock::new();
+
+pub fn live_reload() -> &'static bool {
+    LIVE_RELOAD.get().unwrap_or(&true)
 }
 
 /// This function invoked the [`config::init_environment`] function to initialize the environment]
 pub fn serve(command: &ServeCommand) -> eyre::Result<()> {
+    _ = LIVE_RELOAD.set(!command.disable_reload);
+
     let serve_build = || -> eyre::Result<()> {
         build_with(&command.config, BuildMode::Serve, command.verbose, command.verbose_skip, false)?;
         Ok(())

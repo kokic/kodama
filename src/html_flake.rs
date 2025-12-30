@@ -3,10 +3,7 @@
 // Authors: Kokic (@kokic), Spore (@s-cerevisiae)
 
 use crate::{
-    entry::{EntryMetaData, MetaData},
-    environment::{self, input_path},
-    html_macro::html,
-    slug::Slug,
+    cli::serve, entry::{EntryMetaData, MetaData}, environment::{self, input_path}, html_macro::html, slug::Slug
 };
 
 pub fn html_article_inner(
@@ -248,6 +245,7 @@ pub fn html_doc(
             (html_import_meta())
             (html_import_fonts())
             (html_scripts())
+            (html_live_reload())
             // math should be loaded after scripts to handle dynamic content
             (html_import_math())
             // main styles should be loaded after math to override formula font size
@@ -322,6 +320,14 @@ pub fn html_import_fonts() -> String {
 
 pub fn html_import_math() -> String {
     environment::CUSTOM_MATH_HTML.clone()
+}
+
+pub fn html_live_reload() -> String {
+    if *serve::live_reload() {
+        include_str!("include/reload.html").to_string()
+    } else {
+        String::new()
+    }
 }
 
 pub fn html_scripts() -> &'static str {

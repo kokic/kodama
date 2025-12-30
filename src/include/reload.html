@@ -1,0 +1,33 @@
+<script>
+  (() => {
+    const url = "/kodama.json";
+    const interval = 1000; // 1 second
+
+    let lastModified = null;
+
+    async function check() {
+      try {
+        const res = await fetch(url + "?t=" + Date.now(), {
+          method: "HEAD",
+          cache: "no-store",
+        });
+
+        const lm = res.headers.get("last-modified");
+
+        if (lastModified && lm && lm !== lastModified) {
+          location.reload();
+          return;
+        }
+
+        lastModified = lm || lastModified;
+      } catch (e) {
+        // Ignore
+        console.warn("Reload check failed:", e);
+      }
+
+      setTimeout(check, interval);
+    }
+
+    check();
+  })();
+</script>
