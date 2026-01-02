@@ -4,8 +4,6 @@
 
 use std::collections::{BTreeSet, HashMap, HashSet};
 
-use eyre::OptionExt;
-
 use crate::{
     entry::{EntryMetaData, HTMLMetaData, MetaData, KEY_EXT, KEY_SLUG, KEY_TITLE},
     environment,
@@ -37,9 +35,11 @@ pub fn compile_all(mut shallows: Shallows) -> eyre::Result<CompileState> {
     let residued: BTreeSet<Slug> = shallows.keys().copied().collect();
 
     let mut state = CompileState::new(residued);
-    state
-        .compile(&shallows, Slug::new("index"))
-        .ok_or_eyre("Missing `index` section, please provide `index.md` or `index.typst`")?;
+    if state.compile(&shallows, Slug::new("index")).is_none() {
+        color_print::ceprintln!(
+            "<y>Warning: Missing `index` section, please provide `index.md` or `index.typst`.</>"
+        );
+    }
 
     /*
      * Unlinked or unembedded pages.
