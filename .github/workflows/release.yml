@@ -1,0 +1,96 @@
+name: Build & Upload Release Assets
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: write
+
+env:
+  BIN_NAME: kodama
+
+jobs:
+  build:
+    name: build (${{ matrix.target }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            use_cross: false
+            ext: .exe
+            archive: zip
+
+          - os: macos-latest
+            target: aarch64-apple-darwin
+            use_cross: false
+            ext: ""
+            archive: tar.gz
+
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            use_cross: false
+            ext: ""
+            archive: tar.gz
+
+          - os: ubuntu-latest
+            target: aarch64-unknown-linux-musl
+            use_cross: true
+            ext: ""
+            archive: tar.gz
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: Install cross
+        if: ${{ matrix.use_cross }}
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cross
+
+      - name: Build (release)
+        shell: bash
+        run: |
+          set -euxo pipefail
+          if [[ "${{ matrix.use_cross }}" == "true" ]]; then
+            cross build --release --locked --target "${{ matrix.target }}"
+          else
+            cargo build --release --locked --target "${{ matrix.target }}"
+          fi
+
+      - name: Package (windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $bin = "target/${{ matrix.target }}/release/${{ env.BIN_NAME }}${{ matrix.ext }}"
+          $pkg = "${{ env.BIN_NAME }}-${{ github.ref_name }}-${{ matrix.target }}"
+          New-Item -ItemType Directory -Force -Path dist | Out-Null
+          Compress-Archive -Path $bin -DestinationPath "dist/$pkg.zip" -Force
+          "ASSET=dist/$pkg.zip" | Out-File -FilePath $env:GITHUB_ENV -Append
+
+      - name: Package (unix)
+        if: runner.os != 'Windows'
+        shell: bash
+        run: |
+          set -euxo pipefail
+          BIN="target/${{ matrix.target }}/release/${{ env.BIN_NAME }}${{ matrix.ext }}"
+          PKG="${{ env.BIN_NAME }}-${{ github.ref_name }}-${{ matrix.target }}"
+          mkdir -p dist
+          tar -czf "dist/${PKG}.tar.gz" -C "$(dirname "$BIN")" "$(basename "$BIN")"
+          echo "ASSET=dist/${PKG}.tar.gz" >> "$GITHUB_ENV"
+
+      - name: Upload to GitHub Release assets
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ${{ env.ASSET }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
