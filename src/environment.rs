@@ -282,7 +282,10 @@ pub fn auto_create_dir_path<P: AsRef<Utf8Path>>(paths: Vec<P>) -> Utf8PathBuf {
 }
 
 pub fn output_path<P: AsRef<Utf8Path>>(path: P) -> Utf8PathBuf {
-    auto_create_dir_path(vec![&output_dir(), path.as_ref()])
+    let dir = output_dir();
+    let dir = dir.as_path();
+    let path = path.as_ref();
+    auto_create_dir_path(vec![dir, path])
 }
 
 /// Return the output HTML path `<output_dir>/<path>.html` for the given section.
