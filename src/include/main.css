@@ -8,7 +8,7 @@ html {
   --radius: 5px;
   --article-max-width: 75ex;
   --toc-max-width: 75ex;
-  --text-font-family: PingFang SC, Noto Sans CJK SC, sans-serif;
+  --text-font-family: "PingFang SC", "Noto Sans SC", "Noto Sans CJK SC", "Microsoft YaHei", "Segoe UI", "Noto Sans", "Droid Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
 
   /* root font size: 16px */
   /* 11pt; */
@@ -90,6 +90,7 @@ body {
   color: var(--text-color);
   font-optical-sizing: auto;
   font-size: 1rem;
+  font-family: var(--text-font-family);
   hyphens: auto;
   background-color: var(--background-color);
 }
@@ -213,7 +214,7 @@ p:has(span.katex-html:empty) {
   display: none;
 }
 
-section + p:empty {
+section+p:empty {
   display: none;
 }
 
