@@ -243,7 +243,6 @@ pub fn html_doc(
             (format!("<title>{page_title}</title>"))
             (format!(r#"<link rel="icon" href="{}assets/favicon.ico" />"#, base_url))
             (html_import_meta())
-            (html_import_fonts())
             (html_scripts())
             (html_live_reload())
             // math should be loaded after scripts to handle dynamic content
@@ -251,6 +250,8 @@ pub fn html_doc(
             // main styles should be loaded after math to override formula font size
             (html_static_css())
             (html_dynamic_css())
+            // fonts should be loaded after `static_css` to handle override default fonts
+            (html_import_fonts())
             // custom styles should be loaded last to override other styles
             (html_import_style())
         }

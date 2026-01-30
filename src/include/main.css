@@ -6,9 +6,9 @@ html {
   color-scheme: light dark;
   --content-gap: 15px;
   --radius: 5px;
-  --article-max-width: 75ex;
-  --toc-max-width: 75ex;
-  --text-font-family: "PingFang SC", "Noto Sans SC", "Noto Sans CJK SC", "Microsoft YaHei", "Segoe UI", "Noto Sans", "Droid Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --article-max-width: 90ex;
+  --toc-max-width: 90ex;
+  --text-font-family: "Inria Sans", sans-serif;
 
   /* root font size: 16px */
   /* 11pt; */
