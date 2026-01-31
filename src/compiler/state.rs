@@ -6,7 +6,7 @@ use std::collections::{BTreeSet, HashMap, HashSet};
 
 use crate::{
     entry::{EntryMetaData, HTMLMetaData, KEY_EXT, KEY_SLUG, KEY_TITLE, MetaData, is_plain_metadata},
-    environment,
+    environment::{self, exit_when_build},
     ordered_map::OrderedMap,
     path_utils,
     slug::{self, Slug},
@@ -103,6 +103,7 @@ impl CompileState {
                                         slug,
                                         child_slug
                                     );
+                                    exit_when_build();
                                     continue;
                                 }
                             };
@@ -171,15 +172,22 @@ impl CompileState {
         let mut metadata = EntryMetaData(OrderedMap::new());
         spanned.metadata.keys().for_each(|key| {
             let value = spanned.metadata.get(key).unwrap();
-            let new_value = if is_plain_metadata(key) {
-                value.as_string().expect(&format!("Expected metadata field `{}` to be a plain string", key)).to_owned()
+            if is_plain_metadata(key) {
+                if let Some(val) = value.as_string() {
+                    metadata.update(key.to_string(), val.to_owned());
+                } else {
+                    color_print::ceprintln!(
+                        "<r>Error: Metadata field `{}` in `{}` is expected to be plain text.</>",
+                        key, slug
+                    );
+                    exit_when_build();
+                }
             } else {
                 let spanned: ShallowSection = Self::metadata_to_section(value, slug, ext);
                 let compiled = self.compile_shallow(shallows, &spanned);
                 let html = compiled.spanned();
-                html
+                metadata.update(key.to_string(), html);
             };
-            metadata.update(key.to_string(), new_value);
         });
 
         // remove from `self.residued` after compiled.

@@ -5,7 +5,7 @@
 use crate::{
     compiler::{section::HTMLContent, taxon::Taxon},
     config::build::FooterMode,
-    environment, html_flake,
+    environment::{self, exit_when_build}, html_flake,
     ordered_map::OrderedMap,
     slug::Slug,
 };
@@ -116,7 +116,19 @@ where
     }
 
     fn get_bool(&self, key: &str) -> Option<bool> {
-        self.get_str(key).map(|s| s == "true")
+        self.get_str(key).and_then(|s| {
+            if s == "true" { Some(true) } 
+            else if s == "false" { Some(false) } 
+            else {
+                // TODO:: error lacks context
+                color_print::ceprintln!(
+                    "<r>Error: bool value `{}` is invalid. It must be either `true` or `false`.</>",
+                    s
+                );
+                exit_when_build();
+                None 
+            }
+        })
     }
 
     fn id(&self) -> String {
@@ -254,9 +266,17 @@ impl EntryMetaData {
     }
 
     pub fn footer_mode(&self) -> Option<FooterMode> {
-        self.get_str(KEY_FOOTER_MODE).map(|s| {
-            s.parse()
-                .expect("footer-mode must be either `embed` or `link`.")
+        self.get_str(KEY_FOOTER_MODE).and_then(|s| {
+            if let Ok(mode) = s.parse() {
+                return Some(mode);
+            }
+            // TODO:: error lacks context
+            color_print::ceprintln!(
+                "<r>Error: footer-mode `{}` is invalid. It must be either `embed` or `link`.</>",
+                s
+            );
+            exit_when_build();
+            None
         })
     }
 }

@@ -108,9 +108,14 @@ pub fn is_serve() -> bool {
     matches!(get_environment().build_mode, BuildMode::Serve)
 }
 
-#[allow(dead_code)]
 pub fn is_build() -> bool {
     matches!(get_environment().build_mode, BuildMode::Build)
+}
+
+pub fn exit_when_build() {
+    if is_build() {
+        std::process::exit(1);
+    }
 }
 
 pub fn is_short_slug() -> bool {
