@@ -9,6 +9,7 @@ use crate::slug::Slug;
 #[derive(Debug)]
 pub struct CallbackValue {
     pub parent: Slug,
+    pub is_parent_specified: bool,
 
     /// Used to record which sections reference the current section.
     pub backlinks: HashSet<Slug>,
@@ -27,18 +28,34 @@ impl Callback {
     }
 
     pub fn insert(&mut self, child_slug: Slug, value: CallbackValue) {
-        match self.0.get(&child_slug) {
+        match self.0.get_mut(&child_slug) {
             None => {
                 self.0.insert(child_slug, value);
             }
-            Some(_) => {
-                let mut existed = self.0.remove(&child_slug).unwrap();
+            Some(existed) => {
                 existed.backlinks.extend(value.backlinks);
 
-                if existed.parent == "index" && value.parent != "index" {
-                    existed.parent = value.parent;
+                if existed.is_parent_specified {
+                    if value.is_parent_specified {
+                        assert_eq!(existed.parent, value.parent);
+                    }
+                    return;
                 }
-                self.0.insert(child_slug, existed);
+                if value.is_parent_specified {
+                    existed.parent = value.parent;
+                    existed.is_parent_specified = true;
+                    return;
+                }
+                if existed.parent == "index" {
+                    existed.parent = value.parent;
+                    return;
+                }
+                if value.parent != "index" && existed.parent != value.parent {
+                    color_print::ceprintln!(
+                        "<y>Warning: Multiple parents for `{}`: `{}` and `{}`. Using {}.</>",
+                        child_slug, existed.parent, value.parent, existed.parent
+                    );
+                }
             }
         }
     }
@@ -48,6 +65,18 @@ impl Callback {
             child_slug,
             CallbackValue {
                 parent,
+                is_parent_specified: false,
+                backlinks: HashSet::new(),
+            },
+        );
+    }
+
+    pub fn specify_parent(&mut self, child_slug: Slug, parent: Slug) {
+        self.insert(
+            child_slug,
+            CallbackValue {
+                parent,
+                is_parent_specified: true,
                 backlinks: HashSet::new(),
             },
         );
@@ -61,6 +90,7 @@ impl Callback {
             child_slug,
             CallbackValue {
                 parent: Slug::new("index"),
+                is_parent_specified: false,
                 backlinks: HashSet::from_iter(backlinks),
             },
         );

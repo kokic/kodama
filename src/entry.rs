@@ -60,11 +60,14 @@ pub const KEY_ASBACK: &str = "asback";
 /// `footer-mode: embed | link`
 pub const KEY_FOOTER_MODE: &str = "footer-mode";
 
-const PRESET_METADATA: [&str; 13] = [
+const FANCY_METADATA: [&str; 2] = [
     KEY_TITLE,
+    KEY_TAXON,
+];
+
+const PLAIN_METADATA: [&str; 11] = [
     KEY_SLUG,
     KEY_EXT,
-    KEY_TAXON,
     KEY_DATA_TAXON,
     KEY_PARENT,
     KEY_PAGE_TITLE,
@@ -76,6 +79,18 @@ const PRESET_METADATA: [&str; 13] = [
     KEY_FOOTER_MODE,
 ];
 
+pub fn is_plain_metadata(s: &str) -> bool {
+    PLAIN_METADATA.contains(&s)
+}
+
+pub fn is_fancy_metadata(s: &str) -> bool {
+    FANCY_METADATA.contains(&s)
+}
+
+pub fn is_custom_metadata(s: &str) -> bool {
+    !is_plain_metadata(s) && !is_fancy_metadata(s)
+}
+
 pub trait MetaData<V>
 where
     V: Clone,
@@ -84,19 +99,15 @@ where
     fn get_str(&self, key: &str) -> Option<&String>;
     fn keys(&self) -> impl Iterator<Item = &String>;
 
-    fn is_custom_metadata(s: &str) -> bool {
-        !PRESET_METADATA.contains(&s)
-    }
-
-    /// Return all custom metadata keys without [`PRESET_METADATA`].
+    /// Return all custom metadata keys.
     fn etc_keys(&self) -> Vec<String> {
         self.keys()
-            .filter(|s| EntryMetaData::is_custom_metadata(s))
+            .filter(|s| is_custom_metadata(s))
             .map(|s| s.to_string())
             .collect()
     }
 
-    /// Return all custom metadata values without [`PRESET_METADATA`].
+    /// Return all custom metadata values.
     fn etc(&self) -> Vec<V> {
         self.etc_keys()
             .into_iter()
@@ -119,6 +130,10 @@ where
 
     fn data_taxon(&self) -> Option<&String> {
         self.get_str(KEY_DATA_TAXON)
+    }
+
+    fn parent(&self) -> Option<Slug> {
+        self.get_str(KEY_PARENT).map(Slug::new)
     }
 
     fn title(&self) -> Option<&V> {

@@ -5,7 +5,7 @@
 use std::collections::{BTreeSet, HashMap, HashSet};
 
 use crate::{
-    entry::{EntryMetaData, HTMLMetaData, MetaData, KEY_EXT, KEY_SLUG, KEY_TITLE},
+    entry::{EntryMetaData, HTMLMetaData, KEY_EXT, KEY_SLUG, KEY_TITLE, MetaData, is_plain_metadata},
     environment,
     ordered_map::OrderedMap,
     path_utils,
@@ -163,21 +163,23 @@ impl CompileState {
             }
         };
 
+        if let Some(parent) = spanned.metadata.parent() {
+            self.callback.specify_parent(slug, parent.clone());
+        }
+
         // compile metadata
         let mut metadata = EntryMetaData(OrderedMap::new());
-        metadata.update(KEY_SLUG.to_string(), slug.to_string());
-        metadata.update(KEY_EXT.to_string(), ext.to_string());
-
         spanned.metadata.keys().for_each(|key| {
-            // Obviously, the slug must be a pure string, so we do not perform compilation.
-            if key == KEY_SLUG || key == KEY_EXT {
-                return;
-            }
             let value = spanned.metadata.get(key).unwrap();
-            let spanned: ShallowSection = Self::metadata_to_section(value, slug, ext);
-            let compiled = self.compile_shallow(shallows, &spanned);
-            let html = compiled.spanned();
-            metadata.update(key.to_string(), html);
+            let new_value = if is_plain_metadata(key) {
+                value.as_string().expect(&format!("Expected metadata field `{}` to be a plain string", key)).to_owned()
+            } else {
+                let spanned: ShallowSection = Self::metadata_to_section(value, slug, ext);
+                let compiled = self.compile_shallow(shallows, &spanned);
+                let html = compiled.spanned();
+                html
+            };
+            metadata.update(key.to_string(), new_value);
         });
 
         // remove from `self.residued` after compiled.
