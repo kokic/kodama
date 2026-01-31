@@ -38,6 +38,12 @@ pub const KEY_PAGE_TITLE: &str = "page-title";
 /// Controls whether the current page displays backlinks.
 pub const KEY_BACKLINKS: &str = "backlinks";
 
+/// `transparent-backlinks: bool`:
+/// Controls whether backlinks of current section is always displayed,
+/// even when embedded (except in footer).
+/// Default is `false`.
+pub const KEY_TRANSPARENT_BACKLINKS: &str = "transparent-backlinks";
+
 /// `references: bool`:
 /// Controls whether the current page displays references.
 pub const KEY_REFERENCES: &str = "references";
@@ -65,13 +71,14 @@ const FANCY_METADATA: [&str; 2] = [
     KEY_TAXON,
 ];
 
-const PLAIN_METADATA: [&str; 11] = [
+const PLAIN_METADATA: [&str; 12] = [
     KEY_SLUG,
     KEY_EXT,
     KEY_DATA_TAXON,
     KEY_PARENT,
     KEY_PAGE_TITLE,
     KEY_BACKLINKS,
+    KEY_TRANSPARENT_BACKLINKS,
     KEY_REFERENCES,
     KEY_COLLECT,
     KEY_ASREF,
@@ -166,6 +173,10 @@ where
 
     fn is_enable_backlinks(&self) -> bool {
         self.get_bool(KEY_BACKLINKS).unwrap_or(true)
+    }
+
+    fn is_backlinks_transparent(&self) -> bool {
+        self.get_bool(KEY_TRANSPARENT_BACKLINKS).unwrap_or(false)
     }
 
     fn is_enable_references(&self) -> bool {

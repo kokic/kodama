@@ -5,12 +5,7 @@
 use std::{collections::HashSet, ops::Not};
 
 use crate::{
-    compiler::counter::Counter,
-    config::build::FooterMode,
-    entry::MetaData,
-    environment::{self, verify_update_hash},
-    html_flake::{self, html_footer_section},
-    slug::Slug,
+    compiler::{counter::Counter}, config::build::FooterMode, entry::MetaData, environment::{self, verify_update_hash}, html_flake::{self, html_footer_section}, slug::Slug
 };
 
 use super::{
@@ -61,7 +56,7 @@ impl Writer {
     pub fn html_doc(section: &Section, state: &CompileState) -> (String, String) {
         let mut counter = Counter::init();
 
-        let (article_inner, items) = Writer::section_to_html(section, &mut counter, true, false);
+        let (article_inner, items) = Writer::section_to_html(section, &mut counter, true, false, state);
         let catalog_html = items
             .is_empty()
             .not()
@@ -219,9 +214,10 @@ impl Writer {
         counter: &mut Counter,
         toplevel: bool,
         hide_metadata: bool,
+        state: &CompileState,
     ) -> (String, String) {
         let adhoc_taxon = Writer::taxon(section, counter);
-        let (contents, items) = match !section.children.is_empty() {
+        let (mut contents, items) = match !section.children.is_empty() {
             false => (String::new(), String::new()),
             true => {
                 let mut subcounter = match section.option.numbering {
@@ -230,7 +226,7 @@ impl Writer {
                 };
                 let content_to_html = |c: &SectionContent| {
                     let is_collection = section.metadata.is_collect();
-                    Writer::content_to_html(c, &mut subcounter, !is_collection)
+                    Writer::content_to_html(c, &mut subcounter, !is_collection, state)
                 };
                 section
                     .children
@@ -240,6 +236,17 @@ impl Writer {
                     .unwrap()
             }
         };
+
+        if !toplevel && section.metadata.is_backlinks_transparent() {
+            let backlinks_html = Writer::footer(
+                section.metadata.footer_mode(),
+                false,
+                state,
+                &section.references,
+                state.callback().0.get(&section.slug()),
+            );
+            contents += &backlinks_html;
+        }
 
         let child_html = items
             .is_empty()
@@ -272,11 +279,12 @@ impl Writer {
         content: &SectionContent,
         counter: &mut Counter,
         hide_metadata: bool,
+        state: &CompileState,
     ) -> (String, String) {
         match content {
             SectionContent::Plain(s) => (s.to_string(), String::new()),
             SectionContent::Embed(section) => {
-                Writer::section_to_html(section, counter, false, hide_metadata)
+                Writer::section_to_html(section, counter, false, hide_metadata, state)
             }
         }
     }
