@@ -508,10 +508,6 @@ body>header {
 }
 
 @media only screen and (max-width: 1000px) {
-  html {
-    font-size: 18px;
-  }
-
   figure {
     margin: 0rem;
   }
