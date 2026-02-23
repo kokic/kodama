@@ -318,19 +318,19 @@ pub fn html_dynamic_css() -> String {
 }
 
 pub fn html_import_meta() -> String {
-    environment::CUSTOM_META_HTML.clone()
+    environment::import_meta_html()
 }
 
 pub fn html_import_style() -> String {
-    environment::CUSTOM_STYLE_HTML.clone()
+    environment::import_style_html()
 }
 
 pub fn html_import_fonts() -> String {
-    environment::CUSTOM_FONTS_HTML.clone()
+    environment::import_fonts_html()
 }
 
 pub fn html_import_math() -> String {
-    environment::CUSTOM_MATH_HTML.clone()
+    environment::import_math_html()
 }
 
 pub fn html_live_reload() -> String {

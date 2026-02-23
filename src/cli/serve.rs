@@ -50,20 +50,31 @@ pub fn serve(command: &ServeCommand) -> eyre::Result<()> {
 
     serve_build()?;
     let config_file = environment::config_file();
+    let config_file_canonical = config_file
+        .canonicalize_utf8()
+        .unwrap_or_else(|_| config_file.clone());
 
     print!("\x1B[2J\x1B[H");
     std::io::stdout().flush()?;
 
     let mut serve = spawn_serve_process()?;
 
-    let watched_paths = [
+    let mut watched_paths = vec![
         crate::environment::trees_dir(),
         crate::environment::assets_dir(),
         config_file.clone(),
+        crate::environment::root_dir().join("import-meta.html"),
+        crate::environment::root_dir().join("import-style.html"),
+        crate::environment::root_dir().join("import-font.html"),
+        crate::environment::root_dir().join("import-math.html"),
     ];
+    watched_paths.extend(crate::environment::theme_paths());
     watch_paths(&watched_paths, |changed_path| {
         serve_build()?;
-        if changed_path == config_file.as_path() {
+        let changed_canonical = changed_path
+            .canonicalize_utf8()
+            .unwrap_or_else(|_| changed_path.to_owned());
+        if changed_path == config_file.as_path() || changed_canonical == config_file_canonical {
             color_print::ceprintln!("<y>[watch] Config changed. Restarting serve process.</>");
             let _ = serve.kill();
             let _ = serve.wait();
@@ -163,7 +174,12 @@ where
             continue;
         }
 
-        watcher.watch(watched_path.as_std_path(), RecursiveMode::Recursive)?;
+        let mode = if watched_path.is_file() {
+            RecursiveMode::NonRecursive
+        } else {
+            RecursiveMode::Recursive
+        };
+        watcher.watch(watched_path.as_std_path(), mode)?;
         print!("\"{}\"  ", watched_path);
     }
     println!("\n\nPress Ctrl+C to stop watching.\n");

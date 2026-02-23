@@ -4,7 +4,7 @@
 
 use std::{
     fs::{self, create_dir_all},
-    sync::{LazyLock, OnceLock, RwLock},
+    sync::{OnceLock, RwLock},
 };
 
 use camino::{Utf8Path, Utf8PathBuf};
@@ -84,23 +84,8 @@ pub enum BuildMode {
     Serve,
 }
 
-pub static CUSTOM_META_HTML: LazyLock<String> = LazyLock::new(|| {
-    std::fs::read_to_string(root_dir().join("import-meta.html")).unwrap_or_default()
-});
-
-pub static CUSTOM_STYLE_HTML: LazyLock<String> = LazyLock::new(|| {
-    std::fs::read_to_string(root_dir().join("import-style.html")).unwrap_or_default()
-});
-
-pub static CUSTOM_FONTS_HTML: LazyLock<String> = LazyLock::new(|| {
-    fs::read_to_string(root_dir().join("import-font.html"))
-        .unwrap_or(include_str!("include/import-font.html").to_string())
-});
-
-pub static CUSTOM_MATH_HTML: LazyLock<String> = LazyLock::new(|| {
-    fs::read_to_string(root_dir().join("import-math.html"))
-        .unwrap_or(include_str!("include/import-math.html").to_string())
-});
+const DEFAULT_IMPORT_FONT_HTML: &str = include_str!("include/import-font.html");
+const DEFAULT_IMPORT_MATH_HTML: &str = include_str!("include/import-math.html");
 
 pub const CACHE_DIR_NAME: &str = ".cache";
 pub const HASH_DIR_NAME: &str = "hash";
@@ -120,6 +105,24 @@ pub fn root_dir() -> Utf8PathBuf {
 
 pub fn config_file() -> Utf8PathBuf {
     with_environment(|env| env.config_file.clone())
+}
+
+pub fn import_meta_html() -> String {
+    fs::read_to_string(root_dir().join("import-meta.html")).unwrap_or_default()
+}
+
+pub fn import_style_html() -> String {
+    fs::read_to_string(root_dir().join("import-style.html")).unwrap_or_default()
+}
+
+pub fn import_fonts_html() -> String {
+    fs::read_to_string(root_dir().join("import-font.html"))
+        .unwrap_or_else(|_| DEFAULT_IMPORT_FONT_HTML.to_string())
+}
+
+pub fn import_math_html() -> String {
+    fs::read_to_string(root_dir().join("import-math.html"))
+        .unwrap_or_else(|_| DEFAULT_IMPORT_MATH_HTML.to_string())
 }
 
 pub fn is_serve() -> bool {
