@@ -107,6 +107,5 @@ fn sync_assets_dir() -> eyre::Result<bool> {
         .ok_or_else(|| eyre!("invalid assets directory path: {}", asset_dir))?;
     let target = environment::output_dir().join(asset_name);
 
-    assets_sync::sync_assets(asset_dir, target)?;
-    Ok(true)
+    assets_sync::sync_assets(asset_dir, target)
 }
