@@ -81,11 +81,11 @@ impl<'e, E: Iterator<Item = Event<'e>>> Iterator for TypstImage<E> {
                 }
                 Event::InlineMath(ref content) if allow_inline(&self.state) => {
                     let c = self.content.get_or_insert_default();
-                    write!(c, "${content}$").unwrap();
+                    let _ = write!(c, "${content}$");
                 }
                 Event::Code(ref content) if allow_inline(&self.state) => {
                     let c = self.content.get_or_insert_default();
-                    write!(c, "<code>{content}</code>").unwrap();
+                    let _ = write!(c, "<code>{content}</code>");
                 }
                 Event::End(TagEnd::Link) => match self.state {
                     State::Html => {
@@ -106,14 +106,25 @@ impl<'e, E: Iterator<Item = Event<'e>>> Iterator for TypstImage<E> {
                     }
                     State::InlineTypst => {
                         let shareds = self.shareds.join("\n");
-                        let args: Vec<&str> = self.url.as_ref().unwrap().split("-").collect();
+                        let inline_url = if let Some(url) = self.url.take() {
+                            url
+                        } else {
+                            color_print::ceprintln!(
+                                "<y>Warning: missing inline typst url at `{}`.</>",
+                                self.current_slug
+                            );
+                            self.state = State::None;
+                            self.content = None;
+                            continue;
+                        };
+                        let args: Vec<&str> = inline_url.split("-").collect();
                         let args = &args[1..];
                         let mut auto_math_mode: bool = false;
                         if args.contains(&"math") {
                             auto_math_mode = true;
                         }
 
-                        let mut inline_typst = self.content.take().unwrap();
+                        let mut inline_typst = self.content.take().unwrap_or_default();
                         inline_typst = smart_punctuation_reverse(&inline_typst);
 
                         if auto_math_mode {
@@ -177,7 +188,14 @@ impl<'e, E: Iterator<Item = Event<'e>>> Iterator for TypstImage<E> {
                         return Some(Event::Html(html.into()));
                     }
                     State::Shared => {
-                        let typst_url = self.url.as_ref().unwrap();
+                        let Some(typst_url) = self.url.take() else {
+                            color_print::ceprintln!(
+                                "<y>Warning: missing shared typst url at `{}`.</>",
+                                self.current_slug
+                            );
+                            self.state = State::None;
+                            continue;
+                        };
                         let imported = self.content.take();
                         /*
                          * Unspecified import items will default to all (*),

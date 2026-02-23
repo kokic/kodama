@@ -5,6 +5,7 @@
 use std::{fs, io::Write, process::Command};
 
 use camino::Utf8Path;
+use eyre::{eyre, WrapErr};
 
 use crate::{
     environment::{self, verify_and_file_hash},
@@ -17,16 +18,21 @@ pub fn write_to_inline_html<P: AsRef<Utf8Path>>(
 ) -> eyre::Result<String> {
     if !verify_and_file_hash(typst_path.as_ref())? && html_path.as_ref().exists() {
         let existed_html = fs::read_to_string(html_path.as_ref())?;
-        let existed_html = html_to_body_content(&existed_html);
-        if *crate::cli::build::verbose_skip() {
-            println!("Skip: {}", path_utils::pretty_path(typst_path.as_ref()));
+        if let Ok(existed_html) = html_to_body_content(&existed_html) {
+            if *crate::cli::build::verbose_skip() {
+                println!("Skip: {}", path_utils::pretty_path(typst_path.as_ref()));
+            }
+            return Ok(existed_html);
         }
-        return Ok(existed_html);
+        color_print::ceprintln!(
+            "<y>Warning: cached HTML `{}` is malformed, recompiling.</>",
+            path_utils::pretty_path(html_path.as_ref())
+        );
     }
 
     let root_dir = environment::trees_dir();
     let html = to_html_string(typst_path.as_ref(), &root_dir)?;
-    let html_body = html_to_body_content(&html);
+    let html_body = html_to_body_content(&html)?;
 
     fs::write(html_path.as_ref(), html)?;
     if *crate::cli::build::verbose() {
@@ -38,18 +44,35 @@ pub fn write_to_inline_html<P: AsRef<Utf8Path>>(
     Ok(html_body)
 }
 
-pub fn html_to_body_content(html: &str) -> String {
-    let start_pos = html.find("<html>").expect(concat!(file!(), '#', line!())) + 6;
-    let end_pos = html.rfind("</html>").expect(concat!(file!(), '#', line!()));
+pub fn html_to_body_content(html: &str) -> eyre::Result<String> {
+    let start_pos = html
+        .find("<html>")
+        .map(|pos| pos + 6)
+        .ok_or_else(|| eyre!("missing `<html>` tag in typst html output"))?;
+    let end_pos = html
+        .rfind("</html>")
+        .ok_or_else(|| eyre!("missing `</html>` tag in typst html output"))?;
+    if end_pos < start_pos {
+        return Err(eyre!("malformed html range in typst html output"));
+    }
     let content = &html[start_pos..end_pos];
-    content.to_string()
+    Ok(content.to_string())
 }
 
 pub fn source_to_inline_svg(src: &str) -> eyre::Result<String> {
-    let svg = source_to_html(format!("{}{}", include_str!("include/html-math.typ"), src).as_str())?;
+    let svg =
+        source_to_html(format!("{}{}", include_str!("include/html-math.typ"), src).as_str())?;
 
-    let start_pos = svg.find("<p>").expect(concat!(file!(), '#', line!())) + 3;
-    let end_pos = svg.rfind("</p>").expect(concat!(file!(), '#', line!()));
+    let start_pos = svg
+        .find("<p>")
+        .map(|pos| pos + 3)
+        .ok_or_else(|| eyre!("missing `<p>` tag in typst inline svg output"))?;
+    let end_pos = svg
+        .rfind("</p>")
+        .ok_or_else(|| eyre!("missing `</p>` tag in typst inline svg output"))?;
+    if end_pos < start_pos {
+        return Err(eyre!("malformed paragraph range in typst inline svg output"));
+    }
     let content = &svg[start_pos..end_pos];
 
     Ok(format!(
@@ -59,7 +82,9 @@ pub fn source_to_inline_svg(src: &str) -> eyre::Result<String> {
 }
 
 pub fn file_to_html(rel_path: &str, root_dir: &str) -> eyre::Result<String> {
-    to_html_string(rel_path, root_dir).map(|s| html_to_body_content(&s))
+    to_html_string(rel_path, root_dir)
+        .and_then(|s| html_to_body_content(&s))
+        .wrap_err_with(|| eyre!("failed to extract html body from `{}`", rel_path))
 }
 
 fn to_html_string<P: AsRef<Utf8Path>>(rel_path: P, root_dir: P) -> eyre::Result<String> {
@@ -79,14 +104,16 @@ fn to_html_string<P: AsRef<Utf8Path>>(rel_path: P, root_dir: P) -> eyre::Result<
         .stdout(std::process::Stdio::piped())
         .output()?;
 
-    Ok(if output.status.success() {
-        let stdout = String::from_utf8_lossy(&output.stdout);
-        stdout.to_string()
+    if output.status.success() {
+        Ok(String::from_utf8_lossy(&output.stdout).to_string())
     } else {
         let stderr = String::from_utf8_lossy(&output.stderr);
         failed_in_file(concat!(file!(), '#', line!()), rel_path.as_str(), stderr);
-        String::new()
-    })
+        Err(eyre!(
+            "typst html compilation failed for `{}`",
+            rel_path.as_str()
+        ))
+    }
 }
 
 fn source_to_html(src: &str) -> eyre::Result<String> {
@@ -103,12 +130,19 @@ fn source_to_html(src: &str) -> eyre::Result<String> {
         .stdout(std::process::Stdio::piped())
         .spawn()?;
 
-    typst.stdin.take().unwrap().write_all(src.as_bytes())?;
+    {
+        let mut stdin = typst
+            .stdin
+            .take()
+            .ok_or_else(|| eyre!("failed to open stdin for typst process"))?;
+        stdin
+            .write_all(src.as_bytes())
+            .wrap_err("failed to write typst source to stdin")?;
+    }
 
     let output = typst.wait_with_output()?;
-    Ok(if output.status.success() {
-        let stdout = String::from_utf8_lossy(&output.stdout);
-        stdout.to_string()
+    if output.status.success() {
+        Ok(String::from_utf8_lossy(&output.stdout).to_string())
     } else {
         let stderr = String::from_utf8_lossy(&output.stderr);
         color_print::ceprintln!(
@@ -116,8 +150,8 @@ fn source_to_html(src: &str) -> eyre::Result<String> {
             concat!(file!(), '#', line!()),
             stderr
         );
-        String::new()
-    })
+        Err(eyre!("typst inline html compilation failed"))
+    }
 }
 
 pub fn write_svg<P: AsRef<Utf8Path>>(typst_path: P, svg_path: P) -> eyre::Result<()> {
