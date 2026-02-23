@@ -20,10 +20,9 @@ pub struct Writer {}
 impl Writer {
     pub fn write(section: &Section, state: &CompileState) {
         let (html, page_title) = Writer::html_doc(section, state);
-        let html_url = format!("{}.html", section.slug());
-        let filepath = crate::environment::output_path(&html_url);
+        let relative_path = format!("{}.html", section.slug());
+        let filepath = crate::environment::output_path(&relative_path);
 
-        let relative_path = environment::output_dir().join(&html_url);
         if verify_update_hash(&relative_path, &html).expect("failed to verify update hash") {
             match std::fs::write(&filepath, html) {
                 Ok(()) => {
