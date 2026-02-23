@@ -56,11 +56,10 @@ pub fn html_section(
 pub fn html_header_metadata(mut etc: Vec<String>) -> String {
     let mut meta_items: Vec<String> = vec![];
     meta_items.append(&mut etc);
-    let items = meta_items
-        .iter()
-        .map(|item| html!(li class="meta-item" { (item) }))
-        .reduce(|s: String, t: String| s + t.as_str())
-        .unwrap_or(String::new());
+    let mut items = String::new();
+    for item in &meta_items {
+        items.push_str(&html!(li class="meta-item" { (item) }));
+    }
 
     html!(div class="metadata" { ul { (items) } })
 }

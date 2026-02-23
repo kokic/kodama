@@ -128,15 +128,17 @@ impl Writer {
 
         let references_text = environment::get_footer_references_text();
         let references_html = if enable_references {
-            references
-                .iter()
-                .map(|slug| {
-                    let section = state.compiled().get(slug).unwrap();
-                    Writer::footer_section_to_html(footer_mode, section)
-                })
-                .reduce(|s, t| s + &t)
-                .map(|s| html_footer_section("references", references_text, &s))
-                .unwrap_or_default()
+            let mut content = String::new();
+            for slug in &references {
+                let section = state.compiled().get(slug).unwrap();
+                content.push_str(&Writer::footer_section_to_html(footer_mode, section));
+            }
+
+            if content.is_empty() {
+                String::default()
+            } else {
+                html_footer_section("references", references_text, &content)
+            }
         } else {
             String::default()
         };
@@ -146,16 +148,17 @@ impl Writer {
             .map(|s| {
                 let mut backlinks: Vec<Slug> = s.backlinks.iter().copied().collect();
                 backlinks.sort();
-                backlinks
-                    .iter()
-                    .copied()
-                    .map(|slug| {
-                        let section = state.compiled().get(&slug).unwrap();
-                        Writer::footer_section_to_html(footer_mode, section)
-                    })
-                    .reduce(|s, t| s + &t)
-                    .map(|s| html_footer_section("backlinks", backlinks_text, &s))
-                    .unwrap_or_default()
+                let mut content = String::new();
+                for slug in backlinks {
+                    let section = state.compiled().get(&slug).unwrap();
+                    content.push_str(&Writer::footer_section_to_html(footer_mode, section));
+                }
+
+                if content.is_empty() {
+                    String::default()
+                } else {
+                    html_footer_section("backlinks", backlinks_text, &content)
+                }
             })
             .unwrap_or_default();
 
@@ -195,15 +198,10 @@ impl Writer {
                 )
             }
             FooterMode::Embed => {
-                let contents = match !section.children.is_empty() {
-                    false => String::new(),
-                    true => section
-                        .children
-                        .iter()
-                        .map(|c| Writer::footer_content_to_html(page_option, c))
-                        .reduce(|s, t| s + &t)
-                        .unwrap(),
-                };
+                let mut contents = String::new();
+                for content in &section.children {
+                    contents.push_str(&Writer::footer_content_to_html(page_option, content));
+                }
                 html_flake::html_article_inner(
                     &section.metadata,
                     &contents,
@@ -224,23 +222,20 @@ impl Writer {
         state: &CompileState,
     ) -> (String, String) {
         let adhoc_taxon = Writer::taxon(section, counter);
-        let (mut contents, items) = match !section.children.is_empty() {
-            false => (String::new(), String::new()),
-            true => {
-                let mut subcounter = match section.option.numbering {
-                    true => counter.left_shift(),
-                    false => counter.clone(),
-                };
-                let content_to_html = |c: &SectionContent| {
-                    let is_collection = section.metadata.is_collect();
-                    Writer::content_to_html(c, &mut subcounter, !is_collection, state)
-                };
-                section
-                    .children
-                    .iter()
-                    .map(content_to_html)
-                    .reduce(|s, t| (s.0 + &t.0, s.1 + &t.1))
-                    .unwrap()
+        let (mut contents, mut items) = (String::new(), String::new());
+
+        if !section.children.is_empty() {
+            let mut subcounter = match section.option.numbering {
+                true => counter.left_shift(),
+                false => counter.clone(),
+            };
+            let is_collection = section.metadata.is_collect();
+
+            for child in &section.children {
+                let (content_html, item_html) =
+                    Writer::content_to_html(child, &mut subcounter, !is_collection, state);
+                contents.push_str(&content_html);
+                items.push_str(&item_html);
             }
         };
 

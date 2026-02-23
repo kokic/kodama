@@ -230,13 +230,13 @@ impl Section {
     }
 
     pub fn spanned(&self) -> String {
-        self.children
-            .iter()
-            .map(|content| match content {
-                SectionContent::Plain(html) => html.to_string(),
+        let mut html = String::new();
+        for content in &self.children {
+            match content {
+                SectionContent::Plain(text) => html.push_str(text),
                 SectionContent::Embed(_) => unreachable!(),
-            })
-            .reduce(|s, t| s + &t)
-            .unwrap_or_default()
+            }
+        }
+        html
     }
 }

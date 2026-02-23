@@ -2,6 +2,8 @@
 // Released under the GPL-3.0 license as described in the file LICENSE.
 // Authors: Kokic (@kokic)
 
+use std::fmt::Write;
+
 #[derive(Debug, Clone)]
 pub struct Counter {
     pub numbers: Vec<u8>,
@@ -13,11 +15,11 @@ impl Counter {
     }
 
     pub fn display(&self) -> String {
-        self.numbers
-            .iter()
-            .map(|n| format!("{}.", n))
-            .reduce(|s: String, t| s + &t)
-            .unwrap()
+        let mut out = String::new();
+        for number in &self.numbers {
+            let _ = write!(out, "{}.", number);
+        }
+        out
     }
 
     pub fn step_at_mut(&mut self, level: usize) {
