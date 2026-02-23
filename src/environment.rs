@@ -8,7 +8,7 @@ use std::{
 };
 
 use camino::{Utf8Path, Utf8PathBuf};
-use eyre::Context;
+use eyre::{eyre, Context};
 
 use crate::{
     config::{self, build::FooterMode, kodama, toc, Config},
@@ -29,18 +29,60 @@ pub struct Environment {
 
 static ENVIRONMENT: OnceLock<RwLock<Environment>> = OnceLock::new();
 
-fn update_environment(environment: Environment) {
-    if let Some(lock) = ENVIRONMENT.get() {
-        *lock.write().expect("environment lock poisoned") = environment;
-    } else {
-        _ = ENVIRONMENT.set(RwLock::new(environment));
+fn default_environment() -> Environment {
+    Environment {
+        root: "./".into(),
+        config_file: crate::config::DEFAULT_CONFIG_PATH.into(),
+        config: Config::default(),
+        build_mode: BuildMode::Build,
     }
 }
 
+fn read_environment<R>(lock: &RwLock<Environment>, f: impl FnOnce(&Environment) -> R) -> R {
+    match lock.read() {
+        Ok(env) => f(&env),
+        Err(poisoned) => {
+            color_print::ceprintln!(
+                "<y>Warning: environment read lock is poisoned; continuing with recovered state.</>"
+            );
+            let env = poisoned.into_inner();
+            f(&env)
+        }
+    }
+}
+
+fn write_environment(lock: &RwLock<Environment>, environment: Environment) {
+    match lock.write() {
+        Ok(mut env) => {
+            *env = environment;
+        }
+        Err(poisoned) => {
+            color_print::ceprintln!(
+                "<y>Warning: environment write lock is poisoned; replacing with recovered state.</>"
+            );
+            let mut env = poisoned.into_inner();
+            *env = environment;
+        }
+    }
+}
+
+fn environment_lock(warn_if_uninitialized: bool) -> &'static RwLock<Environment> {
+    if warn_if_uninitialized && ENVIRONMENT.get().is_none() {
+        color_print::ceprintln!(
+            "<y>Warning: environment accessed before initialization; using default configuration.</>"
+        );
+    }
+    ENVIRONMENT.get_or_init(|| RwLock::new(default_environment()))
+}
+
+fn update_environment(environment: Environment) {
+    let lock = environment_lock(false);
+    write_environment(lock, environment);
+}
+
 fn with_environment<R>(f: impl FnOnce(&Environment) -> R) -> R {
-    let lock = ENVIRONMENT.get().expect("environment must be initialized");
-    let env = lock.read().expect("environment lock poisoned");
-    f(&env)
+    let lock = environment_lock(true);
+    read_environment(lock, f)
 }
 
 fn with_config<R>(f: impl FnOnce(&Config) -> R) -> R {
@@ -50,8 +92,8 @@ fn with_config<R>(f: impl FnOnce(&Config) -> R) -> R {
 pub fn init_environment(toml_file: Utf8PathBuf, build_mode: BuildMode) -> eyre::Result<()> {
     let toml_file = config::find_config(toml_file)?;
 
-    let (root, _file_name) =
-        path_utils::split_file_name(&toml_file).expect("path cannot be empty");
+    let (root, _file_name) = path_utils::split_file_name(&toml_file)
+        .ok_or_else(|| eyre!("invalid config path `{}`: path cannot be empty", toml_file))?;
     let toml = std::fs::read_to_string(&toml_file)?;
 
     update_environment(Environment {
@@ -66,12 +108,7 @@ pub fn init_environment(toml_file: Utf8PathBuf, build_mode: BuildMode) -> eyre::
 /// Mock environment for testing purposes.
 #[allow(dead_code)]
 pub fn mock_environment() -> eyre::Result<()> {
-    update_environment(Environment {
-        root: "./".into(),
-        config_file: crate::config::DEFAULT_CONFIG_PATH.into(),
-        config: Config::default(),
-        build_mode: BuildMode::Build,
-    });
+    update_environment(default_environment());
     Ok(())
 }
 
@@ -423,4 +460,48 @@ pub fn verify_update_hash<P: AsRef<Utf8Path>>(
     }
 
     Ok(is_modified)
+}
+
+#[cfg(test)]
+mod tests {
+    use std::sync::{Arc, RwLock};
+
+    use super::*;
+
+    fn poison_read_lock(lock: Arc<RwLock<Environment>>) {
+        let _ = std::thread::spawn(move || {
+            let _guard = lock.write().unwrap();
+            panic!("poison lock");
+        })
+        .join();
+    }
+
+    #[test]
+    fn test_read_environment_recovers_from_poisoned_lock() {
+        let lock = Arc::new(RwLock::new(default_environment()));
+        poison_read_lock(lock.clone());
+
+        let root = read_environment(&lock, |env| env.root.clone());
+        assert_eq!(root, Utf8PathBuf::from("./"));
+    }
+
+    #[test]
+    fn test_write_environment_recovers_from_poisoned_lock() {
+        let lock = Arc::new(RwLock::new(default_environment()));
+        poison_read_lock(lock.clone());
+
+        write_environment(
+            &lock,
+            Environment {
+                root: Utf8PathBuf::from("site"),
+                config_file: Utf8PathBuf::from("Kodama.toml"),
+                config: Config::default(),
+                build_mode: BuildMode::Serve,
+            },
+        );
+
+        let (root, mode) = read_environment(&lock, |env| (env.root.clone(), env.build_mode));
+        assert_eq!(root, Utf8PathBuf::from("site"));
+        assert!(matches!(mode, BuildMode::Serve));
+    }
 }
