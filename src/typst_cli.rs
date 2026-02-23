@@ -197,3 +197,21 @@ fn failed_in_file(src_pos: &'static str, file_path: &str, stderr: std::borrow::C
         stderr
     );
 }
+
+#[cfg(test)]
+mod tests {
+    use super::html_to_body_content;
+
+    #[test]
+    fn test_html_to_body_content_ok() {
+        let html = "<html><p>Hello</p></html>";
+        let body = html_to_body_content(html).unwrap();
+        assert_eq!(body, "<p>Hello</p>");
+    }
+
+    #[test]
+    fn test_html_to_body_content_missing_tags() {
+        let err = html_to_body_content("<p>Hello</p>");
+        assert!(err.is_err());
+    }
+}
