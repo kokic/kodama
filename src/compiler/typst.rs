@@ -33,6 +33,8 @@ fn parse_typst_html(
     let mut cursor: usize = 0;
 
     for span in HTMLParser::new(html_str) {
+        let span = span.wrap_err("failed to parse kodama tag from typst html")?;
+
         builder.push_str(&html_str[cursor..span.start]);
         cursor = span.end;
 
@@ -105,7 +107,8 @@ pub fn parse_typst<P: AsRef<Utf8Path>>(slug: Slug, root_dir: P) -> eyre::Result<
     metadata.insert(KEY_SLUG.to_string(), HTMLContent::Plain(slug.to_string()));
     metadata.insert(KEY_EXT.to_string(), HTMLContent::Plain("typst".to_string()));
 
-    let content = parse_typst_html(&html_str, &mut metadata)?;
+    let content = parse_typst_html(&html_str, &mut metadata)
+        .wrap_err_with(|| eyre!("failed to parse typst html structure in `{relative_path}`"))?;
 
     Ok(ShallowSection {
         metadata: HTMLMetaData(metadata),

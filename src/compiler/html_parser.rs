@@ -2,6 +2,7 @@
 // Released under the GPL-3.0 license as described in the file LICENSE.
 // Authors: Alias Qli (@AliasQli)
 
+use eyre::eyre;
 use htmlize::unescape_attribute;
 use regex_lite::{CaptureMatches, Captures, Regex};
 use std::borrow::Cow;
@@ -17,12 +18,12 @@ pub enum HTMLTagKind {
 }
 
 impl HTMLTagKind {
-    fn new(name: &str, span: bool) -> HTMLTagKind {
+    fn new(name: &str, span: bool) -> Option<HTMLTagKind> {
         match name {
-            "meta" => HTMLTagKind::Meta,
-            "embed" => HTMLTagKind::Embed,
-            "local" => HTMLTagKind::Local { span },
-            _ => unreachable!(),
+            "meta" => Some(HTMLTagKind::Meta),
+            "embed" => Some(HTMLTagKind::Embed),
+            "local" => Some(HTMLTagKind::Local { span }),
+            _ => None,
         }
     }
 
@@ -102,13 +103,13 @@ impl<'a> HTMLParser<'a> {
 }
 
 impl<'a> Iterator for HTMLParser<'a> {
-    type Item = HTMLMatch<'a>;
+    type Item = eyre::Result<HTMLMatch<'a>>;
 
-    // HTML is typst-generated, so it's not expected to be ill-formatted.
-    // Using panics here.
     fn next(&mut self) -> Option<Self::Item> {
-        fn get_tag(capture: Captures<'_>) -> (HTMLTag, Option<&str>) {
-            let all = capture.get(0).unwrap();
+        fn get_tag(capture: Captures<'_>) -> eyre::Result<(HTMLTag, Option<&str>)> {
+            let all = capture
+                .get(0)
+                .ok_or_else(|| eyre!("missing full match while parsing typst html tag"))?;
             let make_tag = |kind, mid| HTMLTag {
                 start: all.start(),
                 end: all.end(),
@@ -116,52 +117,100 @@ impl<'a> Iterator for HTMLParser<'a> {
                 kind,
             };
             if let Some(name) = capture.name("tag0") {
-                (
+                Ok((
                     make_tag(
-                        HTMLTagKind::new(name.as_str(), true),
-                        Some(capture.name("real0").unwrap().start()),
+                        HTMLTagKind::new(name.as_str(), true)
+                            .ok_or_else(|| eyre!("unknown kodama tag `{}`", name.as_str()))?,
+                        Some(
+                            capture
+                                .name("real0")
+                                .ok_or_else(|| eyre!("missing `real0` capture"))?
+                                .start(),
+                        ),
                     ),
-                    Some(capture.name("attrs0").unwrap().as_str()),
-                )
+                    Some(
+                        capture
+                            .name("attrs0")
+                            .ok_or_else(|| eyre!("missing `attrs0` capture"))?
+                            .as_str(),
+                    ),
+                ))
             } else if let Some(name) = capture.name("tag1") {
-                (
+                Ok((
                     make_tag(
-                        HTMLTagKind::new(name.as_str(), true),
-                        Some(capture.name("real1").unwrap().end()),
+                        HTMLTagKind::new(name.as_str(), true)
+                            .ok_or_else(|| eyre!("unknown kodama tag `{}`", name.as_str()))?,
+                        Some(
+                            capture
+                                .name("real1")
+                                .ok_or_else(|| eyre!("missing `real1` capture"))?
+                                .end(),
+                        ),
                     ),
                     None,
-                )
+                ))
             } else if let Some(name) = capture.name("tag2") {
-                (
-                    make_tag(HTMLTagKind::new(name.as_str(), false), None),
-                    Some(capture.name("attrs2").unwrap().as_str()),
-                )
+                Ok((
+                    make_tag(
+                        HTMLTagKind::new(name.as_str(), false)
+                            .ok_or_else(|| eyre!("unknown kodama tag `{}`", name.as_str()))?,
+                        None,
+                    ),
+                    Some(
+                        capture
+                            .name("attrs2")
+                            .ok_or_else(|| eyre!("missing `attrs2` capture"))?
+                            .as_str(),
+                    ),
+                ))
             } else if let Some(name) = capture.name("tag3") {
-                (make_tag(HTMLTagKind::new(name.as_str(), false), None), None)
+                Ok((
+                    make_tag(
+                        HTMLTagKind::new(name.as_str(), false)
+                            .ok_or_else(|| eyre!("unknown kodama tag `{}`", name.as_str()))?,
+                        None,
+                    ),
+                    None,
+                ))
             } else {
-                unreachable!()
+                Err(eyre!("unexpected tag capture while parsing typst html"))
             }
         }
 
         let mut stack = vec![];
 
         let (mut open_tag, mattrs) = match self.captures.next() {
-            Some(capture) => get_tag(capture),
+            Some(capture) => match get_tag(capture) {
+                Ok(tag) => tag,
+                Err(err) => return Some(Err(err)),
+            },
             None => return None,
         };
-        let attrs_str = mattrs.expect("Expecting an open tag, found closed tag");
+        let attrs_str = match mattrs {
+            Some(attrs) => attrs,
+            None => return Some(Err(eyre!("expecting open kodama tag, found closing tag"))),
+        };
         stack.push(open_tag.kind);
 
         let mut close_tag = loop {
-            let capture = self.captures.next().expect("Expect more kodama tags");
-            let (tag, mattrs) = get_tag(capture);
+            let capture = match self.captures.next() {
+                Some(capture) => capture,
+                None => return Some(Err(eyre!("unclosed kodama tag: unexpected end of html"))),
+            };
+            let (tag, mattrs) = match get_tag(capture) {
+                Ok(tag) => tag,
+                Err(err) => return Some(Err(err)),
+            };
 
             if mattrs.is_some() {
                 stack.push(tag.kind);
             } else {
-                let last = stack.pop().unwrap();
+                let last = match stack.pop() {
+                    Some(tag) => tag,
+                    None => return Some(Err(eyre!("found closing tag without matching open tag"))),
+                };
                 if tag.kind.tri_equal(&last) == Some(false) {
-                    panic!("Tags don't match")
+                    return Some(Err(eyre!("mismatched nested kodama tags")));
                 }
                 if stack.is_empty() {
                     break tag;
@@ -178,22 +227,21 @@ impl<'a> Iterator for HTMLParser<'a> {
             Regex::new(r#"(?<key>[a-zA-Z-]+)(="(?<value>([^"\\]|\\[\s\S])*)")?"#).unwrap()
         });
 
-        let attrs: HashMap<&str, Cow<'_, str>> = RE_ATTR
-            .captures_iter(attrs_str)
-            .map(|c| {
-                (
-                    c.name("key").unwrap().as_str(),
-                    unescape_attribute(c.name("value").map_or("", |s| s.as_str())),
-                )
-            })
-            .collect();
+        let mut attrs: HashMap<&str, Cow<'_, str>> = HashMap::new();
+        for c in RE_ATTR.captures_iter(attrs_str) {
+            let key = match c.name("key") {
+                Some(key) => key.as_str(),
+                None => return Some(Err(eyre!("malformed attribute in typst html tag"))),
+            };
+            attrs.insert(key, unescape_attribute(c.name("value").map_or("", |s| s.as_str())));
+        }
 
-        Some(HTMLMatch {
+        Some(Ok(HTMLMatch {
             kind: open_tag.kind,
             start: open_tag.start,
             end: close_tag.end,
             attrs,
             body: self.html_str[open_tag.end..close_tag.start].trim(),
-        })
+        }))
     }
 }
