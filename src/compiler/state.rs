@@ -188,7 +188,15 @@ impl CompileState {
         // compile metadata
         let mut metadata = EntryMetaData(OrderedMap::new());
         spanned.metadata.keys().for_each(|key| {
-            let value = spanned.metadata.get(key).unwrap();
+            let Some(value) = spanned.metadata.get(key) else {
+                color_print::ceprintln!(
+                    "<r>Error: metadata key `{}` vanished while compiling `{}`.</>",
+                    key,
+                    slug
+                );
+                exit_when_build();
+                return;
+            };
             if is_plain_metadata(key) {
                 if let Some(val) = value.as_string() {
                     metadata.update(key.to_string(), val.to_owned());
@@ -211,8 +219,7 @@ impl CompileState {
         self.residued.remove(&slug);
 
         let section = Section::new(metadata, children, references);
-        self.compiled.insert(slug, section);
-        self.compiled.get(&slug).unwrap()
+        self.compiled.entry(slug).or_insert(section)
     }
 
     fn metadata_to_section(

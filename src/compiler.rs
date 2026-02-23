@@ -82,12 +82,12 @@ pub fn compile(workspace: Workspace) -> eyre::Result<()> {
 }
 
 pub fn should_ignored_file(path: &Utf8Path) -> bool {
-    let name = path.file_name().unwrap();
-    name == "README.md"
+    path.file_name().is_some_and(|name| name == "README.md")
 }
 
 pub fn should_ignored_dir(path: &Utf8Path) -> bool {
-    path.file_name().unwrap().starts_with(['.', '_'])
+    path.file_name()
+        .is_some_and(|name| name.starts_with(['.', '_']))
 }
 
 fn to_slug_ext(source_dir: &Utf8Path, p: &Utf8Path) -> Option<(Slug, Ext)> {
@@ -153,11 +153,17 @@ pub fn all_trees_source(trees_dir: &Utf8Path) -> eyre::Result<Workspace> {
                             .is_some_and(|p| p.is_file() || !should_ignored_dir(p))
                     })
                 {
-                    let path: Utf8PathBuf = entry
-                        .wrap_err_with(|| failed_to_read_dir(&path))?
-                        .into_path()
-                        .try_into()
-                        .expect("non-UTF-8 paths are filtered out");
+                    let std_path = entry.wrap_err_with(|| failed_to_read_dir(&path))?.into_path();
+                    let path = match Utf8PathBuf::from_path_buf(std_path) {
+                        Ok(path) => path,
+                        Err(non_utf8) => {
+                            color_print::ceprintln!(
+                                "<y>Warning: skipping non-UTF-8 path `{}`.</>",
+                                non_utf8.display()
+                            );
+                            continue;
+                        }
+                    };
                     if path.is_file() {
                         let Some((slug, ext)) = to_slug_ext(source_dir, &path) else {
                             compile_typst_svg(&path)?;
@@ -188,4 +194,26 @@ pub fn all_trees_source(trees_dir: &Utf8Path) -> eyre::Result<Workspace> {
 #[derive(Debug)]
 pub struct Workspace {
     pub slug_exts: HashMap<Slug, Ext>,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_should_ignored_helpers_handle_missing_file_name() {
+        let empty = Utf8Path::new("");
+        assert!(!should_ignored_file(empty));
+        assert!(!should_ignored_dir(empty));
+    }
+
+    #[test]
+    fn test_should_ignored_helpers_match_expected_names() {
+        assert!(should_ignored_file(Utf8Path::new("README.md")));
+        assert!(!should_ignored_file(Utf8Path::new("docs.md")));
+
+        assert!(should_ignored_dir(Utf8Path::new(".git")));
+        assert!(should_ignored_dir(Utf8Path::new("_tmp")));
+        assert!(!should_ignored_dir(Utf8Path::new("trees")));
+    }
 }

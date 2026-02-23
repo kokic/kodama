@@ -118,7 +118,7 @@ where
     fn etc(&self) -> Vec<V> {
         self.etc_keys()
             .into_iter()
-            .map(|s| self.get(&s).unwrap().clone())
+            .filter_map(|s| self.get(&s).cloned())
             .collect()
     }
 
@@ -144,7 +144,16 @@ where
     }
 
     fn id(&self) -> String {
-        crate::slug::to_hash_id(self.get_str(KEY_SLUG).unwrap())
+        match self.get_str(KEY_SLUG) {
+            Some(slug) => crate::slug::to_hash_id(slug),
+            None => {
+                color_print::ceprintln!(
+                    "<r>Error: missing required metadata `slug` while rendering section id.</>"
+                );
+                exit_when_build();
+                crate::slug::to_hash_id("index")
+            }
+        }
     }
 
     /// Return taxon text
@@ -257,8 +266,24 @@ impl EntryMetaData {
         let taxon = adhoc_taxon.unwrap_or(entry_taxon);
         let entry_title = self.0.get("title").map(|s| s.as_str()).unwrap_or("");
         let title = adhoc_title.unwrap_or(entry_title);
-        let slug = Slug::new(self.get(KEY_SLUG).unwrap());
-        let ext = self.get(KEY_EXT).unwrap();
+        let slug = self.slug().unwrap_or_else(|| {
+            color_print::ceprintln!(
+                "<r>Error: missing required metadata `slug` while rendering header.</>"
+            );
+            exit_when_build();
+            Slug::new("index")
+        });
+        let ext = self.ext().map_or_else(
+            || {
+                color_print::ceprintln!(
+                    "<r>Error: missing required metadata `ext` while rendering header for `{}`.</>",
+                    slug
+                );
+                exit_when_build();
+                "md"
+            },
+            String::as_str,
+        );
         let span_class: Vec<String> = vec!["taxon".to_string()];
 
         html_flake::html_header(title, taxon, &slug, ext, span_class.join(" "), self.etc())

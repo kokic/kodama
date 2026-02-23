@@ -105,10 +105,14 @@ impl Writer {
             .0
             .get(&slug)
             .map_or(Slug::new("index"), |callback| callback.parent);
-        let section = state
-            .compiled()
-            .get(&parent)
-            .unwrap_or_else(|| panic!("missing slug `{:?}`", parent));
+        let Some(section) = state.compiled().get(&parent) else {
+            color_print::ceprintln!(
+                "<y>Warning: missing parent section `{}` for `{}`; header nav is skipped.</>",
+                parent,
+                slug
+            );
+            return String::default();
+        };
 
         let href = environment::full_html_url(parent);
         let title = section.metadata.title().map_or("", |s| s);
@@ -130,7 +134,13 @@ impl Writer {
         let references_html = if enable_references {
             let mut content = String::new();
             for slug in &references {
-                let section = state.compiled().get(slug).unwrap();
+                let Some(section) = state.compiled().get(slug) else {
+                    color_print::ceprintln!(
+                        "<y>Warning: missing referenced section `{}`; skipping footer reference.</>",
+                        slug
+                    );
+                    continue;
+                };
                 content.push_str(&Writer::footer_section_to_html(footer_mode, section));
             }
 
@@ -150,7 +160,13 @@ impl Writer {
                 backlinks.sort();
                 let mut content = String::new();
                 for slug in backlinks {
-                    let section = state.compiled().get(&slug).unwrap();
+                    let Some(section) = state.compiled().get(&slug) else {
+                        color_print::ceprintln!(
+                            "<y>Warning: missing backlink section `{}`; skipping footer backlink.</>",
+                            slug
+                        );
+                        continue;
+                    };
                     content.push_str(&Writer::footer_section_to_html(footer_mode, section));
                 }
 
@@ -300,5 +316,51 @@ impl Writer {
             return taxon.display();
         }
         section.metadata.taxon().map_or("", |s| s).to_string()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::collections::HashMap;
+
+    use crate::{
+        compiler::{
+            section::{HTMLContent, ShallowSection},
+            state::compile_all,
+        },
+        entry::{HTMLMetaData, KEY_EXT, KEY_PAGE_TITLE, KEY_SLUG, KEY_TITLE},
+        ordered_map::OrderedMap,
+    };
+
+    use super::*;
+
+    fn shallow_section(slug: &str, title: &str) -> ShallowSection {
+        let mut metadata = OrderedMap::new();
+        metadata.insert(KEY_SLUG.to_string(), HTMLContent::Plain(slug.to_string()));
+        metadata.insert(KEY_EXT.to_string(), HTMLContent::Plain("md".to_string()));
+        metadata.insert(KEY_TITLE.to_string(), HTMLContent::Plain(title.to_string()));
+        metadata.insert(
+            KEY_PAGE_TITLE.to_string(),
+            HTMLContent::Plain(title.to_string()),
+        );
+
+        ShallowSection {
+            metadata: HTMLMetaData(metadata),
+            content: HTMLContent::Plain("<p>hello</p>".to_string()),
+        }
+    }
+
+    #[test]
+    fn test_html_doc_skips_header_when_parent_section_is_missing() {
+        crate::environment::mock_environment().unwrap();
+
+        let mut shallows = HashMap::new();
+        shallows.insert(Slug::new("a"), shallow_section("a", "A"));
+
+        let state = compile_all(shallows).unwrap();
+        let section = state.compiled().get(&Slug::new("a")).unwrap();
+        let (html, _title) = Writer::html_doc(section, &state);
+
+        assert!(!html.contains(r#"class="header""#));
     }
 }

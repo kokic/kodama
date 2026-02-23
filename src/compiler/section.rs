@@ -187,11 +187,26 @@ pub struct ShallowSection {
 
 impl ShallowSection {
     pub fn slug(&self) -> Slug {
-        self.metadata.slug().unwrap()
+        self.metadata.slug().unwrap_or_else(|| {
+            color_print::ceprintln!(
+                "<r>Error: missing required metadata `slug` in shallow section.</>"
+            );
+            crate::environment::exit_when_build();
+            Slug::new("index")
+        })
     }
 
     pub fn ext(&self) -> &str {
-        self.metadata.ext().expect("the field `ext` does not exist. Please update kodama to v0.3.3 or above and delete the expired '.cache' folder.")
+        self.metadata.ext().map_or_else(
+            || {
+                color_print::ceprintln!(
+                    "<r>Error: missing required metadata `ext` in shallow section. Please update kodama to v0.3.3+ and delete the expired `.cache` folder.</>"
+                );
+                crate::environment::exit_when_build();
+                "md"
+            },
+            String::as_str,
+        )
     }
 }
 
@@ -226,7 +241,13 @@ impl Section {
     }
 
     pub fn slug(&self) -> Slug {
-        self.metadata.slug().unwrap()
+        self.metadata.slug().unwrap_or_else(|| {
+            color_print::ceprintln!(
+                "<r>Error: missing required metadata `slug` in compiled section.</>"
+            );
+            crate::environment::exit_when_build();
+            Slug::new("index")
+        })
     }
 
     pub fn spanned(&self) -> String {
