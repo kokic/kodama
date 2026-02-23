@@ -59,22 +59,21 @@ pub fn serve(command: &ServeCommand) -> eyre::Result<()> {
 
     let mut serve = spawn_serve_process()?;
 
-    let mut watched_paths = vec![
+    let root_dir = crate::environment::root_dir();
+    let watched_paths = compose_watched_paths(
+        root_dir.as_path(),
         crate::environment::trees_dir(),
         crate::environment::assets_dir(),
         config_file.clone(),
-        crate::environment::root_dir().join("import-meta.html"),
-        crate::environment::root_dir().join("import-style.html"),
-        crate::environment::root_dir().join("import-font.html"),
-        crate::environment::root_dir().join("import-math.html"),
-    ];
-    watched_paths.extend(crate::environment::theme_paths());
+        crate::environment::theme_paths(),
+    );
     watch_paths(&watched_paths, |changed_path| {
         serve_build()?;
-        let changed_canonical = changed_path
-            .canonicalize_utf8()
-            .unwrap_or_else(|_| changed_path.to_owned());
-        if changed_path == config_file.as_path() || changed_canonical == config_file_canonical {
+        if should_restart_for_config_change(
+            changed_path,
+            config_file.as_path(),
+            config_file_canonical.as_path(),
+        ) {
             color_print::ceprintln!("<y>[watch] Config changed. Restarting serve process.</>");
             let _ = serve.kill();
             let _ = serve.wait();
@@ -147,6 +146,53 @@ fn spawn_serve_process() -> eyre::Result<std::process::Child> {
     Ok(serve)
 }
 
+fn compose_watched_paths(
+    root_dir: &Utf8Path,
+    trees_dir: Utf8PathBuf,
+    assets_dir: Utf8PathBuf,
+    config_file: Utf8PathBuf,
+    theme_paths: Vec<Utf8PathBuf>,
+) -> Vec<Utf8PathBuf> {
+    let mut watched_paths = vec![
+        trees_dir,
+        assets_dir,
+        config_file,
+        root_dir.join("import-meta.html"),
+        root_dir.join("import-style.html"),
+        root_dir.join("import-font.html"),
+        root_dir.join("import-math.html"),
+    ];
+    watched_paths.extend(theme_paths);
+    watched_paths
+}
+
+fn canonicalize_or_self(path: &Utf8Path) -> Utf8PathBuf {
+    path.canonicalize_utf8().unwrap_or_else(|_| path.to_owned())
+}
+
+fn should_restart_for_config_change(
+    changed_path: &Utf8Path,
+    config_file: &Utf8Path,
+    config_file_canonical: &Utf8Path,
+) -> bool {
+    changed_path == config_file || canonicalize_or_self(changed_path) == config_file_canonical
+}
+
+fn should_handle_watch_event(kind: &EventKind) -> bool {
+    matches!(
+        kind,
+        EventKind::Modify(_) | EventKind::Create(_) | EventKind::Remove(_) | EventKind::Any
+    )
+}
+
+fn watch_mode_for_path(path: &Utf8Path) -> RecursiveMode {
+    if path.is_file() {
+        RecursiveMode::NonRecursive
+    } else {
+        RecursiveMode::Recursive
+    }
+}
+
 /// from: https://github.com/notify-rs/notify/blob/main/examples/monitor_raw.rs#L18
 fn watch_paths<P: AsRef<Utf8Path>, F>(watched_paths: &[P], mut action: F) -> eyre::Result<()>
 where
@@ -174,11 +220,7 @@ where
             continue;
         }
 
-        let mode = if watched_path.is_file() {
-            RecursiveMode::NonRecursive
-        } else {
-            RecursiveMode::Recursive
-        };
+        let mode = watch_mode_for_path(watched_path);
         watcher.watch(watched_path.as_std_path(), mode)?;
         print!("\"{}\"  ", watched_path);
     }
@@ -190,10 +232,7 @@ where
                 // Generally, we only need to listen for changes in file content `ModifyKind::Data(_)`,
                 // but since notify-rs always only gets `Modify(Any)` on Windows,
                 // we expand the listening scope here.
-                if matches!(
-                    event.kind,
-                    EventKind::Modify(_) | EventKind::Create(_) | EventKind::Remove(_) | EventKind::Any
-                ) {
+                if should_handle_watch_event(&event.kind) {
                     let now = std::time::Instant::now();
                     if now.duration_since(last_run) < debounce {
                         continue;
@@ -216,4 +255,105 @@ where
     }
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use notify::event::{AccessKind, CreateKind, ModifyKind, RemoveKind};
+    use std::fs;
+
+    fn case_dir(name: &str) -> Utf8PathBuf {
+        let mut path = std::env::temp_dir();
+        path.push(format!("kodama-serve-{name}-{}", fastrand::u64(..)));
+        Utf8PathBuf::from_path_buf(path).expect("temp path should be valid utf8")
+    }
+
+    #[test]
+    fn test_compose_watched_paths_includes_imports_and_themes() {
+        let root = Utf8PathBuf::from("site");
+        let trees = root.join("trees");
+        let assets = root.join("assets");
+        let config = root.join("Kodama.toml");
+        let theme = root.join("themes/theme.css");
+
+        let watched = compose_watched_paths(
+            root.as_path(),
+            trees.clone(),
+            assets.clone(),
+            config.clone(),
+            vec![theme.clone()],
+        );
+
+        assert!(watched.contains(&trees));
+        assert!(watched.contains(&assets));
+        assert!(watched.contains(&config));
+        assert!(watched.contains(&root.join("import-meta.html")));
+        assert!(watched.contains(&root.join("import-style.html")));
+        assert!(watched.contains(&root.join("import-font.html")));
+        assert!(watched.contains(&root.join("import-math.html")));
+        assert!(watched.contains(&theme));
+    }
+
+    #[test]
+    fn test_should_restart_for_config_change_exact_path() {
+        let config = Utf8PathBuf::from("site/Kodama.toml");
+        assert!(should_restart_for_config_change(
+            config.as_path(),
+            config.as_path(),
+            config.as_path()
+        ));
+    }
+
+    #[test]
+    fn test_should_restart_for_config_change_canonical_match() {
+        let root = case_dir("canonical");
+        let sub = root.join("sub");
+        fs::create_dir_all(&sub).unwrap();
+        let config = root.join("Kodama.toml");
+        fs::write(&config, "[kodama]\n").unwrap();
+        let changed = root.join("sub/../Kodama.toml");
+
+        let config_canonical = config.canonicalize_utf8().unwrap();
+        assert!(should_restart_for_config_change(
+            changed.as_path(),
+            config.as_path(),
+            config_canonical.as_path()
+        ));
+
+        let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn test_should_restart_for_config_change_other_file() {
+        let config = Utf8PathBuf::from("site/Kodama.toml");
+        let changed = Utf8PathBuf::from("site/trees/index.md");
+        assert!(!should_restart_for_config_change(
+            changed.as_path(),
+            config.as_path(),
+            config.as_path()
+        ));
+    }
+
+    #[test]
+    fn test_should_handle_watch_event_kinds() {
+        assert!(should_handle_watch_event(&EventKind::Any));
+        assert!(should_handle_watch_event(&EventKind::Modify(ModifyKind::Any)));
+        assert!(should_handle_watch_event(&EventKind::Create(CreateKind::Any)));
+        assert!(should_handle_watch_event(&EventKind::Remove(RemoveKind::Any)));
+        assert!(!should_handle_watch_event(&EventKind::Access(AccessKind::Any)));
+    }
+
+    #[test]
+    fn test_watch_mode_for_path_file_and_dir() {
+        let root = case_dir("watch-mode");
+        let file = root.join("a.txt");
+        fs::create_dir_all(&root).unwrap();
+        fs::write(&file, "x").unwrap();
+
+        assert_eq!(watch_mode_for_path(root.as_path()), RecursiveMode::Recursive);
+        assert_eq!(watch_mode_for_path(file.as_path()), RecursiveMode::NonRecursive);
+
+        let _ = fs::remove_dir_all(root);
+    }
 }
