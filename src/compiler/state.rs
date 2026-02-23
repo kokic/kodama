@@ -23,6 +23,8 @@ pub struct CompileState {
     residued: BTreeSet<Slug>,
     compiled: HashMap<Slug, Section>,
     callback: Callback,
+    visiting: HashSet<Slug>,
+    compile_stack: Vec<Slug>,
 }
 
 type Shallows = HashMap<Slug, ShallowSection>;
@@ -57,6 +59,8 @@ impl CompileState {
             residued,
             compiled: HashMap::new(),
             callback: Callback::new(),
+            visiting: HashSet::new(),
+            compile_stack: Vec::new(),
         }
     }
 
@@ -66,12 +70,25 @@ impl CompileState {
 
     fn fetch_section(&mut self, shallows: &Shallows, slug: Slug) -> Option<&Section> {
         if self.compiled.contains_key(&slug) {
-            Some(self.compiled.get(&slug).unwrap())
-        } else {
-            shallows
-                .get(&slug)
-                .map(|shallow| self.compile_shallow(shallows, shallow))
+            return self.compiled.get(&slug);
         }
+
+        if self.visiting.contains(&slug) {
+            let mut chain: Vec<String> = self.compile_stack.iter().map(ToString::to_string).collect();
+            chain.push(slug.to_string());
+            color_print::ceprintln!("<r>Error: cyclic embed detected: {}</>", chain.join(" -> "));
+            exit_when_build();
+            return None;
+        }
+
+        let shallow = shallows.get(&slug)?;
+        self.visiting.insert(slug);
+        self.compile_stack.push(slug);
+        self.compile_shallow(shallows, shallow);
+        self.compile_stack.pop();
+        self.visiting.remove(&slug);
+
+        self.compiled.get(&slug)
     }
 
     fn compile_shallow(&mut self, shallows: &Shallows, spanned: &ShallowSection) -> &Section {
@@ -165,7 +182,7 @@ impl CompileState {
         };
 
         if let Some(parent) = spanned.metadata.parent() {
-            self.callback.specify_parent(slug, parent.clone());
+            self.callback.specify_parent(slug, parent);
         }
 
         // compile metadata

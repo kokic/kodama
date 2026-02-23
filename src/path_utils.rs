@@ -45,7 +45,10 @@ mod tests {
     fn test_split_base() {
         assert_eq!(split_file_name("a/b".into()), Some(("a".into(), "b")));
         assert_eq!(split_file_name("a/b/c".into()), Some(("a/b".into(), "c")));
-        assert_eq!(split_file_name("/".into()), Some(("".into(), "/")));
+        assert_eq!(
+            split_file_name("/".into()),
+            Some(("".into(), std::path::MAIN_SEPARATOR_STR))
+        );
         assert_eq!(split_file_name("a".into()), Some(("".into(), "a")));
     }
 }
