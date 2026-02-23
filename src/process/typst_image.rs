@@ -162,7 +162,15 @@ impl<'e, E: Iterator<Item = Event<'e>>> Iterator for TypstImage<E> {
                         let root_dir = environment::trees_dir();
                         let full_path = root_dir.join(typst_url);
                         let code = fs::read_to_string(format!("{}.code", full_path))
-                            .unwrap_or_else(|_| fs::read_to_string(full_path).unwrap());
+                            .or_else(|_| fs::read_to_string(&full_path))
+                            .unwrap_or_else(|err| {
+                                color_print::ceprintln!(
+                                    "<y>Warning: failed to read typst source `{}`: {}</>",
+                                    full_path,
+                                    err
+                                );
+                                String::new()
+                            });
 
                         let html =
                             html_figure_code(&environment::full_url(&svg_url), caption, code);

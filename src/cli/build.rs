@@ -68,9 +68,13 @@ pub fn build_with(config: &str, mode: BuildMode, verbose: bool, verbose_skip: bo
     let root = environment::root_dir();
     let workspace = all_trees_source(&environment::trees_dir())?;
     compiler::compile(workspace).wrap_err_with(|| {
+        let root_display = root
+            .canonicalize()
+            .map(|p| p.display().to_string())
+            .unwrap_or_else(|_| root.as_str().to_string());
         eyre!(
             "failed to compile site `{}`",
-            root.canonicalize().unwrap().display()
+            root_display
         )
     })?;
 
@@ -98,7 +102,10 @@ fn export_css_file(css_content: &str, name: &str) -> eyre::Result<()> {
 /// output directory [`config::output_dir()`].
 fn sync_assets_dir() -> eyre::Result<bool> {
     let asset_dir = environment::assets_dir();
-    let target = environment::output_dir().join(asset_dir.file_name().unwrap());
+    let asset_name = asset_dir
+        .file_name()
+        .ok_or_else(|| eyre!("invalid assets directory path: {}", asset_dir))?;
+    let target = environment::output_dir().join(asset_name);
 
     assets_sync::sync_assets(asset_dir, target)?;
     Ok(true)

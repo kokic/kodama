@@ -53,7 +53,8 @@ pub fn compile(workspace: Workspace) -> eyre::Result<()> {
                 Ext::Typst => parse_typst(slug, environment::typst_root_dir())
                     .wrap_err_with(|| eyre!("failed to parse typst file `{slug}.{ext}`"))?,
             };
-            let serialized = serde_json::to_string(&shallow).unwrap();
+            let serialized = serde_json::to_string(&shallow)
+                .wrap_err_with(|| eyre!("failed to serialize entry for `{slug}.{ext}`"))?;
             std::fs::write(&entry_path, serialized)
                 .wrap_err_with(|| eyre!("failed to write entry to `{}`", entry_path))?;
 

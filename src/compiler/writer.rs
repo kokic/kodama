@@ -23,14 +23,22 @@ impl Writer {
         let relative_path = format!("{}.html", section.slug());
         let filepath = crate::environment::output_path(&relative_path);
 
-        if verify_update_hash(&relative_path, &html).expect("failed to verify update hash") {
-            match std::fs::write(&filepath, html) {
+        match verify_update_hash(&relative_path, &html) {
+            Ok(true) => match std::fs::write(&filepath, html) {
                 Ok(()) => {
                     if *crate::cli::build::verbose() {
                         color_print::ceprintln!("<g>[build]</> {:?} {}", page_title, filepath);
                     }
                 }
                 Err(err) => color_print::ceprintln!("<r>{:?}</>", err),
+            },
+            Ok(false) => {}
+            Err(err) => {
+                color_print::ceprintln!(
+                    "<y>Warning: failed to verify hash for `{}`: {}</>",
+                    relative_path,
+                    err
+                );
             }
         }
     }

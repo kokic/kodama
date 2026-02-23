@@ -169,7 +169,9 @@ fn new_section_inner(path: &Utf8Path, template: &str, config: &Utf8Path) -> eyre
             .map_err(|e| eyre::eyre!("failed to read template file: {}", e))?
     };
 
-    let filestem = path.file_stem().unwrap();
+    let filestem = path
+        .file_stem()
+        .ok_or_else(|| eyre::eyre!("invalid section path (missing file name): {}", path))?;
     let content = content.replace("<FILE_NAME>", filestem);
 
     let section_path = environment::trees_dir().join(path);
@@ -177,7 +179,13 @@ fn new_section_inner(path: &Utf8Path, template: &str, config: &Utf8Path) -> eyre
     if section_path.exists() {
         return Err(eyre::eyre!("already exists: {}", section_path));
     } else {
-        std::fs::create_dir_all(section_path.parent().unwrap())
+        let parent = section_path.parent().ok_or_else(|| {
+            eyre::eyre!(
+                "failed to resolve parent directory for section path: {}",
+                section_path
+            )
+        })?;
+        std::fs::create_dir_all(parent)
             .map_err(|e| eyre::eyre!("failed to create section directory: {}", e))?;
     }
 
