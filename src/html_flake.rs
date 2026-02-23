@@ -88,7 +88,7 @@ pub fn html_header(
             let editor_url = (|| {
                 let source_path = source_path.canonicalize().ok()?;
                 let source_url = url::Url::from_file_path(source_path).ok()?;
-                let base = url::Url::parse(prefix).ok()?;
+                let base = url::Url::parse(&prefix).ok()?;
                 base.join(source_url.path()).ok().map(|url| url.to_string())
             })();
 

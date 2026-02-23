@@ -49,51 +49,28 @@ pub fn serve(command: &ServeCommand) -> eyre::Result<()> {
     };
 
     serve_build()?;
+    let config_file = environment::config_file();
 
     print!("\x1B[2J\x1B[H");
     std::io::stdout().flush()?;
 
-    let mut serve = parse_command(
-        environment::serve_command(),
-        crate::environment::output_dir(),
-    )?
-    .stdout(std::process::Stdio::piped())
-    .stderr(std::process::Stdio::piped())
-    .spawn()?;
+    let mut serve = spawn_serve_process()?;
 
-    let serve_stdout = serve.stdout.take().unwrap();
-    let serve_stderr = serve.stderr.take().unwrap();
-
-    std::thread::spawn(move || {
-        use std::io::{BufRead, BufReader};
-        let reader = BufReader::new(serve_stdout);
-        for line in reader.lines() {
-            match line {
-                Ok(line) => println!("[serve] {line}"),
-                Err(err) => {
-                    color_print::ceprintln!("<r>[serve] stdout read error: {err}</>");
-                    break;
-                }
-            }
+    let watched_paths = [
+        crate::environment::trees_dir(),
+        crate::environment::assets_dir(),
+        config_file.clone(),
+    ];
+    watch_paths(&watched_paths, |changed_path| {
+        serve_build()?;
+        if changed_path == config_file.as_path() {
+            color_print::ceprintln!("<y>[watch] Config changed. Restarting serve process.</>");
+            let _ = serve.kill();
+            let _ = serve.wait();
+            serve = spawn_serve_process()?;
         }
-    });
-
-    std::thread::spawn(move || {
-        use std::io::{BufRead, BufReader};
-        let reader = BufReader::new(serve_stderr);
-        for line in reader.lines() {
-            match line {
-                Ok(line) => color_print::ceprintln!("<r>[serve] Error: {line}</>"),
-                Err(err) => {
-                    color_print::ceprintln!("<r>[serve] stderr read error: {err}</>");
-                    break;
-                }
-            }
-        }
-    });
-
-    let watched_paths = [crate::environment::trees_dir(), crate::environment::assets_dir()];
-    watch_paths(&watched_paths, |_| serve_build())?;
+        Ok(())
+    })?;
 
     // After watching process is done, kill the miniserve process.
     let _ = serve.kill();
@@ -117,10 +94,52 @@ fn parse_command(command: &[String], output: Utf8PathBuf) -> eyre::Result<std::p
     Ok(serve)
 }
 
+fn spawn_serve_process() -> eyre::Result<std::process::Child> {
+    let command = environment::serve_command();
+    let mut serve = parse_command(&command, crate::environment::output_dir())?
+        .stdout(std::process::Stdio::piped())
+        .stderr(std::process::Stdio::piped())
+        .spawn()?;
+
+    if let Some(serve_stdout) = serve.stdout.take() {
+        std::thread::spawn(move || {
+            use std::io::{BufRead, BufReader};
+            let reader = BufReader::new(serve_stdout);
+            for line in reader.lines() {
+                match line {
+                    Ok(line) => println!("[serve] {line}"),
+                    Err(err) => {
+                        color_print::ceprintln!("<r>[serve] stdout read error: {err}</>");
+                        break;
+                    }
+                }
+            }
+        });
+    }
+
+    if let Some(serve_stderr) = serve.stderr.take() {
+        std::thread::spawn(move || {
+            use std::io::{BufRead, BufReader};
+            let reader = BufReader::new(serve_stderr);
+            for line in reader.lines() {
+                match line {
+                    Ok(line) => color_print::ceprintln!("<r>[serve] Error: {line}</>"),
+                    Err(err) => {
+                        color_print::ceprintln!("<r>[serve] stderr read error: {err}</>");
+                        break;
+                    }
+                }
+            }
+        });
+    }
+
+    Ok(serve)
+}
+
 /// from: https://github.com/notify-rs/notify/blob/main/examples/monitor_raw.rs#L18
-fn watch_paths<P: AsRef<Utf8Path>, F>(watched_paths: &[P], action: F) -> eyre::Result<()>
+fn watch_paths<P: AsRef<Utf8Path>, F>(watched_paths: &[P], mut action: F) -> eyre::Result<()>
 where
-    F: Fn(&Utf8Path) -> eyre::Result<()>,
+    F: FnMut(&Utf8Path) -> eyre::Result<()>,
 {
     let (tx, rx) = std::sync::mpsc::channel();
     let debounce = std::time::Duration::from_millis(250);
@@ -167,7 +186,9 @@ where
                     if let Some(path) = event.paths.iter().find_map(|path| path.as_path().try_into().ok()) {
                         println!("[watch] Change: {path:?}");
                         std::io::stdout().flush()?;
-                        action(path)?;
+                        if let Err(err) = action(path) {
+                            color_print::ceprintln!("<r>[watch] Rebuild failed: {}</>", err);
+                        }
                         last_run = now;
                     }
                 }

@@ -137,7 +137,7 @@ impl Writer {
             if content.is_empty() {
                 String::default()
             } else {
-                html_footer_section("references", references_text, &content)
+                html_footer_section("references", &references_text, &content)
             }
         } else {
             String::default()
@@ -157,7 +157,7 @@ impl Writer {
                 if content.is_empty() {
                     String::default()
                 } else {
-                    html_footer_section("backlinks", backlinks_text, &content)
+                    html_footer_section("backlinks", &backlinks_text, &content)
                 }
             })
             .unwrap_or_default();
@@ -187,7 +187,7 @@ impl Writer {
     }
 
     fn footer_section_to_html(page_option: Option<FooterMode>, section: &Section) -> String {
-        let footer_mode = page_option.unwrap_or(*environment::footer_mode());
+        let footer_mode = page_option.unwrap_or(environment::footer_mode());
 
         match footer_mode {
             FooterMode::Link => {

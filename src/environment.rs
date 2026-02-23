@@ -4,7 +4,7 @@
 
 use std::{
     fs::{self, create_dir_all},
-    sync::{LazyLock, OnceLock},
+    sync::{LazyLock, OnceLock, RwLock},
 };
 
 use camino::{Utf8Path, Utf8PathBuf};
@@ -22,28 +22,41 @@ pub struct Environment {
     /// Please note that this value should always be automatically derived from
     /// the location of the toml configuration file.
     pub root: Utf8PathBuf,
+    pub config_file: Utf8PathBuf,
     pub config: Config,
     pub build_mode: BuildMode,
 }
 
-static ENVIRONMENT: OnceLock<Environment> = OnceLock::new();
+static ENVIRONMENT: OnceLock<RwLock<Environment>> = OnceLock::new();
 
-fn get_environment() -> &'static Environment {
-    ENVIRONMENT.get().expect("environment must be initialized")
+fn update_environment(environment: Environment) {
+    if let Some(lock) = ENVIRONMENT.get() {
+        *lock.write().expect("environment lock poisoned") = environment;
+    } else {
+        _ = ENVIRONMENT.set(RwLock::new(environment));
+    }
 }
 
-fn get_config() -> &'static Config {
-    &get_environment().config
+fn with_environment<R>(f: impl FnOnce(&Environment) -> R) -> R {
+    let lock = ENVIRONMENT.get().expect("environment must be initialized");
+    let env = lock.read().expect("environment lock poisoned");
+    f(&env)
+}
+
+fn with_config<R>(f: impl FnOnce(&Config) -> R) -> R {
+    with_environment(|env| f(&env.config))
 }
 
 pub fn init_environment(toml_file: Utf8PathBuf, build_mode: BuildMode) -> eyre::Result<()> {
     let toml_file = config::find_config(toml_file)?;
 
-    let (root, _file_name) = path_utils::split_file_name(&toml_file).expect("path cannot be empty");
+    let (root, _file_name) =
+        path_utils::split_file_name(&toml_file).expect("path cannot be empty");
     let toml = std::fs::read_to_string(&toml_file)?;
 
-    _ = ENVIRONMENT.set(Environment {
+    update_environment(Environment {
         root: root.to_owned(),
+        config_file: toml_file,
         config: config::parse_config(&toml)?,
         build_mode,
     });
@@ -53,15 +66,16 @@ pub fn init_environment(toml_file: Utf8PathBuf, build_mode: BuildMode) -> eyre::
 /// Mock environment for testing purposes.
 #[allow(dead_code)]
 pub fn mock_environment() -> eyre::Result<()> {
-    _ = ENVIRONMENT.set(Environment {
+    update_environment(Environment {
         root: "./".into(),
+        config_file: crate::config::DEFAULT_CONFIG_PATH.into(),
         config: Config::default(),
         build_mode: BuildMode::Build,
     });
     Ok(())
 }
 
-#[derive(Clone)]
+#[derive(Clone, Copy)]
 pub enum BuildMode {
     /// Build mode for the `kodama build` command.
     Build,
@@ -100,16 +114,20 @@ pub fn to_page_suffix(pretty_urls: bool) -> String {
     page_suffix.into()
 }
 
-pub fn root_dir() -> &'static Utf8Path {
-    &get_environment().root
+pub fn root_dir() -> Utf8PathBuf {
+    with_environment(|env| env.root.clone())
+}
+
+pub fn config_file() -> Utf8PathBuf {
+    with_environment(|env| env.config_file.clone())
 }
 
 pub fn is_serve() -> bool {
-    matches!(get_environment().build_mode, BuildMode::Serve)
+    with_environment(|env| matches!(env.build_mode, BuildMode::Serve))
 }
 
 pub fn is_build() -> bool {
-    matches!(get_environment().build_mode, BuildMode::Build)
+    with_environment(|env| matches!(env.build_mode, BuildMode::Build))
 }
 
 pub fn exit_when_build() {
@@ -119,15 +137,15 @@ pub fn exit_when_build() {
 }
 
 pub fn is_short_slug() -> bool {
-    get_config().build.short_slug
+    with_config(|cfg| cfg.build.short_slug)
 }
 
-pub fn typst_root_dir() -> &'static Utf8Path {
-    Utf8Path::new(&get_config().build.typst_root)
+pub fn typst_root_dir() -> Utf8PathBuf {
+    with_config(|cfg| cfg.build.typst_root.clone().into())
 }
 
-pub fn trees_dir_without_root() -> &'static str {
-    &get_environment().config.kodama.trees
+pub fn trees_dir_without_root() -> String {
+    with_config(|cfg| cfg.kodama.trees.clone())
 }
 
 pub fn trees_dir() -> Utf8PathBuf {
@@ -135,105 +153,102 @@ pub fn trees_dir() -> Utf8PathBuf {
 }
 
 pub fn theme_paths() -> Vec<Utf8PathBuf> {
-    get_environment()
-        .config
-        .kodama
-        .themes
-        .iter()
-        .map(|theme| root_dir().join(theme))
-        .collect()
+    let root = root_dir();
+    with_config(|cfg| {
+        cfg.kodama
+            .themes
+            .iter()
+            .map(|theme| root.join(theme))
+            .collect()
+    })
 }
 
-pub fn build_dir() -> &'static String {
-    &get_config().build.output
+pub fn build_dir() -> String {
+    with_config(|cfg| cfg.build.output.clone())
 }
 
-pub fn serve_dir() -> &'static String {
-    &get_config().serve.output
+pub fn serve_dir() -> String {
+    with_config(|cfg| cfg.serve.output.clone())
 }
 
 pub fn output_dir() -> Utf8PathBuf {
-    let output_dir = match get_environment().build_mode {
-        BuildMode::Build => build_dir(),
-        BuildMode::Serve => serve_dir(),
-    };
-    root_dir().join(output_dir)
+    let root = root_dir();
+    let output = if is_build() { build_dir() } else { serve_dir() };
+    root.join(output)
 }
 
 pub fn indexes_path(output_dir: &Utf8Path) -> Utf8PathBuf {
     output_dir.join("kodama.json")
 }
 
-pub fn base_url_raw() -> &'static str {
-    let env = get_environment();
-    &env.config.kodama.base_url
+pub fn base_url_raw() -> String {
+    with_config(|cfg| cfg.kodama.base_url.clone())
 }
 
-pub fn base_url() -> &'static str {
-    let env = get_environment();
-    match env.build_mode {
-        BuildMode::Build => &env.config.kodama.base_url,
-        BuildMode::Serve => kodama::DEFAULT_BASE_URL,
-    }
+pub fn base_url() -> String {
+    with_environment(|env| match env.build_mode {
+        BuildMode::Build => env.config.kodama.base_url.clone(),
+        BuildMode::Serve => kodama::DEFAULT_BASE_URL.to_string(),
+    })
 }
 
 pub fn is_toc_left() -> bool {
-    match get_config().toc.placement {
+    match with_config(|cfg| cfg.toc.placement) {
         toc::TocPlacement::Left => true,
         toc::TocPlacement::Right => false,
     }
 }
 
 pub fn is_toc_sticky() -> bool {
-    get_config().toc.sticky
+    with_config(|cfg| cfg.toc.sticky)
 }
 
 pub fn is_toc_mobile_sticky() -> bool {
-    get_config().toc.mobile_sticky
+    with_config(|cfg| cfg.toc.mobile_sticky)
 }
 
-pub fn toc_max_width() -> &'static String {
-    &get_config().toc.max_width
+pub fn toc_max_width() -> String {
+    with_config(|cfg| cfg.toc.max_width.clone())
 }
 
-pub fn get_edit_text() -> &'static String {
-    &get_config().text.edit
+pub fn get_edit_text() -> String {
+    with_config(|cfg| cfg.text.edit.clone())
 }
 
-pub fn get_toc_text() -> &'static String {
-    &get_config().text.toc
+pub fn get_toc_text() -> String {
+    with_config(|cfg| cfg.text.toc.clone())
 }
 
-pub fn get_footer_references_text() -> &'static String {
-    &get_config().text.references
+pub fn get_footer_references_text() -> String {
+    with_config(|cfg| cfg.text.references.clone())
 }
 
-pub fn get_footer_backlinks_text() -> &'static String {
-    &get_config().text.backlinks
+pub fn get_footer_backlinks_text() -> String {
+    with_config(|cfg| cfg.text.backlinks.clone())
 }
 
-pub fn footer_mode() -> &'static FooterMode {
-    &get_config().build.footer_mode
+pub fn footer_mode() -> FooterMode {
+    with_config(|cfg| cfg.build.footer_mode)
 }
 
 pub fn inline_css() -> bool {
-    get_config().build.inline_css
+    with_config(|cfg| cfg.build.inline_css)
 }
 
 pub fn asref() -> bool {
-    get_config().build.asref
+    with_config(|cfg| cfg.build.asref)
 }
 
-pub fn deploy_edit_url() -> Option<&'static str> {
-    get_config().build.edit.as_deref()
+pub fn deploy_edit_url() -> Option<String> {
+    with_config(|cfg| cfg.build.edit.clone())
 }
 
-pub fn editor_url() -> Option<&'static str> {
-    get_config().serve.edit.as_deref()
+pub fn editor_url() -> Option<String> {
+    with_config(|cfg| cfg.serve.edit.clone())
 }
 
-pub fn serve_command() -> &'static Vec<String> {
-    &get_config().serve.command
+pub fn serve_command() -> Vec<String> {
+    with_config(|cfg| cfg.serve.command.clone())
 }
 
 pub fn get_cache_dir() -> Utf8PathBuf {
@@ -241,7 +256,7 @@ pub fn get_cache_dir() -> Utf8PathBuf {
 }
 
 pub fn assets_dir() -> Utf8PathBuf {
-    let assets = &get_config().kodama.assets;
+    let assets = with_config(|cfg| cfg.kodama.assets.clone());
     root_dir().join(assets)
 }
 
@@ -250,15 +265,15 @@ pub fn full_url<P: AsRef<Utf8Path>>(path: P) -> String {
     let base_url = base_url();
     let path = path_utils::pretty_path(path.as_ref());
     if let Some(stripped) = path.strip_prefix("/") {
-        return format!("{}{}", base_url, stripped);
+        return format!("{base_url}{stripped}");
     } else if let Some(stripped) = path.strip_prefix("./") {
-        return format!("{}{}", base_url, stripped);
+        return format!("{base_url}{stripped}");
     }
-    format!("{}{}", base_url, path)
+    format!("{base_url}{path}")
 }
 
 pub fn full_html_url(slug: Slug) -> String {
-    let pretty_urls = get_config().build.pretty_urls;
+    let pretty_urls = with_config(|cfg| cfg.build.pretty_urls);
     let page_suffix = to_page_suffix(pretty_urls);
     full_url(format!("{}{}", slug, page_suffix))
 }
@@ -285,7 +300,7 @@ pub fn create_parent_dirs<P: AsRef<Utf8Path>>(path: P) {
 }
 
 pub fn auto_create_dir_path<P: AsRef<Utf8Path>>(paths: Vec<P>) -> Utf8PathBuf {
-    let mut filepath: Utf8PathBuf = root_dir().to_owned();
+    let mut filepath: Utf8PathBuf = root_dir();
     for path in paths {
         filepath.push(path);
     }
