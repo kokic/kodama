@@ -5,10 +5,11 @@
 use crate::{
     compiler::{section::HTMLContent, taxon::Taxon},
     config::build::FooterMode,
-    environment::{self, exit_when_build}, html_flake,
+    environment, html_flake,
     ordered_map::OrderedMap,
     slug::Slug,
 };
+use eyre::eyre;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -122,38 +123,33 @@ where
             .collect()
     }
 
-    fn get_bool(&self, key: &str) -> Option<bool> {
-        self.get_str(key).and_then(|s| {
-            let slug = self
-                .get_str(KEY_SLUG)
-                .map(String::as_str)
-                .unwrap_or("<unknown>");
-            if s == "true" { Some(true) } 
-            else if s == "false" { Some(false) } 
-            else {
-                color_print::ceprintln!(
-                    "<r>Error: invalid bool metadata in `{}`: `{}` = `{}` (expected `true` or `false`).</>",
+    fn get_bool(&self, key: &str) -> eyre::Result<Option<bool>> {
+        let Some(value) = self.get_str(key) else {
+            return Ok(None);
+        };
+        match value.as_str() {
+            "true" => Ok(Some(true)),
+            "false" => Ok(Some(false)),
+            _ => {
+                let slug = self
+                    .get_str(KEY_SLUG)
+                    .map(String::as_str)
+                    .unwrap_or("<unknown>");
+                Err(eyre!(
+                    "invalid bool metadata in `{}`: `{}` = `{}` (expected `true` or `false`)",
                     slug,
                     key,
-                    s,
-                );
-                exit_when_build();
-                None 
-            }
-        })
-    }
-
-    fn id(&self) -> String {
-        match self.get_str(KEY_SLUG) {
-            Some(slug) => crate::slug::to_hash_id(slug),
-            None => {
-                color_print::ceprintln!(
-                    "<r>Error: missing required metadata `slug` while rendering section id.</>"
-                );
-                exit_when_build();
-                crate::slug::to_hash_id("index")
+                    value
+                ))
             }
         }
+    }
+
+    fn id(&self) -> eyre::Result<String> {
+        let slug = self
+            .get_str(KEY_SLUG)
+            .ok_or_else(|| eyre!("missing required metadata `slug` while rendering section id"))?;
+        Ok(crate::slug::to_hash_id(slug))
     }
 
     /// Return taxon text
@@ -185,27 +181,28 @@ where
         self.get_str(KEY_EXT)
     }
 
-    fn is_enable_backlinks(&self) -> bool {
-        self.get_bool(KEY_BACKLINKS).unwrap_or(true)
+    fn is_enable_backlinks(&self) -> eyre::Result<bool> {
+        self.get_bool(KEY_BACKLINKS).map(|v| v.unwrap_or(true))
     }
 
-    fn is_backlinks_transparent(&self) -> bool {
-        self.get_bool(KEY_TRANSPARENT_BACKLINKS).unwrap_or(false)
+    fn is_backlinks_transparent(&self) -> eyre::Result<bool> {
+        self.get_bool(KEY_TRANSPARENT_BACKLINKS)
+            .map(|v| v.unwrap_or(false))
     }
 
-    fn is_enable_references(&self) -> bool {
-        self.get_bool(KEY_REFERENCES).unwrap_or(true)
+    fn is_enable_references(&self) -> eyre::Result<bool> {
+        self.get_bool(KEY_REFERENCES).map(|v| v.unwrap_or(true))
     }
 
-    fn is_collect(&self) -> bool {
-        self.get_bool(KEY_COLLECT).unwrap_or(false)
+    fn is_collect(&self) -> eyre::Result<bool> {
+        self.get_bool(KEY_COLLECT).map(|v| v.unwrap_or(false))
     }
 
-    fn is_asref(&self) -> Option<bool> {
+    fn is_asref(&self) -> eyre::Result<Option<bool>> {
         self.get_bool(KEY_ASREF)
     }
 
-    fn is_asback(&self) -> Option<bool> {
+    fn is_asback(&self) -> eyre::Result<Option<bool>> {
         self.get_bool(KEY_ASBACK)
     }
 }
@@ -261,32 +258,34 @@ impl HTMLMetaData {
 }
 
 impl EntryMetaData {
-    pub fn to_header(&self, adhoc_title: Option<&str>, adhoc_taxon: Option<&str>) -> String {
+    pub fn to_header(
+        &self,
+        adhoc_title: Option<&str>,
+        adhoc_taxon: Option<&str>,
+    ) -> eyre::Result<String> {
         let entry_taxon = self.taxon().map_or("", |s| s);
         let taxon = adhoc_taxon.unwrap_or(entry_taxon);
         let entry_title = self.0.get("title").map(|s| s.as_str()).unwrap_or("");
         let title = adhoc_title.unwrap_or(entry_title);
-        let slug = self.slug().unwrap_or_else(|| {
-            color_print::ceprintln!(
-                "<r>Error: missing required metadata `slug` while rendering header.</>"
-            );
-            exit_when_build();
-            Slug::new("index")
-        });
-        let ext = self.ext().map_or_else(
-            || {
-                color_print::ceprintln!(
-                    "<r>Error: missing required metadata `ext` while rendering header for `{}`.</>",
-                    slug
-                );
-                exit_when_build();
-                "md"
-            },
-            String::as_str,
-        );
+        let slug = self
+            .slug()
+            .ok_or_else(|| eyre!("missing required metadata `slug` while rendering header"))?;
+        let ext = self.ext().map(String::as_str).ok_or_else(|| {
+            eyre!(
+                "missing required metadata `ext` while rendering header for `{}`",
+                slug
+            )
+        })?;
         let span_class: Vec<String> = vec!["taxon".to_string()];
 
-        html_flake::html_header(title, taxon, &slug, ext, span_class.join(" "), self.etc())
+        Ok(html_flake::html_header(
+            title,
+            taxon,
+            &slug,
+            ext,
+            span_class.join(" "),
+            self.etc(),
+        ))
     }
 
     /// hidden suffix `/index` in slug text.
@@ -306,19 +305,17 @@ impl EntryMetaData {
         let _ = self.0.insert(key, value);
     }
 
-    pub fn footer_mode(&self) -> Option<FooterMode> {
-        self.get_str(KEY_FOOTER_MODE).and_then(|s| {
-            if let Ok(mode) = s.parse() {
-                return Some(mode);
-            }
+    pub fn footer_mode(&self) -> eyre::Result<Option<FooterMode>> {
+        let Some(value) = self.get_str(KEY_FOOTER_MODE) else {
+            return Ok(None);
+        };
+        value.parse().map(Some).map_err(|_| {
             let slug = self.get_str(KEY_SLUG).map(String::as_str).unwrap_or("<unknown>");
-            color_print::ceprintln!(
-                "<r>Error: invalid metadata in `{}`: `footer-mode = {}` (expected `embed` or `link`).</>",
+            eyre!(
+                "invalid metadata in `{}`: `footer-mode = {}` (expected `embed` or `link`)",
                 slug,
-                s,
-            );
-            exit_when_build();
-            None
+                value
+            )
         })
     }
 }

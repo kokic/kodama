@@ -5,6 +5,7 @@
 use regex_lite::Regex;
 use serde::{Deserialize, Serialize};
 use std::{collections::HashSet, mem, sync::LazyLock};
+use eyre::eyre;
 
 use crate::{
     entry::{EntryMetaData, HTMLMetaData, MetaData},
@@ -186,27 +187,18 @@ pub struct ShallowSection {
 }
 
 impl ShallowSection {
-    pub fn slug(&self) -> Slug {
-        self.metadata.slug().unwrap_or_else(|| {
-            color_print::ceprintln!(
-                "<r>Error: missing required metadata `slug` in shallow section.</>"
-            );
-            crate::environment::exit_when_build();
-            Slug::new("index")
-        })
+    pub fn slug(&self) -> eyre::Result<Slug> {
+        self.metadata
+            .slug()
+            .ok_or_else(|| eyre!("missing required metadata `slug` in shallow section"))
     }
 
-    pub fn ext(&self) -> &str {
-        self.metadata.ext().map_or_else(
-            || {
-                color_print::ceprintln!(
-                    "<r>Error: missing required metadata `ext` in shallow section. Please update kodama to v0.3.3+ and delete the expired `.cache` folder.</>"
-                );
-                crate::environment::exit_when_build();
-                "md"
-            },
-            String::as_str,
-        )
+    pub fn ext(&self) -> eyre::Result<&str> {
+        self.metadata.ext().map(String::as_str).ok_or_else(|| {
+            eyre!(
+                "missing required metadata `ext` in shallow section. Please update kodama to v0.3.3+ and delete the expired `.cache` folder"
+            )
+        })
     }
 }
 
@@ -240,14 +232,10 @@ impl Section {
         }
     }
 
-    pub fn slug(&self) -> Slug {
-        self.metadata.slug().unwrap_or_else(|| {
-            color_print::ceprintln!(
-                "<r>Error: missing required metadata `slug` in compiled section.</>"
-            );
-            crate::environment::exit_when_build();
-            Slug::new("index")
-        })
+    pub fn slug(&self) -> eyre::Result<Slug> {
+        self.metadata
+            .slug()
+            .ok_or_else(|| eyre!("missing required metadata `slug` in compiled section"))
     }
 
     pub fn spanned(&self) -> String {

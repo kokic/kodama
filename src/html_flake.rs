@@ -13,18 +13,18 @@ pub fn html_article_inner(
     open: bool,
     adhoc_title: Option<&str>,
     adhoc_taxon: Option<&str>,
-) -> String {
-    let summary = metadata.to_header(adhoc_title, adhoc_taxon);
+) -> eyre::Result<String> {
+    let summary = metadata.to_header(adhoc_title, adhoc_taxon)?;
 
-    let article_id = metadata.id();
-    crate::html_flake::html_section(
+    let article_id = metadata.id()?;
+    Ok(crate::html_flake::html_section(
         &summary,
         contents,
         hide_metadata,
         open,
         article_id,
         metadata.data_taxon(),
-    )
+    ))
 }
 
 pub fn html_footer_section(id: &str, summary: &str, content: &String) -> String {

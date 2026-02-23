@@ -3,10 +3,11 @@
 // Authors: Kokic (@kokic), Spore (@s-cerevisiae)
 
 use std::collections::{BTreeSet, HashMap, HashSet};
+use eyre::eyre;
 
 use crate::{
     entry::{EntryMetaData, HTMLMetaData, KEY_EXT, KEY_SLUG, KEY_TITLE, MetaData, is_plain_metadata},
-    environment::{self, exit_when_build},
+    environment,
     ordered_map::OrderedMap,
     path_utils,
     slug::{self, Slug},
@@ -37,7 +38,7 @@ pub fn compile_all(mut shallows: Shallows) -> eyre::Result<CompileState> {
     let residued: BTreeSet<Slug> = shallows.keys().copied().collect();
 
     let mut state = CompileState::new(residued);
-    if state.compile(&shallows, Slug::new("index")).is_none() {
+    if state.compile(&shallows, Slug::new("index"))?.is_none() {
         color_print::ceprintln!(
             "<y>Warning: Missing `index` section, please provide `index.md` or `index.typst`.</>"
         );
@@ -47,7 +48,7 @@ pub fn compile_all(mut shallows: Shallows) -> eyre::Result<CompileState> {
      * Unlinked or unembedded pages.
      */
     while let Some(slug) = state.residued.pop_first() {
-        state.compile(&shallows, slug);
+        state.compile(&shallows, slug)?;
     }
 
     Ok(state)
@@ -64,36 +65,40 @@ impl CompileState {
         }
     }
 
-    fn compile(&mut self, shallows: &Shallows, slug: Slug) -> Option<&Section> {
+    fn compile(&mut self, shallows: &Shallows, slug: Slug) -> eyre::Result<Option<&Section>> {
         self.fetch_section(shallows, slug)
     }
 
-    fn fetch_section(&mut self, shallows: &Shallows, slug: Slug) -> Option<&Section> {
+    fn fetch_section(&mut self, shallows: &Shallows, slug: Slug) -> eyre::Result<Option<&Section>> {
         if self.compiled.contains_key(&slug) {
-            return self.compiled.get(&slug);
+            return Ok(self.compiled.get(&slug));
         }
 
         if self.visiting.contains(&slug) {
             let mut chain: Vec<String> = self.compile_stack.iter().map(ToString::to_string).collect();
             chain.push(slug.to_string());
-            color_print::ceprintln!("<r>Error: cyclic embed detected: {}</>", chain.join(" -> "));
-            exit_when_build();
-            return None;
+            return Err(eyre!("cyclic embed detected: {}", chain.join(" -> ")));
         }
 
-        let shallow = shallows.get(&slug)?;
+        let Some(shallow) = shallows.get(&slug) else {
+            return Ok(None);
+        };
         self.visiting.insert(slug);
         self.compile_stack.push(slug);
-        self.compile_shallow(shallows, shallow);
+        let result = self.compile_shallow(shallows, shallow);
         self.compile_stack.pop();
         self.visiting.remove(&slug);
 
-        self.compiled.get(&slug)
+        result.map(Some)
     }
 
-    fn compile_shallow(&mut self, shallows: &Shallows, spanned: &ShallowSection) -> &Section {
-        let slug = spanned.slug();
-        let ext = spanned.ext();
+    fn compile_shallow(
+        &mut self,
+        shallows: &Shallows,
+        spanned: &ShallowSection,
+    ) -> eyre::Result<&Section> {
+        let slug = spanned.slug()?;
+        let ext = spanned.ext()?;
         let mut children: SectionContents = vec![];
         let mut references: HashSet<Slug> = HashSet::new();
 
@@ -112,16 +117,14 @@ impl CompileState {
                         LazyContent::Embed(embed_content) => {
                             let child_slug = subsection_slug(slug, &embed_content.url);
 
-                            let refered = match self.fetch_section(shallows, child_slug) {
+                            let refered = match self.fetch_section(shallows, child_slug)? {
                                 Some(refered_section) => refered_section,
                                 None => {
-                                    color_print::ceprintln!(
-                                        "<r>Error: [{}] attempting to fetch a non-existent [{}].</>",
+                                    return Err(eyre!(
+                                        "[{}] attempting to fetch a non-existent [{}]",
                                         slug,
                                         child_slug
-                                    );
-                                    exit_when_build();
-                                    continue;
+                                    ));
                                 }
                             };
 
@@ -149,7 +152,7 @@ impl CompileState {
                             let page_title = metadata
                                 .map_or("", |s| s.page_title().map_or(article_title, |s| s));
 
-                            if link_slug != slug && is_reference(shallows, link_slug) {
+                            if link_slug != slug && is_reference(shallows, link_slug)? {
                                 references.insert(link_slug);
                             }
 
@@ -157,8 +160,8 @@ impl CompileState {
                              * Making oneself the content of a backlink should not be expected behavior.
                              */
                             if link_slug != slug
-                                && is_enable_backlinks(shallows, link_slug)
-                                && is_backlink(shallows, slug)
+                                && is_enable_backlinks(shallows, link_slug)?
+                                && is_backlink(shallows, slug)?
                             {
                                 callback.insert_backlinks(link_slug, vec![slug]);
                             }
@@ -187,39 +190,36 @@ impl CompileState {
 
         // compile metadata
         let mut metadata = EntryMetaData(OrderedMap::new());
-        spanned.metadata.keys().for_each(|key| {
+        for key in spanned.metadata.keys() {
             let Some(value) = spanned.metadata.get(key) else {
-                color_print::ceprintln!(
-                    "<r>Error: metadata key `{}` vanished while compiling `{}`.</>",
+                return Err(eyre!(
+                    "metadata key `{}` vanished while compiling `{}`",
                     key,
                     slug
-                );
-                exit_when_build();
-                return;
+                ));
             };
             if is_plain_metadata(key) {
                 if let Some(val) = value.as_string() {
                     metadata.update(key.to_string(), val.to_owned());
                 } else {
-                    color_print::ceprintln!(
-                        "<r>Error: Metadata field `{}` in `{}` is expected to be plain text.</>",
+                    return Err(eyre!(
+                        "metadata field `{}` in `{}` is expected to be plain text",
                         key, slug
-                    );
-                    exit_when_build();
+                    ));
                 }
             } else {
                 let spanned: ShallowSection = Self::metadata_to_section(value, slug, ext);
-                let compiled = self.compile_shallow(shallows, &spanned);
+                let compiled = self.compile_shallow(shallows, &spanned)?;
                 let html = compiled.spanned();
                 metadata.update(key.to_string(), html);
             };
-        });
+        }
 
         // remove from `self.residued` after compiled.
         self.residued.remove(&slug);
 
         let section = Section::new(metadata, children, references);
-        self.compiled.entry(slug).or_insert(section)
+        Ok(self.compiled.entry(slug).or_insert(section))
     }
 
     fn metadata_to_section(
@@ -263,37 +263,52 @@ fn get_metadata(shallows: &Shallows, slug: Slug) -> Option<&HTMLMetaData> {
     shallows.get(&slug).map(|s| &s.metadata)
 }
 
-fn is_enable_backlinks(shallows: &Shallows, slug: Slug) -> bool {
-    shallows
-        .get(&slug)
-        .map(|s| s.metadata.is_enable_backlinks())
-        .unwrap_or(true)
+fn is_enable_backlinks(shallows: &Shallows, slug: Slug) -> eyre::Result<bool> {
+    match shallows.get(&slug) {
+        Some(section) => section.metadata.is_enable_backlinks(),
+        None => Ok(true),
+    }
 }
 
-fn is_reference(shallows: &Shallows, slug: Slug) -> bool {
-    shallows
-        .get(&slug)
-        .map(|s| {
-            let metadata = &s.metadata;
-            metadata.is_asref().unwrap_or(environment::asref())
-                || Taxon::is_reference(metadata.data_taxon().map_or("", String::as_str))
-        })
-        .unwrap_or(false)
+fn is_reference(shallows: &Shallows, slug: Slug) -> eyre::Result<bool> {
+    match shallows.get(&slug) {
+        Some(section) => {
+            let metadata = &section.metadata;
+            Ok(
+                metadata.is_asref()?.unwrap_or(environment::asref())
+                    || Taxon::is_reference(metadata.data_taxon().map_or("", String::as_str)),
+            )
+        }
+        None => Ok(false),
+    }
 }
 
-fn is_backlink(shallows: &Shallows, slug: Slug) -> bool {
-    shallows
-        .get(&slug)
-        .map(|s| {
-            let metadata = &s.metadata;
-            metadata.is_asback().unwrap_or(true)
-        })
-        .unwrap_or(false)
+fn is_backlink(shallows: &Shallows, slug: Slug) -> eyre::Result<bool> {
+    match shallows.get(&slug) {
+        Some(section) => {
+            let metadata = &section.metadata;
+            Ok(metadata.is_asback()?.unwrap_or(true))
+        }
+        None => Ok(false),
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::ordered_map::OrderedMap;
+    use super::super::section::{EmbedContent, SectionOption};
+
+    fn shallow_with_content(slug: &str, content: HTMLContent) -> ShallowSection {
+        let mut metadata = OrderedMap::new();
+        metadata.insert(KEY_SLUG.to_string(), HTMLContent::Plain(slug.to_string()));
+        metadata.insert(KEY_EXT.to_string(), HTMLContent::Plain("md".to_string()));
+
+        ShallowSection {
+            metadata: HTMLMetaData(metadata),
+            content,
+        }
+    }
 
     #[test]
     fn test_subsection_slug() {
@@ -301,5 +316,32 @@ mod tests {
         assert_eq!(subsection_slug(Slug::new("a/b"), "./c/d.md"), "a/c/d");
 
         assert_eq!(subsection_slug(Slug::new("a/b"), "/c/d.md"), "c/d");
+    }
+
+    #[test]
+    fn test_compile_all_returns_error_for_cyclic_embed() {
+        let embed_to_b = LazyContent::Embed(EmbedContent {
+            url: "/b.md".to_string(),
+            title: None,
+            option: SectionOption::default(),
+        });
+        let embed_to_a = LazyContent::Embed(EmbedContent {
+            url: "/a.md".to_string(),
+            title: None,
+            option: SectionOption::default(),
+        });
+
+        let mut shallows = HashMap::new();
+        shallows.insert(
+            Slug::new("a"),
+            shallow_with_content("a", HTMLContent::Lazy(vec![embed_to_b])),
+        );
+        shallows.insert(
+            Slug::new("b"),
+            shallow_with_content("b", HTMLContent::Lazy(vec![embed_to_a])),
+        );
+
+        let err = compile_all(shallows).unwrap_err();
+        assert!(err.to_string().contains("cyclic embed"));
     }
 }

@@ -70,7 +70,8 @@ pub fn compile(workspace: Workspace) -> eyre::Result<()> {
         .collect();
 
     let state = state::compile_all(shallows)?;
-    Writer::write_needed_slugs(workspace.slug_exts.into_iter().map(|x| x.0), &state);
+    Writer::write_needed_slugs(workspace.slug_exts.into_iter().map(|x| x.0), &state)
+        .wrap_err("failed to write compiled HTML files")?;
 
     let serialized = serde_json::to_string(&indexes)
         .wrap_err_with(|| eyre!("failed to serialize indexes to JSON"))?;
