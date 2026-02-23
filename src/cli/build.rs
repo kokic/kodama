@@ -9,7 +9,7 @@ use eyre::{eyre, WrapErr};
 
 use crate::{
     assets_sync,
-    compiler::{self, all_trees_source},
+    compiler::{self, all_trees_source, DirtySet},
     config,
     environment::{self, output_path, BuildMode},
     html_flake,
@@ -56,6 +56,17 @@ pub fn build(command: &BuildCommand) -> eyre::Result<()> {
 }
 
 pub fn build_with(config: &str, mode: BuildMode, verbose: bool, verbose_skip: bool, no_cache: bool) -> eyre::Result<()> {
+    build_with_dirty(config, mode, verbose, verbose_skip, no_cache, None)
+}
+
+pub fn build_with_dirty(
+    config: &str,
+    mode: BuildMode,
+    verbose: bool,
+    verbose_skip: bool,
+    no_cache: bool,
+    dirty_paths: Option<&DirtySet>,
+) -> eyre::Result<()> {
     environment::init_environment(config.into(), mode)?;
     _ = VERBOSE.set(verbose);
     _ = VERBOSE_SKIP.set(verbose_skip);
@@ -66,8 +77,9 @@ pub fn build_with(config: &str, mode: BuildMode, verbose: bool, verbose_skip: bo
     }
 
     let root = environment::root_dir();
-    let workspace = all_trees_source(&environment::trees_dir())?;
-    compiler::compile(workspace).wrap_err_with(|| {
+    let workspace = all_trees_source(&environment::trees_dir(), dirty_paths)?;
+    let expanded_dirty = dirty_paths.map(|paths| compiler::expand_dirty_paths(&workspace, paths));
+    compiler::compile(workspace, expanded_dirty.as_ref()).wrap_err_with(|| {
         let root_display = root
             .canonicalize()
             .map(|p| p.display().to_string())

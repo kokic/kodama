@@ -13,6 +13,7 @@ pub mod typst;
 pub mod writer;
 
 use std::{collections::HashMap, fs::File, io::BufReader};
+use std::collections::HashSet;
 
 use camino::{Utf8Path, Utf8PathBuf};
 use eyre::{bail, eyre, WrapErr};
@@ -29,13 +30,77 @@ use crate::{
     slug::{Ext, Slug},
 };
 
-pub fn compile(workspace: Workspace) -> eyre::Result<()> {
+pub type DirtySet = HashSet<Utf8PathBuf>;
+
+fn source_relative_path(slug: Slug, ext: Ext) -> Utf8PathBuf {
+    Utf8PathBuf::from(format!("{}.{}", slug, ext))
+}
+
+fn is_source_modified(relative_path: &Utf8Path, dirty_paths: Option<&DirtySet>) -> eyre::Result<bool> {
+    if *crate::cli::build::enable_no_cache() {
+        return Ok(true);
+    }
+
+    if let Some(dirty_paths) = dirty_paths {
+        if dirty_paths.contains(relative_path) {
+            // Keep hash baseline updated for subsequent cold builds.
+            let _ = verify_and_file_hash(relative_path)?;
+            return Ok(true);
+        }
+        return Ok(false);
+    }
+
+    verify_and_file_hash(relative_path)
+}
+
+pub fn expand_dirty_paths(workspace: &Workspace, dirty_paths: &DirtySet) -> DirtySet {
+    let mut expanded = dirty_paths.clone();
+
+    let mut dirty_all_sources = false;
+    let mut dirty_all_typst_sources = false;
+    for path in dirty_paths {
+        match path.extension() {
+            Some("md") => {}
+            Some("typst") | Some("typ") => {
+                dirty_all_typst_sources = true;
+            }
+            _ => {
+                // Unknown tree-side dependency (e.g. include file): conservatively reparse all.
+                dirty_all_sources = true;
+            }
+        }
+    }
+
+    if dirty_all_sources {
+        workspace
+            .slug_exts
+            .iter()
+            .for_each(|(&slug, &ext)| {
+                expanded.insert(source_relative_path(slug, ext));
+            });
+        return expanded;
+    }
+
+    if dirty_all_typst_sources {
+        workspace
+            .slug_exts
+            .iter()
+            .filter(|(_, &ext)| matches!(ext, Ext::Typst))
+            .for_each(|(&slug, &ext)| {
+                expanded.insert(source_relative_path(slug, ext));
+            });
+    }
+
+    expanded
+}
+
+pub fn compile(workspace: Workspace, dirty_paths: Option<&DirtySet>) -> eyre::Result<()> {
     let mut shallows = HashMap::new();
 
     for (&slug, &ext) in &workspace.slug_exts {
-        let relative_path = format!("{}.{}", slug, ext);
+        let relative_path = source_relative_path(slug, ext);
 
-        let is_modified = verify_and_file_hash(&relative_path)
+        let is_modified = is_source_modified(relative_path.as_path(), dirty_paths)
             .wrap_err_with(|| eyre!("failed to verify hash of `{relative_path}`"))?;
         let entry_path = environment::entry_file_path(&relative_path);
         let shallow = if !is_modified && entry_path.exists() {
@@ -101,7 +166,7 @@ fn to_slug_ext(source_dir: &Utf8Path, p: &Utf8Path) -> Option<(Slug, Ext)> {
 /// Collect all source file paths in `<trees>` dir.
 ///
 /// **Side effect: update the `.hash` & `.svg` file of all modified `.typ` files.**
-pub fn all_trees_source(trees_dir: &Utf8Path) -> eyre::Result<Workspace> {
+pub fn all_trees_source(trees_dir: &Utf8Path, dirty_paths: Option<&DirtySet>) -> eyre::Result<Workspace> {
     let mut slug_exts = HashMap::new();
 
     let failed_to_read_dir = |dir: &Utf8Path| eyre!("failed to read directory `{}`", dir);
@@ -118,6 +183,11 @@ pub fn all_trees_source(trees_dir: &Utf8Path) -> eyre::Result<Workspace> {
             // Hashable files only include `.md` and `.typ` currently.
             if let Some("typ") = path.extension() {
                 let relative = path.strip_prefix(source_dir)?;
+                if let Some(dirty_paths) = dirty_paths {
+                    if !dirty_paths.contains(relative) {
+                        return Ok(());
+                    }
+                }
 
                 let svg_url = relative.with_extension("svg");
                 let svg_path = environment::output_path(&svg_url);
@@ -216,5 +286,38 @@ mod tests {
         assert!(should_ignored_dir(Utf8Path::new(".git")));
         assert!(should_ignored_dir(Utf8Path::new("_tmp")));
         assert!(!should_ignored_dir(Utf8Path::new("trees")));
+    }
+
+    #[test]
+    fn test_expand_dirty_paths_typst_dependency_marks_all_typst_sources() {
+        let mut slug_exts = HashMap::new();
+        slug_exts.insert(Slug::new("a"), Ext::Markdown);
+        slug_exts.insert(Slug::new("b"), Ext::Typst);
+        slug_exts.insert(Slug::new("c"), Ext::Typst);
+        let workspace = Workspace { slug_exts };
+
+        let mut dirty = DirtySet::new();
+        dirty.insert(Utf8PathBuf::from("shared.typ"));
+
+        let expanded = expand_dirty_paths(&workspace, &dirty);
+        assert!(expanded.contains(&Utf8PathBuf::from("shared.typ")));
+        assert!(expanded.contains(&Utf8PathBuf::from("b.typst")));
+        assert!(expanded.contains(&Utf8PathBuf::from("c.typst")));
+        assert!(!expanded.contains(&Utf8PathBuf::from("a.md")));
+    }
+
+    #[test]
+    fn test_expand_dirty_paths_unknown_tree_file_marks_all_sources() {
+        let mut slug_exts = HashMap::new();
+        slug_exts.insert(Slug::new("a"), Ext::Markdown);
+        slug_exts.insert(Slug::new("b"), Ext::Typst);
+        let workspace = Workspace { slug_exts };
+
+        let mut dirty = DirtySet::new();
+        dirty.insert(Utf8PathBuf::from("includes/snippet.txt"));
+
+        let expanded = expand_dirty_paths(&workspace, &dirty);
+        assert!(expanded.contains(&Utf8PathBuf::from("a.md")));
+        assert!(expanded.contains(&Utf8PathBuf::from("b.typst")));
     }
 }

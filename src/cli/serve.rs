@@ -2,16 +2,18 @@
 // Released under the GPL-3.0 license as described in the file LICENSE.
 // Authors: Kokic (@kokic), Spore (@s-cerevisiae)
 
-use std::{io::Write, sync::OnceLock};
+use std::{collections::HashSet, io::Write, sync::OnceLock};
 
 use camino::{Utf8Path, Utf8PathBuf};
 use eyre::eyre;
 use notify::{Config, EventKind, RecommendedWatcher, RecursiveMode, Watcher};
 
 use crate::{
-    cli::build::build_with,
+    cli::build::build_with_dirty,
+    compiler::DirtySet,
     config,
     environment::{self, BuildMode},
+    path_utils,
 };
 
 #[derive(clap::Args)]
@@ -43,12 +45,19 @@ pub fn live_reload() -> &'static bool {
 pub fn serve(command: &ServeCommand) -> eyre::Result<()> {
     _ = LIVE_RELOAD.set(!command.disable_reload);
 
-    let serve_build = || -> eyre::Result<()> {
-        build_with(&command.config, BuildMode::Serve, command.verbose, command.verbose_skip, false)?;
+    let serve_build = |dirty_paths: Option<&DirtySet>| -> eyre::Result<()> {
+        build_with_dirty(
+            &command.config,
+            BuildMode::Serve,
+            command.verbose,
+            command.verbose_skip,
+            false,
+            dirty_paths,
+        )?;
         Ok(())
     };
 
-    serve_build()?;
+    serve_build(None)?;
     let config_file = environment::config_file();
     let config_file_canonical = config_file
         .canonicalize_utf8()
@@ -60,24 +69,41 @@ pub fn serve(command: &ServeCommand) -> eyre::Result<()> {
     let mut serve = spawn_serve_process()?;
 
     let root_dir = crate::environment::root_dir();
+    let trees_dir = crate::environment::trees_dir();
+    let trees_dir_canonical = trees_dir
+        .canonicalize_utf8()
+        .unwrap_or_else(|_| trees_dir.clone());
     let watched_paths = compose_watched_paths(
         root_dir.as_path(),
-        crate::environment::trees_dir(),
+        trees_dir.clone(),
         crate::environment::assets_dir(),
         config_file.clone(),
         crate::environment::theme_paths(),
     );
-    watch_paths(&watched_paths, |changed_path| {
-        serve_build()?;
-        if should_restart_for_config_change(
-            changed_path,
-            config_file.as_path(),
-            config_file_canonical.as_path(),
-        ) {
+    watch_paths(&watched_paths, |changed_paths| {
+        let dirty_paths = compose_dirty_paths(
+            changed_paths,
+            trees_dir.as_path(),
+            trees_dir_canonical.as_path(),
+        );
+        let should_restart = changed_paths.iter().any(|changed_path| {
+            should_restart_for_config_change(
+                changed_path.as_path(),
+                config_file.as_path(),
+                config_file_canonical.as_path(),
+            )
+        });
+
+        if should_restart {
+            // Config changes can alter compiler behavior globally; keep full-hash baseline here.
+            serve_build(None)?;
             color_print::ceprintln!("<y>[watch] Config changed. Restarting serve process.</>");
             let _ = serve.kill();
             let _ = serve.wait();
             serve = spawn_serve_process()?;
+        } else {
+            // Serve mode uses watcher-driven dirty set to avoid full hash scans on every rebuild.
+            serve_build(Some(&dirty_paths))?;
         }
         Ok(())
     })?;
@@ -193,14 +219,49 @@ fn watch_mode_for_path(path: &Utf8Path) -> RecursiveMode {
     }
 }
 
+fn strip_tree_prefix(path: &Utf8Path, trees_dir: &Utf8Path) -> Option<Utf8PathBuf> {
+    let relative = path.strip_prefix(trees_dir).ok()?;
+    let pretty = Utf8PathBuf::from(path_utils::pretty_path(relative));
+    if pretty.as_str().is_empty() || pretty.as_str() == "." {
+        return None;
+    }
+    Some(pretty)
+}
+
+fn relative_tree_path(
+    path: &Utf8Path,
+    trees_dir: &Utf8Path,
+    trees_dir_canonical: &Utf8Path,
+) -> Option<Utf8PathBuf> {
+    strip_tree_prefix(path, trees_dir)
+        .or_else(|| strip_tree_prefix(path, trees_dir_canonical))
+        .or_else(|| {
+            let canonical = canonicalize_or_self(path);
+            strip_tree_prefix(canonical.as_path(), trees_dir)
+                .or_else(|| strip_tree_prefix(canonical.as_path(), trees_dir_canonical))
+        })
+}
+
+fn compose_dirty_paths(
+    changed_paths: &[Utf8PathBuf],
+    trees_dir: &Utf8Path,
+    trees_dir_canonical: &Utf8Path,
+) -> DirtySet {
+    changed_paths
+        .iter()
+        .filter_map(|path| relative_tree_path(path.as_path(), trees_dir, trees_dir_canonical))
+        .collect()
+}
+
 /// from: https://github.com/notify-rs/notify/blob/main/examples/monitor_raw.rs#L18
 fn watch_paths<P: AsRef<Utf8Path>, F>(watched_paths: &[P], mut action: F) -> eyre::Result<()>
 where
-    F: FnMut(&Utf8Path) -> eyre::Result<()>,
+    F: FnMut(&[Utf8PathBuf]) -> eyre::Result<()>,
 {
     let (tx, rx) = std::sync::mpsc::channel();
     let debounce = std::time::Duration::from_millis(250);
     let mut last_run = std::time::Instant::now() - debounce;
+    let mut pending_changes: HashSet<Utf8PathBuf> = HashSet::new();
 
     // Automatically select the best implementation for your platform.
     // You can also access each implementation directly e.g. INotifyWatcher.
@@ -233,19 +294,29 @@ where
                 // but since notify-rs always only gets `Modify(Any)` on Windows,
                 // we expand the listening scope here.
                 if should_handle_watch_event(&event.kind) {
+                    event.paths.iter().for_each(|path| {
+                        if let Ok(path) = Utf8PathBuf::from_path_buf(path.clone()) {
+                            pending_changes.insert(path);
+                        }
+                    });
+                    if pending_changes.is_empty() {
+                        continue;
+                    }
+
                     let now = std::time::Instant::now();
                     if now.duration_since(last_run) < debounce {
                         continue;
                     }
 
-                    if let Some(path) = event.paths.iter().find_map(|path| path.as_path().try_into().ok()) {
+                    let changed_paths: Vec<Utf8PathBuf> = pending_changes.drain().collect();
+                    for path in &changed_paths {
                         println!("[watch] Change: {path:?}");
-                        std::io::stdout().flush()?;
-                        if let Err(err) = action(path) {
-                            color_print::ceprintln!("<r>[watch] Rebuild failed: {}</>", err);
-                        }
-                        last_run = now;
                     }
+                    std::io::stdout().flush()?;
+                    if let Err(err) = action(&changed_paths) {
+                        color_print::ceprintln!("<r>[watch] Rebuild failed: {}</>", err);
+                    }
+                    last_run = now;
                 }
             }
             Err(error) => {
@@ -293,6 +364,35 @@ mod tests {
         assert!(watched.contains(&root.join("import-font.html")));
         assert!(watched.contains(&root.join("import-math.html")));
         assert!(watched.contains(&theme));
+    }
+
+    #[test]
+    fn test_compose_dirty_paths_collects_tree_relative_files() {
+        let root = Utf8PathBuf::from("site");
+        let trees = root.join("trees");
+        let trees_canonical = trees.clone();
+        let changed = vec![trees.join("a.md"), root.join("import-style.html")];
+
+        let dirty = compose_dirty_paths(&changed, trees.as_path(), trees_canonical.as_path());
+        assert!(dirty.contains(&Utf8PathBuf::from("a.md")));
+        assert!(!dirty.contains(&Utf8PathBuf::from("import-style.html")));
+    }
+
+    #[test]
+    fn test_compose_dirty_paths_handles_canonicalized_tree_paths() {
+        let root = case_dir("dirty-canonical");
+        let trees = root.join("trees");
+        let sub = trees.join("sub");
+        fs::create_dir_all(&sub).unwrap();
+        let file = trees.join("a.typst");
+        fs::write(&file, "x").unwrap();
+        let changed = vec![trees.join("sub/../a.typst")];
+
+        let trees_canonical = trees.canonicalize_utf8().unwrap();
+        let dirty = compose_dirty_paths(&changed, trees.as_path(), trees_canonical.as_path());
+        assert!(dirty.contains(&Utf8PathBuf::from("a.typst")));
+
+        let _ = fs::remove_dir_all(root);
     }
 
     #[test]
