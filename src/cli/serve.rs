@@ -5,6 +5,7 @@
 use std::{io::Write, sync::OnceLock};
 
 use camino::{Utf8Path, Utf8PathBuf};
+use eyre::eyre;
 use notify::{Config, EventKind, RecommendedWatcher, RecursiveMode, Watcher};
 
 use crate::{
@@ -67,7 +68,13 @@ pub fn serve(command: &ServeCommand) -> eyre::Result<()> {
         use std::io::{BufRead, BufReader};
         let reader = BufReader::new(serve_stdout);
         for line in reader.lines() {
-            println!("[serve] {}", line.unwrap());
+            match line {
+                Ok(line) => println!("[serve] {line}"),
+                Err(err) => {
+                    color_print::ceprintln!("<r>[serve] stdout read error: {err}</>");
+                    break;
+                }
+            }
         }
     });
 
@@ -75,17 +82,18 @@ pub fn serve(command: &ServeCommand) -> eyre::Result<()> {
         use std::io::{BufRead, BufReader};
         let reader = BufReader::new(serve_stderr);
         for line in reader.lines() {
-            color_print::ceprintln!("<r>[serve] Error: {}</>", line.unwrap());
+            match line {
+                Ok(line) => color_print::ceprintln!("<r>[serve] Error: {line}</>"),
+                Err(err) => {
+                    color_print::ceprintln!("<r>[serve] stderr read error: {err}</>");
+                    break;
+                }
+            }
         }
     });
 
-    watch_paths(
-        &vec![
-            crate::environment::trees_dir(),
-            crate::environment::assets_dir(),
-        ],
-        |_| serve_build(),
-    )?;
+    let watched_paths = [crate::environment::trees_dir(), crate::environment::assets_dir()];
+    watch_paths(&watched_paths, |_| serve_build())?;
 
     // After watching process is done, kill the miniserve process.
     let _ = serve.kill();
@@ -94,6 +102,10 @@ pub fn serve(command: &ServeCommand) -> eyre::Result<()> {
 }
 
 fn parse_command(command: &[String], output: Utf8PathBuf) -> eyre::Result<std::process::Command> {
+    if command.is_empty() {
+        return Err(eyre!("invalid `serve.command`: command list cannot be empty"));
+    }
+
     let mut serve = std::process::Command::new(&command[0]);
     for arg in &command[1..] {
         if arg == "<output>" {
@@ -106,11 +118,13 @@ fn parse_command(command: &[String], output: Utf8PathBuf) -> eyre::Result<std::p
 }
 
 /// from: https://github.com/notify-rs/notify/blob/main/examples/monitor_raw.rs#L18
-fn watch_paths<P: AsRef<Utf8Path>, F>(watched_paths: &Vec<P>, action: F) -> eyre::Result<()>
+fn watch_paths<P: AsRef<Utf8Path>, F>(watched_paths: &[P], action: F) -> eyre::Result<()>
 where
     F: Fn(&Utf8Path) -> eyre::Result<()>,
 {
     let (tx, rx) = std::sync::mpsc::channel();
+    let debounce = std::time::Duration::from_millis(250);
+    let mut last_run = std::time::Instant::now() - debounce;
 
     // Automatically select the best implementation for your platform.
     // You can also access each implementation directly e.g. INotifyWatcher.
@@ -141,13 +155,20 @@ where
                 // Generally, we only need to listen for changes in file content `ModifyKind::Data(_)`,
                 // but since notify-rs always only gets `Modify(Any)` on Windows,
                 // we expand the listening scope here.
-                if let EventKind::Modify(_) = event.kind {
-                    for path in event.paths {
+                if matches!(
+                    event.kind,
+                    EventKind::Modify(_) | EventKind::Create(_) | EventKind::Remove(_) | EventKind::Any
+                ) {
+                    let now = std::time::Instant::now();
+                    if now.duration_since(last_run) < debounce {
+                        continue;
+                    }
+
+                    if let Some(path) = event.paths.iter().find_map(|path| path.as_path().try_into().ok()) {
                         println!("[watch] Change: {path:?}");
                         std::io::stdout().flush()?;
-                        if let Ok(p) = path.as_path().try_into() {
-                            action(p)?;
-                        }
+                        action(path)?;
+                        last_run = now;
                     }
                 }
             }
