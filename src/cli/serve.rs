@@ -275,7 +275,7 @@ mod tests {
         let trees = root.join("trees");
         let assets = root.join("assets");
         let config = root.join("Kodama.toml");
-        let theme = root.join("themes/theme.css");
+        let theme = root.join("themes/theme.html");
 
         let watched = compose_watched_paths(
             root.as_path(),
