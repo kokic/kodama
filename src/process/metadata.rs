@@ -57,19 +57,28 @@ impl<'e, E: Iterator<Item = Event<'e>>> Iterator for Metadata<'_, E> {
 /// `(I)` automatically splits the input by lines,
 /// while `(II)` receives the entire multi-line string as a whole.
 fn parse_metadata(s: &str, metadata: &mut OrderedMap<String, HTMLContent>) -> eyre::Result<()> {
-    let lines: Vec<&str> = s.split("\n").collect();
-    for s in lines {
+    let current_slug = metadata
+        .get(KEY_SLUG)
+        .and_then(HTMLContent::as_str)
+        .map(Slug::new)
+        .ok_or_else(|| eyre!("missing `slug` while parsing metadata block"))?;
+
+    for (line_no, s) in s.lines().enumerate() {
         if !s.trim().is_empty() {
             let pos = s
                 .find(':')
-                .ok_or_else(|| eyre!("expected metadata format `name: value`, found `{s}`"))?;
+                .ok_or_else(|| {
+                    eyre!(
+                        "invalid metadata in `{}` at line {}: expected `name: value`, found `{}`",
+                        current_slug,
+                        line_no + 1,
+                        s
+                    )
+                })?;
             let key = s[0..pos].trim();
             let val = s[pos + 1..].trim();
 
-            let res = parse_spanned_markdown(
-                val,
-                Slug::new(metadata.get(KEY_SLUG).unwrap().as_str().unwrap()),
-            );
+            let res = parse_spanned_markdown(val, current_slug);
             let mut val = res;
 
             if key == "taxon" {

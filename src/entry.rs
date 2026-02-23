@@ -124,13 +124,18 @@ where
 
     fn get_bool(&self, key: &str) -> Option<bool> {
         self.get_str(key).and_then(|s| {
+            let slug = self
+                .get_str(KEY_SLUG)
+                .map(String::as_str)
+                .unwrap_or("<unknown>");
             if s == "true" { Some(true) } 
             else if s == "false" { Some(false) } 
             else {
-                // TODO:: error lacks context
                 color_print::ceprintln!(
-                    "<r>Error: bool value `{}` is invalid. It must be either `true` or `false`.</>",
-                    s
+                    "<r>Error: invalid bool metadata in `{}`: `{}` = `{}` (expected `true` or `false`).</>",
+                    slug,
+                    key,
+                    s,
                 );
                 exit_when_build();
                 None 
@@ -281,10 +286,11 @@ impl EntryMetaData {
             if let Ok(mode) = s.parse() {
                 return Some(mode);
             }
-            // TODO:: error lacks context
+            let slug = self.get_str(KEY_SLUG).map(String::as_str).unwrap_or("<unknown>");
             color_print::ceprintln!(
-                "<r>Error: footer-mode `{}` is invalid. It must be either `embed` or `link`.</>",
-                s
+                "<r>Error: invalid metadata in `{}`: `footer-mode = {}` (expected `embed` or `link`).</>",
+                slug,
+                s,
             );
             exit_when_build();
             None
