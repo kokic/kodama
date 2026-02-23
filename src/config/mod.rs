@@ -39,8 +39,16 @@ pub struct Config {
 /// Try to find toml file in the current directory or the parent directory.
 pub fn find_config(mut toml_file: Utf8PathBuf) -> eyre::Result<Utf8PathBuf> {
     if !toml_file.exists() {
-        let parent = toml_file.parent().unwrap().canonicalize_utf8()?;
-        let parent = parent.parent().unwrap();
+        let parent = toml_file
+            .parent()
+            .ok_or_else(|| eyre::eyre!("cannot resolve parent directory of `{}`", toml_file))?
+            .canonicalize_utf8()?;
+        let parent = parent.parent().ok_or_else(|| {
+            eyre::eyre!(
+                "cannot find configuration file from root directory while searching from `{}`",
+                toml_file
+            )
+        })?;
 
         toml_file = parent.join(DEFAULT_CONFIG_PATH);
         if !toml_file.exists() {

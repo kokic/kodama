@@ -270,12 +270,17 @@ pub fn input_path<P: AsRef<Utf8Path>>(path: P) -> Utf8PathBuf {
 }
 
 pub fn create_parent_dirs<P: AsRef<Utf8Path>>(path: P) {
-    let parent_dir = path
-        .as_ref()
-        .parent()
-        .expect("path must have parent directory");
+    let Some(parent_dir) = path.as_ref().parent() else {
+        return;
+    };
     if !parent_dir.exists() {
-        let _ = create_dir_all(parent_dir);
+        if let Err(err) = create_dir_all(parent_dir) {
+            color_print::ceprintln!(
+                "<y>Warning: failed to create parent directory `{}`: {}</>",
+                parent_dir,
+                err
+            );
+        }
     }
 }
 
@@ -319,7 +324,11 @@ pub fn hash_dir() -> Utf8PathBuf {
 pub fn hash_file_path<P: AsRef<Utf8Path>>(path: P) -> Utf8PathBuf {
     let mut hash_path = hash_dir();
     hash_path.push(path);
-    hash_path.set_extension(format!("{}.hash", hash_path.extension().unwrap()));
+    let ext = hash_path
+        .extension()
+        .map(|ext| format!("{ext}.hash"))
+        .unwrap_or_else(|| "hash".to_string());
+    hash_path.set_extension(ext);
     create_parent_dirs(&hash_path);
     hash_path
 }
@@ -335,7 +344,11 @@ pub fn entry_dir() -> Utf8PathBuf {
 pub fn entry_file_path<P: AsRef<Utf8Path>>(path: P) -> Utf8PathBuf {
     let mut entry_path = entry_dir();
     entry_path.push(path);
-    entry_path.set_extension(format!("{}.entry", entry_path.extension().unwrap()));
+    let ext = entry_path
+        .extension()
+        .map(|ext| format!("{ext}.entry"))
+        .unwrap_or_else(|| "entry".to_string());
+    entry_path.set_extension(ext);
     create_parent_dirs(&entry_path);
     entry_path
 }
@@ -347,8 +360,9 @@ pub fn is_hash_updated<P: AsRef<Utf8Path>>(content: &str, hash_path: P) -> (bool
     let current_hash = std::hash::Hasher::finish(&hasher);
 
     let history_hash = std::fs::read_to_string(hash_path.as_ref())
-        .map(|s| s.parse::<u64>().expect("Invalid hash"))
-        .unwrap_or(0); // no file: 0
+        .ok()
+        .and_then(|s| s.parse::<u64>().ok())
+        .unwrap_or(0); // no file / invalid hash: 0
 
     (current_hash != history_hash, current_hash)
 }

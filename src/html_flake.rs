@@ -85,13 +85,24 @@ pub fn html_header(
     let edit_class = "edit";
     let edit_url = match (is_serve, serve_edit, deploy_edit) {
         (true, Some(prefix), _) => {
-            let source_path = input_path(format!("{}.{}", slug_str, ext))
-                .canonicalize()
-                .unwrap();
-            let source_url = url::Url::from_file_path(source_path).unwrap();
-            let base = url::Url::parse(prefix).unwrap();
-            let editor_url = base.join(source_url.path()).unwrap();
-            html!(a class=edit_class href={editor_url.to_string()} { (edit_text) })
+            let source_path = input_path(format!("{}.{}", slug_str, ext));
+            let editor_url = (|| {
+                let source_path = source_path.canonicalize().ok()?;
+                let source_url = url::Url::from_file_path(source_path).ok()?;
+                let base = url::Url::parse(prefix).ok()?;
+                base.join(source_url.path()).ok().map(|url| url.to_string())
+            })();
+
+            match editor_url {
+                Some(url) => html!(a class=edit_class href={url} { (edit_text) }),
+                None => {
+                    color_print::ceprintln!(
+                        "<y>Warning: failed to construct editor URL for `{}`.</>",
+                        slug
+                    );
+                    String::new()
+                }
+            }
         }
         (false, _, Some(prefix)) => {
             let source_path = format!("{}.{}", slug_str, ext);
