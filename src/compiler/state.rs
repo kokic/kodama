@@ -88,15 +88,15 @@ impl CompileState {
         let result = self.compile_shallow(shallows, shallow);
         self.compile_stack.pop();
         self.visiting.remove(&slug);
-
-        result.map(Some)
+        result?;
+        Ok(self.compiled.get(&slug))
     }
 
     fn compile_shallow(
         &mut self,
         shallows: &Shallows,
         spanned: &ShallowSection,
-    ) -> eyre::Result<&Section> {
+    ) -> eyre::Result<()> {
         let slug = spanned.slug()?;
         let ext = spanned.ext()?;
         let mut children: SectionContents = vec![];
@@ -209,7 +209,13 @@ impl CompileState {
                 }
             } else {
                 let spanned: ShallowSection = Self::metadata_to_section(value, slug, ext);
-                let compiled = self.compile_shallow(shallows, &spanned)?;
+                self.compile_shallow(shallows, &spanned)?;
+                let compiled = self.compiled.get(&slug).ok_or_else(|| {
+                    eyre!(
+                        "compiled section `{}` disappeared while compiling metadata",
+                        slug
+                    )
+                })?;
                 let html = compiled.spanned();
                 metadata.update(key.to_string(), html);
             };
@@ -219,7 +225,8 @@ impl CompileState {
         self.residued.remove(&slug);
 
         let section = Section::new(metadata, children, references);
-        Ok(self.compiled.entry(slug).or_insert(section))
+        self.compiled.insert(slug, section);
+        Ok(())
     }
 
     fn metadata_to_section(

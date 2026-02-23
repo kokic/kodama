@@ -170,12 +170,6 @@ pub fn is_build() -> bool {
     with_environment(|env| matches!(env.build_mode, BuildMode::Build))
 }
 
-pub fn exit_when_build() {
-    if is_build() {
-        std::process::exit(1);
-    }
-}
-
 pub fn is_short_slug() -> bool {
     with_config(|cfg| cfg.build.short_slug)
 }

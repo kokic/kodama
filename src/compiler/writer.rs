@@ -155,8 +155,7 @@ impl Writer {
         };
 
         let backlinks_text = environment::get_footer_backlinks_text();
-        let backlinks_html = callback
-            .map(|s| {
+        let backlinks_html = if let Some(s) = callback {
                 let mut backlinks: Vec<Slug> = s.backlinks.iter().copied().collect();
                 backlinks.sort();
                 let mut content = String::new();
@@ -176,9 +175,9 @@ impl Writer {
                 } else {
                     html_footer_section("backlinks", &backlinks_text, &content)
                 }
-            })
-            .transpose()?
-            .unwrap_or_default();
+            } else {
+                String::default()
+            };
 
         Ok(html_flake::html_footer(&references_html, &backlinks_html))
     }
