@@ -60,8 +60,8 @@ pub fn html_to_body_content(html: &str) -> eyre::Result<String> {
 }
 
 pub fn source_to_inline_svg(src: &str) -> eyre::Result<String> {
-    let svg =
-        source_to_html(format!("{}{}", include_str!("include/html-math.typ"), src).as_str())?;
+    let kodama_header = include_str!("include/kodama.typ");
+    let svg = source_to_html(format!("{}\n#show: kodama\n{}", kodama_header, src).as_str())?;
 
     let start_pos = svg
         .find("<p>")
@@ -71,7 +71,9 @@ pub fn source_to_inline_svg(src: &str) -> eyre::Result<String> {
         .rfind("</p>")
         .ok_or_else(|| eyre!("missing `</p>` tag in typst inline svg output"))?;
     if end_pos < start_pos {
-        return Err(eyre!("malformed paragraph range in typst inline svg output"));
+        return Err(eyre!(
+            "malformed paragraph range in typst inline svg output"
+        ));
     }
     let content = &svg[start_pos..end_pos];
 
