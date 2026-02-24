@@ -321,6 +321,7 @@ mod tests {
     fn test_subsection_slug() {
         assert_eq!(subsection_slug(Slug::new("a/b"), "c/d.md"), "a/c/d");
         assert_eq!(subsection_slug(Slug::new("a/b"), "./c/d.md"), "a/c/d");
+        assert_eq!(subsection_slug(Slug::new("index"), "./a.b"), "a.b");
 
         assert_eq!(subsection_slug(Slug::new("a/b"), "/c/d.md"), "c/d");
     }

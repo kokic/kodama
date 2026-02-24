@@ -101,5 +101,27 @@ pub fn to_hash_id(slug_str: &str) -> String {
 
 pub fn to_slug<P: AsRef<Utf8Path>>(path: P) -> Slug {
     let path = path.as_ref();
-    Slug::new(path_utils::pretty_path(&path.with_extension("")))
+    let normalized = path_utils::pretty_path(path);
+    let stripped = match path.extension().and_then(|ext| ext.parse::<Ext>().ok()) {
+        Some(Ext::Markdown) | Some(Ext::Typst) => path_utils::pretty_path(&path.with_extension("")),
+        None => normalized,
+    };
+    Slug::new(stripped)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_to_slug_strips_known_source_extension() {
+        assert_eq!(to_slug("a.b.md"), Slug::new("a.b"));
+        assert_eq!(to_slug("a/b/c.typst"), Slug::new("a/b/c"));
+    }
+
+    #[test]
+    fn test_to_slug_keeps_dot_segments_without_known_extension() {
+        assert_eq!(to_slug("a.b"), Slug::new("a.b"));
+        assert_eq!(to_slug("a.b/c.d"), Slug::new("a.b/c.d"));
+    }
 }
