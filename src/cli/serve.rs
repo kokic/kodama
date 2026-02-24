@@ -90,17 +90,18 @@ pub fn serve(command: &ServeCommand) -> eyre::Result<()> {
 
     let root_dir = crate::environment::root_dir();
     let trees_dir = crate::environment::trees_dir();
+    let assets_dir = crate::environment::assets_dir();
     let trees_dir_canonical = trees_dir
         .canonicalize_utf8()
         .unwrap_or_else(|_| trees_dir.clone());
     let watched_paths = compose_watched_paths(
         root_dir.as_path(),
         trees_dir.clone(),
-        crate::environment::assets_dir(),
+        assets_dir.clone(),
         config_file.clone(),
         crate::environment::theme_paths(),
     );
-    watch_paths(&watched_paths, |changed_paths| {
+    watch_paths(&watched_paths, assets_dir.as_path(), |changed_paths| {
         let dirty_paths = compose_dirty_paths(
             changed_paths,
             trees_dir.as_path(),
@@ -251,6 +252,10 @@ fn is_optional_import_watch_path(path: &Utf8Path) -> bool {
     )
 }
 
+fn is_optional_missing_watch_path(path: &Utf8Path, assets_dir: &Utf8Path) -> bool {
+    is_optional_import_watch_path(path) || path == assets_dir
+}
+
 fn strip_tree_prefix(path: &Utf8Path, trees_dir: &Utf8Path) -> Option<Utf8PathBuf> {
     let relative = path.strip_prefix(trees_dir).ok()?;
     let pretty = Utf8PathBuf::from(path_utils::pretty_path(relative));
@@ -286,7 +291,11 @@ fn compose_dirty_paths(
 }
 
 /// from: https://github.com/notify-rs/notify/blob/main/examples/monitor_raw.rs#L18
-fn watch_paths<P: AsRef<Utf8Path>, F>(watched_paths: &[P], mut action: F) -> eyre::Result<()>
+fn watch_paths<P: AsRef<Utf8Path>, F>(
+    watched_paths: &[P],
+    assets_dir: &Utf8Path,
+    mut action: F,
+) -> eyre::Result<()>
 where
     F: FnMut(&[Utf8PathBuf]) -> eyre::Result<()>,
 {
@@ -306,7 +315,7 @@ where
     for watched_path in watched_paths {
         let watched_path = watched_path.as_ref();
         if !watched_path.exists() {
-            if is_optional_import_watch_path(watched_path) {
+            if is_optional_missing_watch_path(watched_path, assets_dir) {
                 color_print::ceprintln!(
                     "<dim>[watch] Hint: Optional path \"{}\" does not exist, skipping.</>",
                     watched_path
@@ -521,5 +530,19 @@ mod tests {
         assert!(!is_optional_import_watch_path(Utf8Path::new(
             "site/themes/theme.html"
         )));
+    }
+
+    #[test]
+    fn test_is_optional_missing_watch_path_includes_assets() {
+        let assets = Utf8Path::new("site/assets");
+        assert!(is_optional_missing_watch_path(
+            Utf8Path::new("site/import-font.html"),
+            assets
+        ));
+        assert!(is_optional_missing_watch_path(assets, assets));
+        assert!(!is_optional_missing_watch_path(
+            Utf8Path::new("site/Kodama.toml"),
+            assets
+        ));
     }
 }

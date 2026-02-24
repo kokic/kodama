@@ -2,44 +2,18 @@
 // Released under the GPL-3.0 license as described in the file LICENSE.
 // Authors: Alias Qli (@AliasQli), Kokic (@kokic)
 
-/*
-There are some external inputs:
-  sys.inputs.path: relative path of the typst file
-  sys.inputs.random: a random number in 0..INT64_MAX (note, it's a string)
-*/
-
-#let target() = {
-  if "target" in dictionary(std) { std.target() } else { "paged" }
+// To be compatible with the current tinymist
+#let compatibled-target() = {
+  if "target" in dictionary(std) { context std.target() } else { "paged" }
 }
 
-// get the bounding box of an equation
-#let bounded(eq) = text(top-edge: "bounds", bottom-edge: "bounds", eq)
+#let html-font-size = 15.525pt;
 
-// a dict that stores the height of equations
-#let eq_height_dict = state("eq_height_dict", (:))
-
-#let inside_pin = state("inside_pin", false)
-
-// when called, retrieves the height of the equation, which is then stored in a state variable
-#let pin(label) = context {
-  let height = here().position().y
-  eq_height_dict.update(it => {
-    if label in it.keys() or height < 0.000001pt {
-      it
-    } else {
-      it.insert(label, height)
-      it
-    }
-  })
-}
-
-// insert a function call `pin(label)`` at the start of the equation.
-#let add_pin(eq) = {
-  let label = repr(eq)
-  inside_pin.update(true)
-  $ inline(pin(label)#bounded(eq)) $
-  inside_pin.update(false)
-}
+/**
+ * There are some external inputs:
+ *   sys.inputs.path: relative path of the typst file
+ *   sys.inputs.random: a random number in 0..INT64_MAX (note, it's a string)
+ */
 
 #let repri(r) = if type(r) == str {
   r
@@ -56,7 +30,9 @@ There are some external inputs:
     attrs.insert("value", repri(value))
   }
 
-  html.elem("kodama-meta", v, attrs: attrs)
+  context if compatibled-target() != "paged" {
+    html.elem("kodama-meta", v, attrs: attrs)
+  }
 }
 
 #let embed(url, title, numbering: false, open: true, catalog: true) = {
@@ -68,26 +44,88 @@ There are some external inputs:
     attrs.insert("value", repri(title))
   }
 
-  html.elem("kodama-embed", v, attrs: attrs)
+  context if compatibled-target() != "paged" {
+    html.elem("kodama-embed", v, attrs: attrs)
+  }
 }
 
-#let local(slug, text) = html.elem(
-  "span", // Make it an inline element. This is automatically removed by kodama.
-  {
-    let v = text
-    let attrs = (slug: slug)
+#let local(slug, text) = context if compatibled-target() != "paged" {
+  html.elem(
+    "span", // Make it an inline element. This is automatically removed by kodama.
+    {
+      let v = text
+      let attrs = (slug: slug)
 
-    if type(text) != content {
-      v = none
-      attrs.insert("value", repri(text))
+      if type(text) != content {
+        v = none
+        attrs.insert("value", repri(text))
+      }
+
+      html.elem("kodama-local", v, attrs: attrs)
+    },
+  )
+}
+
+/**
+ * HTML: SVG formula rendering vertical position adjustment
+ */
+
+#let bounded(eq) = text(top-edge: "bounds", bottom-edge: "bounds", eq)
+#let to-em(pt) = str(pt / text.size.pt()) + "em"
+
+// a dict that stores the height of equations
+#let equations-height-dict = state("eq_height_dict", (:))
+#let is-inside-pin = state("inside_pin", false)
+
+#let pin(label) = context {
+  let height = here().position().y
+  equations-height-dict.update(it => {
+    if label in it.keys() or height < 0.000001pt { it } else {
+      it.insert(label, height); it
     }
-
-    html.elem("kodama-local", v, attrs: attrs)
-  },
-)
-
-#let template(it) = {
-  show: html.elem.with("html")
-
-  it
+  })
 }
+
+#let add-pin(eq) = {
+  let label = repr(eq)
+  is-inside-pin.update(true)
+  $ inline(pin(label)#bounded(eq)) $
+  is-inside-pin.update(false)
+}
+
+#let kodama(doc) = {
+  context if compatibled-target() == "paged" {
+    // set page(width: auto, height: auto)
+    set page(margin: 2em, paper: "iso-b6", height: auto)
+    doc
+  } else {
+    show math.equation: eq => {
+      if eq.block {
+        if is-inside-pin.get() {
+          html.frame(eq)
+        } else {
+          html.elem("div", attrs: (style: "display: flex; justify-content: center; width: 100%; margin: 1em 0;"), html.frame(eq))
+        }
+      } else {
+        let label = repr(eq)
+
+        if label in equations-height-dict.final().keys() {
+          let height = equations-height-dict.final().at(label, default: none)
+
+          equations-height-dict.update(d => {
+            d.insert(label, height); d
+          })
+
+          let y-length = measure(bounded(eq)).height
+          let shift = y-length - height
+
+          box(html.elem("span", attrs: (style: "vertical-align: -" + to-em(shift.pt()) + ";"), html.frame(bounded(eq))))
+        } else {
+          box(html.frame(add-pin(eq)))
+        }
+      }
+    }
+    doc
+  }
+}
+

@@ -1,6 +1,8 @@
 
 #import "_lib/kodama.typ": *
 
+#show: kodama
+
 #meta("title", "Kodama project without markdown")
 #meta("author", "Anonymous")
 #meta("date", "October 12, 2025")
