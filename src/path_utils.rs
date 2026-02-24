@@ -31,10 +31,7 @@ pub fn pretty_path(path: &Utf8Path) -> String {
 }
 
 pub fn split_file_name(path: &Utf8Path) -> Option<(&Utf8Path, &str)> {
-    let mut components = path.components();
-    let name = components.next_back();
-    let base = components.as_path();
-    Some((base, name?.as_str()))
+    path.parent().zip(path.file_name())
 }
 
 #[cfg(test)]
@@ -45,10 +42,7 @@ mod tests {
     fn test_split_base() {
         assert_eq!(split_file_name("a/b".into()), Some(("a".into(), "b")));
         assert_eq!(split_file_name("a/b/c".into()), Some(("a/b".into(), "c")));
-        assert_eq!(
-            split_file_name("/".into()),
-            Some(("".into(), std::path::MAIN_SEPARATOR_STR))
-        );
+        assert_eq!(split_file_name("/".into()), None);
         assert_eq!(split_file_name("a".into()), Some(("".into(), "a")));
     }
 }
