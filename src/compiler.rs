@@ -12,13 +12,17 @@ pub mod taxon;
 pub mod typst;
 pub mod writer;
 
-use std::{collections::HashMap, fs::File, io::BufReader};
-use std::collections::{HashSet, VecDeque};
+use std::{
+    collections::{BTreeMap, HashMap, HashSet, VecDeque},
+    fs::File,
+    io::BufReader,
+};
 
 use camino::{Utf8Path, Utf8PathBuf};
 use eyre::{bail, eyre, WrapErr};
 use parser::parse_markdown;
 use section::{HTMLContent, ShallowSection};
+use serde::Serialize;
 use typst::parse_typst;
 use walkdir::WalkDir;
 use writer::Writer;
@@ -32,21 +36,56 @@ use crate::{
 
 pub type DirtySet = HashSet<Utf8PathBuf>;
 
+#[derive(Debug, Clone, Copy)]
+pub struct CompileOutputs {
+    pub indexes: bool,
+    pub graph: bool,
+}
+
+impl Default for CompileOutputs {
+    fn default() -> Self {
+        Self {
+            indexes: true,
+            graph: true,
+        }
+    }
+}
+
+#[derive(Debug, Serialize)]
+struct GraphSnapshot {
+    sections: BTreeMap<Slug, GraphSection>,
+}
+
+#[derive(Debug, Serialize)]
+struct GraphSection {
+    parent: Slug,
+    parent_specified: bool,
+    references: Vec<Slug>,
+    backlinks: Vec<Slug>,
+}
+
 fn source_relative_path(slug: Slug, ext: Ext) -> Utf8PathBuf {
     Utf8PathBuf::from(format!("{}.{}", slug, ext))
 }
 
-fn source_from_entry_relative_path(entry_relative_path: &Utf8Path) -> Option<(Utf8PathBuf, Slug, Ext)> {
+fn source_from_entry_relative_path(
+    entry_relative_path: &Utf8Path,
+) -> Option<(Utf8PathBuf, Slug, Ext)> {
     let entry_relative_path = path_utils::pretty_path(entry_relative_path);
     let source_relative_path = entry_relative_path.strip_suffix(".entry")?;
     let source_relative_path = Utf8PathBuf::from(source_relative_path);
     let ext = source_relative_path.extension()?.parse().ok()?;
-    let slug = Slug::new(path_utils::pretty_path(&source_relative_path.with_extension("")));
+    let slug = Slug::new(path_utils::pretty_path(
+        &source_relative_path.with_extension(""),
+    ));
     Some((source_relative_path, slug, ext))
 }
 
 fn same_ext(a: Ext, b: Ext) -> bool {
-    matches!((a, b), (Ext::Markdown, Ext::Markdown) | (Ext::Typst, Ext::Typst))
+    matches!(
+        (a, b),
+        (Ext::Markdown, Ext::Markdown) | (Ext::Typst, Ext::Typst)
+    )
 }
 
 fn hash_cache_path_no_create(hash_dir: &Utf8Path, source_relative_path: &Utf8Path) -> Utf8PathBuf {
@@ -96,8 +135,11 @@ fn cleanup_stale_slug_artifacts_with_paths(
             continue;
         }
 
-        let relative_entry = entry_path.strip_prefix(entry_dir).unwrap_or(entry_path.as_path());
-        let Some((source_relative, slug, ext)) = source_from_entry_relative_path(relative_entry) else {
+        let relative_entry = entry_path
+            .strip_prefix(entry_dir)
+            .unwrap_or(entry_path.as_path());
+        let Some((source_relative, slug, ext)) = source_from_entry_relative_path(relative_entry)
+        else {
             continue;
         };
 
@@ -133,7 +175,10 @@ fn cleanup_stale_slug_artifacts(workspace: &Workspace) -> eyre::Result<HashSet<S
     )
 }
 
-fn is_source_modified(relative_path: &Utf8Path, dirty_paths: Option<&DirtySet>) -> eyre::Result<bool> {
+fn is_source_modified(
+    relative_path: &Utf8Path,
+    dirty_paths: Option<&DirtySet>,
+) -> eyre::Result<bool> {
     if *crate::cli::build::enable_no_cache() {
         return Ok(true);
     }
@@ -169,12 +214,9 @@ pub fn expand_dirty_paths(workspace: &Workspace, dirty_paths: &DirtySet) -> Dirt
     }
 
     if dirty_all_sources {
-        workspace
-            .slug_exts
-            .iter()
-            .for_each(|(&slug, &ext)| {
-                expanded.insert(source_relative_path(slug, ext));
-            });
+        workspace.slug_exts.iter().for_each(|(&slug, &ext)| {
+            expanded.insert(source_relative_path(slug, ext));
+        });
         return expanded;
     }
 
@@ -240,7 +282,47 @@ fn affected_slugs_from_dirty(
     affected
 }
 
-pub fn compile(workspace: Workspace, dirty_paths: Option<&DirtySet>) -> eyre::Result<()> {
+fn graph_snapshot(state: &state::CompileState) -> GraphSnapshot {
+    let mut sections = BTreeMap::new();
+    let mut slugs: Vec<Slug> = state.compiled().keys().copied().collect();
+    slugs.sort();
+
+    for slug in slugs {
+        let section = state
+            .compiled()
+            .get(&slug)
+            .expect("slug collected from compiled map must exist");
+        let callback = state.callback().0.get(&slug);
+        let parent = callback.map_or(Slug::new("index"), |value| value.parent);
+        let parent_specified = callback.is_some_and(|value| value.is_parent_specified);
+
+        let mut references: Vec<Slug> = section.references.iter().copied().collect();
+        references.sort();
+
+        let mut backlinks: Vec<Slug> = callback
+            .map(|value| value.backlinks.iter().copied().collect())
+            .unwrap_or_default();
+        backlinks.sort();
+
+        sections.insert(
+            slug,
+            GraphSection {
+                parent,
+                parent_specified,
+                references,
+                backlinks,
+            },
+        );
+    }
+
+    GraphSnapshot { sections }
+}
+
+pub fn compile(
+    workspace: Workspace,
+    dirty_paths: Option<&DirtySet>,
+    outputs: CompileOutputs,
+) -> eyre::Result<()> {
     let mut shallows = HashMap::new();
     let all_slugs: Vec<Slug> = workspace.slug_exts.keys().copied().collect();
     let stale_slugs = cleanup_stale_slug_artifacts(&workspace)
@@ -278,10 +360,12 @@ pub fn compile(workspace: Workspace, dirty_paths: Option<&DirtySet>) -> eyre::Re
         shallows.insert(slug, shallow);
     }
 
-    let indexes: HashMap<Slug, OrderedMap<String, HTMLContent>> = shallows
-        .iter()
-        .map(|(slug, section)| (*slug, section.metadata.0.clone()))
-        .collect();
+    let indexes = outputs.indexes.then(|| {
+        shallows
+            .iter()
+            .map(|(slug, section)| (*slug, section.metadata.0.clone()))
+            .collect::<HashMap<Slug, OrderedMap<String, HTMLContent>>>()
+    });
 
     let state = state::compile_all(shallows)?;
     let slugs_to_write: Vec<Slug> = match dirty_paths {
@@ -301,11 +385,24 @@ pub fn compile(workspace: Workspace, dirty_paths: Option<&DirtySet>) -> eyre::Re
     Writer::write_needed_slugs(slugs_to_write, &state)
         .wrap_err("failed to write compiled HTML files")?;
 
-    let serialized = serde_json::to_string(&indexes)
-        .wrap_err_with(|| eyre!("failed to serialize indexes to JSON"))?;
-    let indexes_path = environment::indexes_path(&environment::output_dir());
-    std::fs::write(&indexes_path, serialized)
-        .wrap_err_with(|| eyre!("failed to write indexes to `{}`", indexes_path))?;
+    if outputs.graph {
+        let graph = graph_snapshot(&state);
+        let serialized = serde_json::to_string(&graph)
+            .wrap_err_with(|| eyre!("failed to serialize graph to JSON"))?;
+        let graph_path = environment::graph_path(&environment::output_dir());
+        environment::create_parent_dirs(&graph_path);
+        std::fs::write(&graph_path, serialized)
+            .wrap_err_with(|| eyre!("failed to write graph to `{}`", graph_path))?;
+    }
+
+    if let Some(indexes) = indexes {
+        let serialized = serde_json::to_string(&indexes)
+            .wrap_err_with(|| eyre!("failed to serialize indexes to JSON"))?;
+        let indexes_path = environment::indexes_path(&environment::output_dir());
+        environment::create_parent_dirs(&indexes_path);
+        std::fs::write(&indexes_path, serialized)
+            .wrap_err_with(|| eyre!("failed to write indexes to `{}`", indexes_path))?;
+    }
 
     Ok(())
 }
@@ -329,7 +426,10 @@ fn to_slug_ext(source_dir: &Utf8Path, p: &Utf8Path) -> Option<(Slug, Ext)> {
 /// Collect all source file paths in `<trees>` dir.
 ///
 /// **Side effect: update the `.hash` & `.svg` file of all modified `.typ` files.**
-pub fn all_trees_source(trees_dir: &Utf8Path, dirty_paths: Option<&DirtySet>) -> eyre::Result<Workspace> {
+pub fn all_trees_source(
+    trees_dir: &Utf8Path,
+    dirty_paths: Option<&DirtySet>,
+) -> eyre::Result<Workspace> {
     let mut slug_exts = HashMap::new();
 
     let failed_to_read_dir = |dir: &Utf8Path| eyre!("failed to read directory `{}`", dir);
@@ -387,7 +487,9 @@ pub fn all_trees_source(trees_dir: &Utf8Path, dirty_paths: Option<&DirtySet>) ->
                             .is_some_and(|p| p.is_file() || !should_ignored_dir(p))
                     })
                 {
-                    let std_path = entry.wrap_err_with(|| failed_to_read_dir(&path))?.into_path();
+                    let std_path = entry
+                        .wrap_err_with(|| failed_to_read_dir(&path))?
+                        .into_path();
                     let path = match Utf8PathBuf::from_path_buf(std_path) {
                         Ok(path) => path,
                         Err(non_utf8) => {
@@ -433,10 +535,12 @@ pub struct Workspace {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::fs;
-    use crate::compiler::section::{HTMLContent, LazyContent, LocalLink, ShallowSection};
-    use crate::entry::{HTMLMetaData, KEY_EXT, KEY_PAGE_TITLE, KEY_SLUG, KEY_TITLE};
+    use crate::compiler::section::{
+        EmbedContent, HTMLContent, LazyContent, LocalLink, SectionOption, ShallowSection,
+    };
+    use crate::entry::{HTMLMetaData, KEY_ASREF, KEY_EXT, KEY_PAGE_TITLE, KEY_SLUG, KEY_TITLE};
     use crate::ordered_map::OrderedMap;
+    use std::fs;
 
     fn shallow(slug: &str, content: HTMLContent) -> ShallowSection {
         let mut metadata = OrderedMap::new();
@@ -543,6 +647,65 @@ mod tests {
 
         assert!(affected.contains(&Slug::new("a")));
         assert!(affected.contains(&Slug::new("b")));
+    }
+
+    #[test]
+    fn test_graph_snapshot_contains_sorted_full_graph_relationships() {
+        let mut shallows = HashMap::new();
+        shallows.insert(
+            Slug::new("index"),
+            shallow(
+                "index",
+                HTMLContent::Lazy(vec![
+                    LazyContent::Local(LocalLink {
+                        url: "/ref.md".to_string(),
+                        text: None,
+                    }),
+                    LazyContent::Embed(EmbedContent {
+                        url: "/child.md".to_string(),
+                        title: None,
+                        option: SectionOption::default(),
+                    }),
+                ]),
+            ),
+        );
+        shallows.insert(
+            Slug::new("a"),
+            shallow(
+                "a",
+                HTMLContent::Lazy(vec![LazyContent::Local(LocalLink {
+                    url: "/ref.md".to_string(),
+                    text: None,
+                })]),
+            ),
+        );
+
+        let mut ref_section = shallow("ref", HTMLContent::Plain("<p>ref</p>".to_string()));
+        ref_section.metadata.0.insert(
+            KEY_ASREF.to_string(),
+            HTMLContent::Plain("true".to_string()),
+        );
+        shallows.insert(Slug::new("ref"), ref_section);
+        shallows.insert(
+            Slug::new("child"),
+            shallow("child", HTMLContent::Plain("<p>child</p>".to_string())),
+        );
+
+        let state = state::compile_all(shallows).unwrap();
+        let snapshot = graph_snapshot(&state);
+
+        let index = snapshot.sections.get(&Slug::new("index")).unwrap();
+        assert_eq!(index.references, vec![Slug::new("ref")]);
+
+        let child = snapshot.sections.get(&Slug::new("child")).unwrap();
+        assert_eq!(child.parent, Slug::new("index"));
+        assert!(!child.parent_specified);
+
+        let reference = snapshot.sections.get(&Slug::new("ref")).unwrap();
+        assert_eq!(
+            reference.backlinks,
+            vec![Slug::new("a"), Slug::new("index")]
+        );
     }
 
     #[test]

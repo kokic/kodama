@@ -32,11 +32,27 @@ pub struct BuildCommand {
     /// Rebuild all files, ignoring any caches.
     #[arg(visible_alias = "nc", long, default_value_t = false)]
     no_cache: bool,
+
+    /// Skip generating `kodama.json`.
+    #[arg(long, default_value_t = false)]
+    no_indexes: bool,
+
+    /// Skip generating `kodama.graph.json`.
+    #[arg(long, default_value_t = false)]
+    no_graph: bool,
 }
 
 static VERBOSE: OnceLock<bool> = OnceLock::new();
 static VERBOSE_SKIP: OnceLock<bool> = OnceLock::new();
 static NO_CACHE: OnceLock<bool> = OnceLock::new();
+
+#[derive(Clone, Copy)]
+pub struct BuildOptions {
+    pub verbose: bool,
+    pub verbose_skip: bool,
+    pub no_cache: bool,
+    pub outputs: compiler::CompileOutputs,
+}
 
 pub fn verbose() -> &'static bool {
     VERBOSE.get().unwrap_or(&false)
@@ -52,25 +68,35 @@ pub fn enable_no_cache() -> &'static bool {
 
 /// This function invoked the [`environment::init_environment`] function to initialize the environment
 pub fn build(command: &BuildCommand) -> eyre::Result<()> {
-    build_with(&command.config, BuildMode::Build, command.verbose, command.verbose_skip, command.no_cache)
+    build_with(
+        &command.config,
+        BuildMode::Build,
+        BuildOptions {
+            verbose: command.verbose,
+            verbose_skip: command.verbose_skip,
+            no_cache: command.no_cache,
+            outputs: compiler::CompileOutputs {
+                indexes: !command.no_indexes,
+                graph: !command.no_graph,
+            },
+        },
+    )
 }
 
-pub fn build_with(config: &str, mode: BuildMode, verbose: bool, verbose_skip: bool, no_cache: bool) -> eyre::Result<()> {
-    build_with_dirty(config, mode, verbose, verbose_skip, no_cache, None)
+pub fn build_with(config: &str, mode: BuildMode, options: BuildOptions) -> eyre::Result<()> {
+    build_with_dirty(config, mode, options, None)
 }
 
 pub fn build_with_dirty(
     config: &str,
     mode: BuildMode,
-    verbose: bool,
-    verbose_skip: bool,
-    no_cache: bool,
+    options: BuildOptions,
     dirty_paths: Option<&DirtySet>,
 ) -> eyre::Result<()> {
     environment::init_environment(config.into(), mode)?;
-    _ = VERBOSE.set(verbose);
-    _ = VERBOSE_SKIP.set(verbose_skip);
-    _ = NO_CACHE.set(no_cache);
+    _ = VERBOSE.set(options.verbose);
+    _ = VERBOSE_SKIP.set(options.verbose_skip);
+    _ = NO_CACHE.set(options.no_cache);
 
     if !environment::inline_css() {
         export_css_files().wrap_err("failed to export CSS")?;
@@ -79,15 +105,12 @@ pub fn build_with_dirty(
     let root = environment::root_dir();
     let workspace = all_trees_source(&environment::trees_dir(), dirty_paths)?;
     let expanded_dirty = dirty_paths.map(|paths| compiler::expand_dirty_paths(&workspace, paths));
-    compiler::compile(workspace, expanded_dirty.as_ref()).wrap_err_with(|| {
+    compiler::compile(workspace, expanded_dirty.as_ref(), options.outputs).wrap_err_with(|| {
         let root_display = root
             .canonicalize()
             .map(|p| p.display().to_string())
             .unwrap_or_else(|_| root.as_str().to_string());
-        eyre!(
-            "failed to compile site `{}`",
-            root_display
-        )
+        eyre!("failed to compile site `{}`", root_display)
     })?;
 
     sync_assets_dir()?;

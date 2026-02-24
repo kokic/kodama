@@ -215,6 +215,10 @@ pub fn indexes_path(output_dir: &Utf8Path) -> Utf8PathBuf {
     output_dir.join("kodama.json")
 }
 
+pub fn graph_path(output_dir: &Utf8Path) -> Utf8PathBuf {
+    output_dir.join("kodama.graph.json")
+}
+
 pub fn base_url_raw() -> String {
     with_config(|cfg| cfg.kodama.base_url.clone())
 }

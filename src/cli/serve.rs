@@ -9,8 +9,8 @@ use eyre::eyre;
 use notify::{Config, EventKind, RecommendedWatcher, RecursiveMode, Watcher};
 
 use crate::{
-    cli::build::build_with_dirty,
-    compiler::DirtySet,
+    cli::build::{build_with_dirty, BuildOptions},
+    compiler::{CompileOutputs, DirtySet},
     config,
     environment::{self, BuildMode},
     path_utils,
@@ -30,9 +30,17 @@ pub struct ServeCommand {
     #[arg(long, default_value_t = false)]
     verbose_skip: bool,
 
-    /// Disable live reload. 
+    /// Disable live reload.
     #[arg(short, long, default_value_t = false)]
     disable_reload: bool,
+
+    /// Skip generating `kodama.json`.
+    #[arg(long, default_value_t = false)]
+    no_indexes: bool,
+
+    /// Skip generating `kodama.graph.json`.
+    #[arg(long, default_value_t = false)]
+    no_graph: bool,
 }
 
 static LIVE_RELOAD: OnceLock<bool> = OnceLock::new();
@@ -43,15 +51,27 @@ pub fn live_reload() -> &'static bool {
 
 /// This function invoked the [`config::init_environment`] function to initialize the environment]
 pub fn serve(command: &ServeCommand) -> eyre::Result<()> {
-    _ = LIVE_RELOAD.set(!command.disable_reload);
+    let live_reload = !command.disable_reload && !command.no_indexes;
+    _ = LIVE_RELOAD.set(live_reload);
+    if !command.disable_reload && command.no_indexes {
+        color_print::ceprintln!(
+            "<y>[serve] Live reload requires `kodama.json`; disabled because `--no-indexes` is set.</>"
+        );
+    }
 
     let serve_build = |dirty_paths: Option<&DirtySet>| -> eyre::Result<()> {
         build_with_dirty(
             &command.config,
             BuildMode::Serve,
-            command.verbose,
-            command.verbose_skip,
-            false,
+            BuildOptions {
+                verbose: command.verbose,
+                verbose_skip: command.verbose_skip,
+                no_cache: false,
+                outputs: CompileOutputs {
+                    indexes: !command.no_indexes,
+                    graph: !command.no_graph,
+                },
+            },
             dirty_paths,
         )?;
         Ok(())
@@ -116,7 +136,9 @@ pub fn serve(command: &ServeCommand) -> eyre::Result<()> {
 
 fn parse_command(command: &[String], output: Utf8PathBuf) -> eyre::Result<std::process::Command> {
     if command.is_empty() {
-        return Err(eyre!("invalid `serve.command`: command list cannot be empty"));
+        return Err(eyre!(
+            "invalid `serve.command`: command list cannot be empty"
+        ));
     }
 
     let mut serve = std::process::Command::new(&command[0]);
@@ -438,10 +460,18 @@ mod tests {
     #[test]
     fn test_should_handle_watch_event_kinds() {
         assert!(should_handle_watch_event(&EventKind::Any));
-        assert!(should_handle_watch_event(&EventKind::Modify(ModifyKind::Any)));
-        assert!(should_handle_watch_event(&EventKind::Create(CreateKind::Any)));
-        assert!(should_handle_watch_event(&EventKind::Remove(RemoveKind::Any)));
-        assert!(!should_handle_watch_event(&EventKind::Access(AccessKind::Any)));
+        assert!(should_handle_watch_event(&EventKind::Modify(
+            ModifyKind::Any
+        )));
+        assert!(should_handle_watch_event(&EventKind::Create(
+            CreateKind::Any
+        )));
+        assert!(should_handle_watch_event(&EventKind::Remove(
+            RemoveKind::Any
+        )));
+        assert!(!should_handle_watch_event(&EventKind::Access(
+            AccessKind::Any
+        )));
     }
 
     #[test]
@@ -451,8 +481,14 @@ mod tests {
         fs::create_dir_all(&root).unwrap();
         fs::write(&file, "x").unwrap();
 
-        assert_eq!(watch_mode_for_path(root.as_path()), RecursiveMode::Recursive);
-        assert_eq!(watch_mode_for_path(file.as_path()), RecursiveMode::NonRecursive);
+        assert_eq!(
+            watch_mode_for_path(root.as_path()),
+            RecursiveMode::Recursive
+        );
+        assert_eq!(
+            watch_mode_for_path(file.as_path()),
+            RecursiveMode::NonRecursive
+        );
 
         let _ = fs::remove_dir_all(root);
     }
