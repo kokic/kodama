@@ -14,3 +14,23 @@
 #lorem(10) $ZZ \/p^n ZZ$ #lorem(10) $(X+Y)/(X^2 + X Y + Y^2)$
 
 $ 0 spaces(>) - integral_S "Poincare metric" spaces(=) 4pi(1-g) $
+
+```typst
+
+#import "_lib/kodama.typ": *
+
+#show: kodama
+
+#meta("title", "Title (Globally)")
+#meta("author", "Anonymous")
+#meta("date", "October 12, 2025")
+
+#set text(size: html-font-size, top-edge: "bounds", bottom-edge: "bounds");
+
+#let spaces(c) = $space #c space$
+
+#lorem(10) $ZZ \/p^n ZZ$ #lorem(10) $(X+Y)/(X^2 + X Y + Y^2)$
+
+$ 0 spaces(>) - integral_S "Poincare metric" spaces(=) 4pi(1-g) $
+
+```
