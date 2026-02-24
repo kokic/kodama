@@ -307,8 +307,8 @@ where
         let watched_path = watched_path.as_ref();
         if !watched_path.exists() {
             if is_optional_import_watch_path(watched_path) {
-                println!(
-                    "[watch] Hint: Optional path \"{}\" does not exist, skipping.",
+                color_print::ceprintln!(
+                    "<dim>[watch] Hint: Optional path \"{}\" does not exist, skipping.</>",
                     watched_path
                 );
             } else {
