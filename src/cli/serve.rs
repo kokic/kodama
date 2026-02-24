@@ -237,6 +237,10 @@ fn watch_mode_for_path(path: &Utf8Path) -> RecursiveMode {
     }
 }
 
+fn display_watch_path(path: &Utf8Path) -> String {
+    path.as_str().replace('\\', "/")
+}
+
 fn is_optional_import_watch_path(path: &Utf8Path) -> bool {
     matches!(
         path.file_name(),
@@ -310,15 +314,16 @@ where
     for watched_path in watched_paths {
         let watched_path = watched_path.as_ref();
         if !watched_path.exists() {
+            let watched_path_display = display_watch_path(watched_path);
             if is_optional_missing_watch_path(watched_path, assets_dir) {
                 color_print::ceprintln!(
                     "<dim>[watch] Hint: Optional path \"{}\" does not exist, skipping.</>",
-                    watched_path
+                    watched_path_display
                 );
             } else {
                 color_print::ceprintln!(
                     "<y>[watch] Warning: Path \"{}\" does not exist, skipping.</>",
-                    watched_path
+                    watched_path_display
                 );
             }
             continue;
@@ -326,7 +331,7 @@ where
 
         let mode = watch_mode_for_path(watched_path);
         watcher.watch(watched_path.as_std_path(), mode)?;
-        print!("\"{}\"  ", watched_path);
+        print!("\"{}\"  ", display_watch_path(watched_path));
     }
     println!("\n\nPress Ctrl+C to stop watching.\n");
 
@@ -353,7 +358,7 @@ where
 
                     let changed_paths: Vec<Utf8PathBuf> = pending_changes.drain().collect();
                     for path in &changed_paths {
-                        println!("[watch] Change: {path:?}");
+                        println!("[watch] Change: \"{}\"", display_watch_path(path.as_path()));
                     }
                     std::io::stdout().flush()?;
                     if let Err(err) = action(&changed_paths) {
@@ -539,6 +544,15 @@ mod tests {
             Utf8Path::new("site/Kodama.toml"),
             assets
         ));
+    }
+
+    #[test]
+    fn test_display_watch_path_normalizes_separators() {
+        assert_eq!(display_watch_path(Utf8Path::new("site/trees/a.md")), "site/trees/a.md");
+        assert_eq!(
+            display_watch_path(Utf8Path::new(r".\site\trees\a.md")),
+            "./site/trees/a.md"
+        );
     }
 
     #[test]
