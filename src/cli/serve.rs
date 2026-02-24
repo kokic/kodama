@@ -241,6 +241,16 @@ fn watch_mode_for_path(path: &Utf8Path) -> RecursiveMode {
     }
 }
 
+fn is_optional_import_watch_path(path: &Utf8Path) -> bool {
+    matches!(
+        path.file_name(),
+        Some("import-meta.html")
+            | Some("import-style.html")
+            | Some("import-font.html")
+            | Some("import-math.html")
+    )
+}
+
 fn strip_tree_prefix(path: &Utf8Path, trees_dir: &Utf8Path) -> Option<Utf8PathBuf> {
     let relative = path.strip_prefix(trees_dir).ok()?;
     let pretty = Utf8PathBuf::from(path_utils::pretty_path(relative));
@@ -296,10 +306,17 @@ where
     for watched_path in watched_paths {
         let watched_path = watched_path.as_ref();
         if !watched_path.exists() {
-            color_print::ceprintln!(
-                "<y>[watch] Warning: Path \"{}\" does not exist, skipping.</>",
-                watched_path
-            );
+            if is_optional_import_watch_path(watched_path) {
+                println!(
+                    "[watch] Hint: Optional path \"{}\" does not exist, skipping.",
+                    watched_path
+                );
+            } else {
+                color_print::ceprintln!(
+                    "<y>[watch] Warning: Path \"{}\" does not exist, skipping.</>",
+                    watched_path
+                );
+            }
             continue;
         }
 
@@ -491,5 +508,18 @@ mod tests {
         );
 
         let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn test_is_optional_import_watch_path() {
+        assert!(is_optional_import_watch_path(Utf8Path::new(
+            "site/import-meta.html"
+        )));
+        assert!(is_optional_import_watch_path(Utf8Path::new(
+            "site/import-style.html"
+        )));
+        assert!(!is_optional_import_watch_path(Utf8Path::new(
+            "site/themes/theme.html"
+        )));
     }
 }
