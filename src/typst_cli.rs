@@ -93,6 +93,14 @@ fn to_html_string<P: AsRef<Utf8Path>>(rel_path: P, root_dir: P) -> eyre::Result<
     let root_dir = root_dir.as_ref();
     let rel_path = rel_path.as_ref();
     let full_path = root_dir.join(rel_path);
+    if !full_path.exists() {
+        return Err(eyre!(
+            "typst source `{}` not found at `{}` (typst root: `{}`). Check `[build].typst-root` in \"Kodama.toml\"",
+            rel_path,
+            full_path,
+            root_dir
+        ));
+    }
 
     let output = Command::new("typst")
         .arg("c")
@@ -202,7 +210,9 @@ fn failed_in_file(src_pos: &'static str, file_path: &str, stderr: std::borrow::C
 
 #[cfg(test)]
 mod tests {
-    use super::html_to_body_content;
+    use super::{html_to_body_content, to_html_string};
+    use camino::{Utf8Path, Utf8PathBuf};
+    use std::fs;
 
     #[test]
     fn test_html_to_body_content_ok() {
@@ -215,5 +225,23 @@ mod tests {
     fn test_html_to_body_content_missing_tags() {
         let err = html_to_body_content("<p>Hello</p>");
         assert!(err.is_err());
+    }
+
+    #[test]
+    fn test_to_html_string_reports_typst_root_hint_for_missing_source() {
+        let base = std::env::temp_dir().join(format!("kodama-typst-root-hint-{}", fastrand::u64(..)));
+        fs::create_dir_all(&base).unwrap();
+        let base = Utf8PathBuf::from_path_buf(base).unwrap();
+
+        let err = to_html_string(
+            Utf8Path::new("references/feature-typst.typst"),
+            base.as_path(),
+        )
+        .unwrap_err();
+        let message = format!("{err:#}");
+        assert!(message.contains("Check `[build].typst-root`"));
+        assert!(message.contains("references/feature-typst.typst"));
+
+        let _ = fs::remove_dir_all(base.as_std_path());
     }
 }
