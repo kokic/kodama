@@ -8,3 +8,4 @@ pub mod build;
 pub mod output;
 pub mod serve;
 pub mod snip;
+pub mod upgrade;

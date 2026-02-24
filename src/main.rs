@@ -31,6 +31,7 @@ use crate::cli::{
     new::{NewCommand, NewCommandCli},
     serve::ServeCommand,
     snip::SnipCommand,
+    upgrade::UpgradeCommand,
 };
 
 #[rustfmt::skip]
@@ -81,6 +82,10 @@ enum Command {
     /// Generate VSCode style snippets file.
     #[command()]
     Snip(SnipCommand),
+
+    /// Upgrade "Kodama.toml" to the latest configuration structure.
+    #[command(visible_alias = "u")]
+    Upgrade(UpgradeCommand),
 }
 
 fn main() -> eyre::Result<()> {
@@ -95,6 +100,7 @@ fn main() -> eyre::Result<()> {
         Command::Serve(command) => crate::cli::serve::serve(command)?,
         Command::Build(command) => crate::cli::build::build(command)?,
         Command::Snip(command) => crate::cli::snip::snip(command)?,
+        Command::Upgrade(command) => crate::cli::upgrade::upgrade(command)?,
     };
     Ok(())
 }
