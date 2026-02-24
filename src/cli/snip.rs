@@ -78,13 +78,14 @@ fn section_snippets() -> eyre::Result<()> {
     let snippets: HashMap<&str, Snippet> = indexes
         .iter()
         .filter_map(|(slug, metadata)| {
-            let prefix = metadata.get(entry::KEY_TITLE)?.remove_all_tags();
             let slug_str = slug.as_str();
+            let title = metadata.get(entry::KEY_TITLE)?.remove_all_tags();
+            let prefix = format!("{title} [{slug_str}]");
             let ext = metadata.get(entry::KEY_EXT)?.as_str()?;
             let trees_dir = environment::trees_dir_without_root();
             let url = format!("/{}/{}.{}", trees_dir, slug_str, ext);
 
-            let label = prefix
+            let label = title
                 .to_lowercase()
                 .split_whitespace()
                 .collect::<Vec<_>>()
