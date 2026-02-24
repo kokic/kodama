@@ -1,25 +1,22 @@
 <script>
   (() => {
-    const url = "/kodama.json";
+    const url = "/kodama.reload";
     const interval = 1000; // 1 second
 
-    let lastModified = null;
+    let lastVersion = null;
 
     async function check() {
       try {
-        const res = await fetch(url + "?t=" + Date.now(), {
-          method: "HEAD",
-          cache: "no-store",
-        });
-
-        const lm = res.headers.get("last-modified");
-
-        if (lastModified && lm && lm !== lastModified) {
+        const res = await fetch(url + "?t=" + Date.now(), { cache: "no-store" });
+        if (!res.ok) {
+          throw new Error("reload marker not ready");
+        }
+        const version = (await res.text()).trim();
+        if (lastVersion && version && version !== lastVersion) {
           location.reload();
           return;
         }
-
-        lastModified = lm || lastModified;
+        lastVersion = version || lastVersion;
       } catch (e) {
         // Ignore
         console.warn("Reload check failed:", e);

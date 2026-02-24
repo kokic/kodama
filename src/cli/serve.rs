@@ -34,13 +34,13 @@ pub struct ServeCommand {
     #[arg(short, long, default_value_t = false)]
     disable_reload: bool,
 
-    /// Skip generating `kodama.json`.
+    /// Generate `kodama.json` in serve mode.
     #[arg(long, default_value_t = false)]
-    no_indexes: bool,
+    indexes: bool,
 
-    /// Skip generating `kodama.graph.json`.
+    /// Generate `kodama.graph.json` in serve mode.
     #[arg(long, default_value_t = false)]
-    no_graph: bool,
+    graph: bool,
 }
 
 static LIVE_RELOAD: OnceLock<bool> = OnceLock::new();
@@ -49,15 +49,17 @@ pub fn live_reload() -> &'static bool {
     LIVE_RELOAD.get().unwrap_or(&true)
 }
 
+fn compile_outputs(command: &ServeCommand) -> CompileOutputs {
+    CompileOutputs {
+        indexes: command.indexes,
+        graph: command.graph,
+    }
+}
+
 /// This function invoked the [`config::init_environment`] function to initialize the environment]
 pub fn serve(command: &ServeCommand) -> eyre::Result<()> {
-    let live_reload = !command.disable_reload && !command.no_indexes;
-    _ = LIVE_RELOAD.set(live_reload);
-    if !command.disable_reload && command.no_indexes {
-        color_print::ceprintln!(
-            "<y>[serve] Live reload requires `kodama.json`; disabled because `--no-indexes` is set.</>"
-        );
-    }
+    _ = LIVE_RELOAD.set(!command.disable_reload);
+    let outputs = compile_outputs(command);
 
     let serve_build = |dirty_paths: Option<&DirtySet>| -> eyre::Result<()> {
         build_with_dirty(
@@ -67,10 +69,7 @@ pub fn serve(command: &ServeCommand) -> eyre::Result<()> {
                 verbose: command.verbose,
                 verbose_skip: command.verbose_skip,
                 no_cache: false,
-                outputs: CompileOutputs {
-                    indexes: !command.no_indexes,
-                    graph: !command.no_graph,
-                },
+                outputs,
             },
             dirty_paths,
         )?;
@@ -544,5 +543,35 @@ mod tests {
             Utf8Path::new("site/Kodama.toml"),
             assets
         ));
+    }
+
+    #[test]
+    fn test_compile_outputs_default_to_disabled_in_serve() {
+        let command = ServeCommand {
+            config: config::DEFAULT_CONFIG_PATH.into(),
+            verbose: false,
+            verbose_skip: false,
+            disable_reload: false,
+            indexes: false,
+            graph: false,
+        };
+        let outputs = compile_outputs(&command);
+        assert!(!outputs.indexes);
+        assert!(!outputs.graph);
+    }
+
+    #[test]
+    fn test_compile_outputs_can_be_enabled_in_serve() {
+        let command = ServeCommand {
+            config: config::DEFAULT_CONFIG_PATH.into(),
+            verbose: false,
+            verbose_skip: false,
+            disable_reload: false,
+            indexes: true,
+            graph: true,
+        };
+        let outputs = compile_outputs(&command);
+        assert!(outputs.indexes);
+        assert!(outputs.graph);
     }
 }

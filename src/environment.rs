@@ -219,6 +219,10 @@ pub fn graph_path(output_dir: &Utf8Path) -> Utf8PathBuf {
     output_dir.join("kodama.graph.json")
 }
 
+pub fn reload_marker_path(output_dir: &Utf8Path) -> Utf8PathBuf {
+    output_dir.join("kodama.reload")
+}
+
 pub fn base_url_raw() -> String {
     with_config(|cfg| cfg.kodama.base_url.clone())
 }

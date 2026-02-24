@@ -2,7 +2,11 @@
 // Released under the GPL-3.0 license as described in the file LICENSE.
 // Authors: Kokic (@kokic), Spore (@s-cerevisiae)
 
-use std::{fs, sync::OnceLock};
+use std::{
+    fs,
+    sync::OnceLock,
+    time::{SystemTime, UNIX_EPOCH},
+};
 
 use camino::Utf8Path;
 use eyre::{eyre, WrapErr};
@@ -114,6 +118,7 @@ pub fn build_with_dirty(
     })?;
 
     sync_assets_dir()?;
+    write_reload_marker(mode)?;
 
     Ok(())
 }
@@ -143,4 +148,21 @@ fn sync_assets_dir() -> eyre::Result<bool> {
     let target = environment::output_dir().join(asset_name);
 
     assets_sync::sync_assets(asset_dir, target)
+}
+
+fn write_reload_marker(mode: BuildMode) -> eyre::Result<()> {
+    if !matches!(mode, BuildMode::Serve) {
+        return Ok(());
+    }
+
+    let output_dir = environment::output_dir();
+    let marker_path = environment::reload_marker_path(output_dir.as_path());
+    environment::create_parent_dirs(&marker_path);
+    let stamp = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_nanos();
+    fs::write(&marker_path, stamp.to_string())
+        .wrap_err_with(|| eyre!("failed to write reload marker to `{}`", marker_path))?;
+    Ok(())
 }
