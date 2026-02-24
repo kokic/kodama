@@ -1,10 +1,13 @@
 use std::collections::HashMap;
 
-use eyre::{bail, eyre, WrapErr};
+use eyre::{eyre, WrapErr};
 use serde::Serialize;
 
 use crate::{
-    compiler::section::HTMLContent, config, entry, environment, ordered_map::OrderedMap, slug::Slug,
+    compiler::{self, section::HTMLContent},
+    config, entry, environment,
+    ordered_map::OrderedMap,
+    slug::Slug,
 };
 
 #[derive(clap::Args)]
@@ -70,19 +73,7 @@ pub fn snip(command: &SnipCommand) -> eyre::Result<()> {
 }
 
 fn section_snippets() -> eyre::Result<()> {
-    let output_dir = environment::root_dir().join(environment::serve_dir());
-    let indexes_path = environment::indexes_path(&output_dir);
-
-    // Check if the indexes file exists
-    if !indexes_path.exists() {
-        bail!("Indexes file not found. Please run `kodama serve` first.");
-    }
-
-    let indexes_content = std::fs::read_to_string(&indexes_path)
-        .wrap_err_with(|| eyre!("Failed to read indexes file at `{}`", indexes_path))?;
-    let indexes: HashMap<Slug, OrderedMap<String, HTMLContent>> =
-        serde_json::from_str(&indexes_content)
-            .wrap_err_with(|| eyre!("Failed to parse indexes JSON from `{}`", indexes_path))?;
+    let indexes = refresh_section_indexes()?;
 
     let snippets: HashMap<&str, Snippet> = indexes
         .iter()
@@ -117,6 +108,15 @@ fn section_snippets() -> eyre::Result<()> {
         .wrap_err_with(|| eyre!("failed to write snippets to `{}`", snippets_path))?;
 
     Ok(())
+}
+
+fn refresh_section_indexes() -> eyre::Result<HashMap<Slug, OrderedMap<String, HTMLContent>>> {
+    environment::ensure_cache_version()?;
+    let trees_dir = environment::trees_dir();
+    let workspace = compiler::all_trees_source(trees_dir.as_path(), None)
+        .wrap_err_with(|| eyre!("failed to scan trees dir `{}` for snippets", trees_dir))?;
+    compiler::refresh_indexes(&workspace, None)
+        .wrap_err("failed to refresh in-memory section indexes")
 }
 
 fn katex_snippets() -> eyre::Result<()> {

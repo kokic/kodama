@@ -2,20 +2,20 @@
 // Released under the GPL-3.0 license as described in the file LICENSE.
 // Authors: Kokic (@kokic), Alias Qli (@AliasQli), Spore (@s-cerevisiae)
 
+mod artifacts;
 pub mod callback;
 pub mod counter;
 pub mod html_parser;
+mod incremental;
 pub mod parser;
 pub mod section;
+mod serve_session;
+mod source_scan;
+mod stale;
 pub mod state;
 pub mod taxon;
 pub mod typst;
 pub mod writer;
-mod artifacts;
-mod incremental;
-mod serve_session;
-mod source_scan;
-mod stale;
 
 use std::{
     collections::{HashMap, HashSet},
@@ -76,6 +76,14 @@ pub fn compile(
     compile_from_shallows(&workspace, &shallows, dirty_paths, outputs, stale_slugs)
 }
 
+pub fn refresh_indexes(
+    workspace: &Workspace,
+    dirty_paths: Option<&DirtySet>,
+) -> eyre::Result<HashMap<Slug, OrderedMap<String, HTMLContent>>> {
+    let shallows = collect_shallows(workspace, dirty_paths)?;
+    Ok(indexes_from_shallows(&shallows))
+}
+
 pub(super) fn compile_from_shallows(
     workspace: &Workspace,
     shallows: &HashMap<Slug, UnresolvedSection>,
@@ -85,12 +93,7 @@ pub(super) fn compile_from_shallows(
 ) -> eyre::Result<()> {
     let all_slugs: Vec<Slug> = workspace.slug_exts.keys().copied().collect();
 
-    let indexes = outputs.indexes.then(|| {
-        shallows
-            .iter()
-            .map(|(slug, section)| (*slug, section.metadata.0.clone()))
-            .collect::<HashMap<Slug, OrderedMap<String, HTMLContent>>>()
-    });
+    let indexes = outputs.indexes.then(|| indexes_from_shallows(shallows));
 
     let state = state::compile_all(shallows)?;
     let slugs_to_write: Vec<Slug> = match dirty_paths {
@@ -133,9 +136,22 @@ pub(super) fn compile_from_shallows(
     sync_optional_output(graph_path.as_path(), graph_payload.as_deref(), "graph")?;
 
     let indexes_path = environment::indexes_path(output_dir.as_path());
-    sync_optional_output(indexes_path.as_path(), indexes_payload.as_deref(), "indexes")?;
+    sync_optional_output(
+        indexes_path.as_path(),
+        indexes_payload.as_deref(),
+        "indexes",
+    )?;
 
     Ok(())
+}
+
+fn indexes_from_shallows(
+    shallows: &HashMap<Slug, UnresolvedSection>,
+) -> HashMap<Slug, OrderedMap<String, HTMLContent>> {
+    shallows
+        .iter()
+        .map(|(slug, section)| (*slug, section.metadata.0.clone()))
+        .collect()
 }
 
 pub(super) fn collect_shallows(
@@ -174,7 +190,11 @@ pub(super) fn write_entry_cache(
     Ok(())
 }
 
-fn load_shallow(slug: Slug, ext: Ext, dirty_paths: Option<&DirtySet>) -> eyre::Result<UnresolvedSection> {
+fn load_shallow(
+    slug: Slug,
+    ext: Ext,
+    dirty_paths: Option<&DirtySet>,
+) -> eyre::Result<UnresolvedSection> {
     let relative_path = source_relative_path(slug, ext);
     let is_modified = is_source_modified(relative_path.as_path(), dirty_paths)
         .wrap_err_with(|| eyre!("failed to verify hash of `{relative_path}`"))?;
