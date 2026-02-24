@@ -25,7 +25,9 @@ pub const OPTIONS: Options = Options::ENABLE_MATH
     .union(Options::ENABLE_YAML_STYLE_METADATA_BLOCKS)
     .union(Options::ENABLE_TABLES)
     .union(Options::ENABLE_SMART_PUNCTUATION)
-    .union(Options::ENABLE_FOOTNOTES);
+    .union(Options::ENABLE_FOOTNOTES)
+    .union(Options::ENABLE_GFM)
+    .union(Options::ENABLE_DEFINITION_LIST);
 
 /// For Typst cases, see [`crate::compiler::typst::parse_typst`]
 pub fn initialize(slug: Slug) -> eyre::Result<(String, OrderedMap<String, HTMLContent>)> {
