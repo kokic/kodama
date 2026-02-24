@@ -1,4 +1,4 @@
-// Copyright (c) 2025 Kodama Project. All rights reserved.
+﻿// Copyright (c) 2025 Kodama Project. All rights reserved.
 // Released under the GPL-3.0 license as described in the file LICENSE.
 // Authors: Kokic (@kokic), Spore (@s-cerevisiae)
 
@@ -181,22 +181,22 @@ impl HTMLContentBuilder {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ShallowSection {
+pub struct UnresolvedSection {
     pub metadata: HTMLMetaData,
     pub content: HTMLContent,
 }
 
-impl ShallowSection {
+impl UnresolvedSection {
     pub fn slug(&self) -> eyre::Result<Slug> {
         self.metadata
             .slug()
-            .ok_or_else(|| eyre!("missing required metadata `slug` in shallow section"))
+            .ok_or_else(|| eyre!("missing required metadata `slug` in unresolved section"))
     }
 
     pub fn ext(&self) -> eyre::Result<&str> {
         self.metadata.ext().map(String::as_str).ok_or_else(|| {
             eyre!(
-                "missing required metadata `ext` in shallow section. Please update kodama to v0.3.3+ and delete the expired `.cache` folder"
+                "missing required metadata `ext` in unresolved section. Please update kodama to v0.3.3+ and delete the expired `.cache` folder"
             )
         })
     }
@@ -249,3 +249,4 @@ impl Section {
         html
     }
 }
+

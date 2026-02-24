@@ -1,4 +1,4 @@
-// Copyright (c) 2025 Kodama Project. All rights reserved.
+﻿// Copyright (c) 2025 Kodama Project. All rights reserved.
 // Released under the GPL-3.0 license as described in the file LICENSE.
 // Authors: Kokic (@kokic), Alias Qli (@AliasQli), Spore (@s-cerevisiae)
 
@@ -21,7 +21,7 @@ use std::{
 use camino::{Utf8Path, Utf8PathBuf};
 use eyre::{bail, eyre, WrapErr};
 use parser::parse_markdown;
-use section::{HTMLContent, ShallowSection};
+use section::{HTMLContent, UnresolvedSection};
 use serde::Serialize;
 use typst::parse_typst;
 use walkdir::WalkDir;
@@ -351,7 +351,7 @@ pub fn compile(
                 File::open(&entry_path)
                     .wrap_err_with(|| eyre!("failed to open entry file at `{}`", entry_path))?,
             );
-            let shallow: ShallowSection = serde_json::from_reader(entry_file)
+            let shallow: UnresolvedSection = serde_json::from_reader(entry_file)
                 .wrap_err_with(|| eyre!("failed to deserialize entry file at `{}`", entry_path))?;
             shallow
         } else {
@@ -554,13 +554,13 @@ pub struct Workspace {
 mod tests {
     use super::*;
     use crate::compiler::section::{
-        EmbedContent, HTMLContent, LazyContent, LocalLink, SectionOption, ShallowSection,
+        EmbedContent, HTMLContent, LazyContent, LocalLink, SectionOption, UnresolvedSection,
     };
     use crate::entry::{HTMLMetaData, KEY_ASREF, KEY_EXT, KEY_PAGE_TITLE, KEY_SLUG, KEY_TITLE};
     use crate::ordered_map::OrderedMap;
     use std::fs;
 
-    fn shallow(slug: &str, content: HTMLContent) -> ShallowSection {
+    fn shallow(slug: &str, content: HTMLContent) -> UnresolvedSection {
         let mut metadata = OrderedMap::new();
         metadata.insert(KEY_SLUG.to_string(), HTMLContent::Plain(slug.to_string()));
         metadata.insert(KEY_EXT.to_string(), HTMLContent::Plain("md".to_string()));
@@ -569,7 +569,7 @@ mod tests {
             KEY_PAGE_TITLE.to_string(),
             HTMLContent::Plain(slug.to_string()),
         );
-        ShallowSection {
+        UnresolvedSection {
             metadata: HTMLMetaData(metadata),
             content,
         }
@@ -805,3 +805,4 @@ mod tests {
         let _ = fs::remove_dir_all(base);
     }
 }
+

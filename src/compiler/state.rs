@@ -1,4 +1,4 @@
-// Copyright (c) 2025 Kodama Project. All rights reserved.
+﻿// Copyright (c) 2025 Kodama Project. All rights reserved.
 // Released under the GPL-3.0 license as described in the file LICENSE.
 // Authors: Kokic (@kokic), Spore (@s-cerevisiae)
 
@@ -15,7 +15,7 @@ use crate::{
 
 use super::{
     callback::Callback,
-    section::{HTMLContent, LazyContent, Section, SectionContent, SectionContents, ShallowSection},
+    section::{HTMLContent, LazyContent, Section, SectionContent, SectionContents, UnresolvedSection},
     taxon::Taxon,
 };
 
@@ -28,9 +28,9 @@ pub struct CompileState {
     compile_stack: Vec<Slug>,
 }
 
-type Shallows = HashMap<Slug, ShallowSection>;
+type UnresolvedSections = HashMap<Slug, UnresolvedSection>;
 
-pub fn compile_all(mut shallows: Shallows) -> eyre::Result<CompileState> {
+pub fn compile_all(mut shallows: UnresolvedSections) -> eyre::Result<CompileState> {
     for shallow in shallows.values_mut() {
         shallow.metadata.compute_textual_attrs();
     }
@@ -65,11 +65,11 @@ impl CompileState {
         }
     }
 
-    fn compile(&mut self, shallows: &Shallows, slug: Slug) -> eyre::Result<Option<&Section>> {
+    fn compile(&mut self, shallows: &UnresolvedSections, slug: Slug) -> eyre::Result<Option<&Section>> {
         self.fetch_section(shallows, slug)
     }
 
-    fn fetch_section(&mut self, shallows: &Shallows, slug: Slug) -> eyre::Result<Option<&Section>> {
+    fn fetch_section(&mut self, shallows: &UnresolvedSections, slug: Slug) -> eyre::Result<Option<&Section>> {
         if self.compiled.contains_key(&slug) {
             return Ok(self.compiled.get(&slug));
         }
@@ -85,17 +85,17 @@ impl CompileState {
         };
         self.visiting.insert(slug);
         self.compile_stack.push(slug);
-        let result = self.compile_shallow(shallows, shallow);
+        let result = self.compile_unresolved(shallows, shallow);
         self.compile_stack.pop();
         self.visiting.remove(&slug);
         result?;
         Ok(self.compiled.get(&slug))
     }
 
-    fn compile_shallow(
+    fn compile_unresolved(
         &mut self,
-        shallows: &Shallows,
-        spanned: &ShallowSection,
+        shallows: &UnresolvedSections,
+        spanned: &UnresolvedSection,
     ) -> eyre::Result<()> {
         let slug = spanned.slug()?;
         let ext = spanned.ext()?;
@@ -208,8 +208,8 @@ impl CompileState {
                     ));
                 }
             } else {
-                let spanned: ShallowSection = Self::metadata_to_section(value, slug, ext);
-                self.compile_shallow(shallows, &spanned)?;
+                let spanned: UnresolvedSection = Self::metadata_to_section(value, slug, ext);
+                self.compile_unresolved(shallows, &spanned)?;
                 let compiled = self.compiled.get(&slug).ok_or_else(|| {
                     eyre!(
                         "compiled section `{}` disappeared while compiling metadata",
@@ -233,7 +233,7 @@ impl CompileState {
         content: &HTMLContent,
         current_slug: Slug,
         current_ext: &str,
-    ) -> ShallowSection {
+    ) -> UnresolvedSection {
         let mut metadata = OrderedMap::new();
         metadata.insert(
             KEY_SLUG.to_string(),
@@ -244,7 +244,7 @@ impl CompileState {
             HTMLContent::Plain(current_ext.to_string()),
         );
 
-        ShallowSection {
+        UnresolvedSection {
             metadata: HTMLMetaData(metadata),
             content: content.clone(),
         }
@@ -266,18 +266,18 @@ fn subsection_slug(current_slug: Slug, url: &str) -> Slug {
     slug::to_slug(path_utils::relative_to_current(current_slug.as_str(), url))
 }
 
-fn get_metadata(shallows: &Shallows, slug: Slug) -> Option<&HTMLMetaData> {
+fn get_metadata(shallows: &UnresolvedSections, slug: Slug) -> Option<&HTMLMetaData> {
     shallows.get(&slug).map(|s| &s.metadata)
 }
 
-fn backlinks_enabled(shallows: &Shallows, slug: Slug) -> eyre::Result<bool> {
+fn backlinks_enabled(shallows: &UnresolvedSections, slug: Slug) -> eyre::Result<bool> {
     match shallows.get(&slug) {
         Some(section) => section.metadata.backlinks_enabled(),
         None => Ok(true),
     }
 }
 
-fn is_reference(shallows: &Shallows, slug: Slug) -> eyre::Result<bool> {
+fn is_reference(shallows: &UnresolvedSections, slug: Slug) -> eyre::Result<bool> {
     match shallows.get(&slug) {
         Some(section) => {
             let metadata = &section.metadata;
@@ -290,7 +290,7 @@ fn is_reference(shallows: &Shallows, slug: Slug) -> eyre::Result<bool> {
     }
 }
 
-fn is_backlink(shallows: &Shallows, slug: Slug) -> eyre::Result<bool> {
+fn is_backlink(shallows: &UnresolvedSections, slug: Slug) -> eyre::Result<bool> {
     match shallows.get(&slug) {
         Some(section) => {
             let metadata = &section.metadata;
@@ -306,12 +306,12 @@ mod tests {
     use crate::ordered_map::OrderedMap;
     use super::super::section::{EmbedContent, SectionOption};
 
-    fn shallow_with_content(slug: &str, content: HTMLContent) -> ShallowSection {
+    fn shallow_with_content(slug: &str, content: HTMLContent) -> UnresolvedSection {
         let mut metadata = OrderedMap::new();
         metadata.insert(KEY_SLUG.to_string(), HTMLContent::Plain(slug.to_string()));
         metadata.insert(KEY_EXT.to_string(), HTMLContent::Plain("md".to_string()));
 
-        ShallowSection {
+        UnresolvedSection {
             metadata: HTMLMetaData(metadata),
             content,
         }
@@ -352,3 +352,4 @@ mod tests {
         assert!(err.to_string().contains("cyclic embed"));
     }
 }
+

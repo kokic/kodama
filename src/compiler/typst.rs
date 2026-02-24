@@ -1,4 +1,4 @@
-// Copyright (c) 2025 Kodama Project. All rights reserved.
+﻿// Copyright (c) 2025 Kodama Project. All rights reserved.
 // Released under the GPL-3.0 license as described in the file LICENSE.
 // Authors: Alias Qli (@AliasQli), Spore (@s-cerevisiae), Kokic (@kokic)
 
@@ -8,7 +8,7 @@ use eyre::{eyre, WrapErr};
 use super::html_parser::{HTMLParser, HTMLTagKind};
 use super::section::{EmbedContent, LocalLink, SectionOption};
 use super::section::{HTMLContent, HTMLContentBuilder, LazyContent};
-use super::ShallowSection;
+use super::UnresolvedSection;
 use crate::entry::{HTMLMetaData, KEY_EXT, KEY_SLUG};
 use crate::ordered_map::OrderedMap;
 use crate::process::{metadata};
@@ -97,7 +97,7 @@ fn parse_typst_html(
     Ok(builder.build())
 }
 
-pub fn parse_typst<P: AsRef<Utf8Path>>(slug: Slug, root_dir: P) -> eyre::Result<ShallowSection> {
+pub fn parse_typst<P: AsRef<Utf8Path>>(slug: Slug, root_dir: P) -> eyre::Result<UnresolvedSection> {
     let typst_root_dir = root_dir.as_ref();
     let relative_path = format!("{}.typst", slug);
     let html_str = typst_cli::file_to_html(&relative_path, typst_root_dir.as_ref())
@@ -110,8 +110,9 @@ pub fn parse_typst<P: AsRef<Utf8Path>>(slug: Slug, root_dir: P) -> eyre::Result<
     let content = parse_typst_html(&html_str, &mut metadata)
         .wrap_err_with(|| eyre!("failed to parse typst html structure in `{relative_path}`"))?;
 
-    Ok(ShallowSection {
+    Ok(UnresolvedSection {
         metadata: HTMLMetaData(metadata),
         content,
     })
 }
+

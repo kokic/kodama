@@ -1,4 +1,4 @@
-// Copyright (c) 2025 Kodama Project. All rights reserved.
+﻿// Copyright (c) 2025 Kodama Project. All rights reserved.
 // Released under the GPL-3.0 license as described in the file LICENSE.
 // Authors: Kokic (@kokic), Spore (@s-cerevisiae)
 
@@ -19,7 +19,7 @@ use crate::{
     slug::Slug,
 };
 
-use super::{section::LazyContent, HTMLContent, ShallowSection};
+use super::{section::LazyContent, HTMLContent, UnresolvedSection};
 
 pub const OPTIONS: Options = Options::ENABLE_MATH
     .union(Options::ENABLE_YAML_STYLE_METADATA_BLOCKS)
@@ -40,7 +40,7 @@ pub fn initialize(slug: Slug) -> eyre::Result<(String, OrderedMap<String, HTMLCo
         .wrap_err_with(|| eyre!("failed to read markdown file `{:?}`", markdown_path))
 }
 
-pub fn parse_markdown(slug: Slug) -> eyre::Result<ShallowSection> {
+pub fn parse_markdown(slug: Slug) -> eyre::Result<UnresolvedSection> {
     let (source, mut metadata) = initialize(slug)?;
     let events = pulldown_cmark::Parser::new_ext(&source, OPTIONS);
 
@@ -56,7 +56,7 @@ pub fn parse_markdown(slug: Slug) -> eyre::Result<ShallowSection> {
 
     let metadata = HTMLMetaData(metadata);
 
-    Ok(ShallowSection { metadata, content })
+    Ok(UnresolvedSection { metadata, content })
 }
 
 pub fn parse_spanned_markdown(markdown_input: &str, slug: Slug) -> HTMLContent {
@@ -123,3 +123,4 @@ pub mod tests {
         assert_eq!(content.as_str().unwrap(), "<p><span class=\"link external\"><a href=\"https://example.com\" title=\"Bob [https://example.com]\">Bob</a></span></p>\n");
     }
 }
+

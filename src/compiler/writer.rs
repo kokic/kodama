@@ -1,4 +1,4 @@
-// Copyright (c) 2025 Kodama Project. All rights reserved.
+﻿// Copyright (c) 2025 Kodama Project. All rights reserved.
 // Released under the GPL-3.0 license as described in the file LICENSE.
 // Authors: Kokic (@kokic), Spore (@s-cerevisiae)
 
@@ -334,7 +334,7 @@ mod tests {
 
     use crate::{
         compiler::{
-            section::{HTMLContent, ShallowSection},
+            section::{HTMLContent, UnresolvedSection},
             state::compile_all,
         },
         entry::{HTMLMetaData, KEY_EXT, KEY_PAGE_TITLE, KEY_REFERENCES, KEY_SLUG, KEY_TITLE},
@@ -343,7 +343,7 @@ mod tests {
 
     use super::*;
 
-    fn shallow_section(slug: &str, title: &str) -> ShallowSection {
+    fn shallow_section(slug: &str, title: &str) -> UnresolvedSection {
         let mut metadata = OrderedMap::new();
         metadata.insert(KEY_SLUG.to_string(), HTMLContent::Plain(slug.to_string()));
         metadata.insert(KEY_EXT.to_string(), HTMLContent::Plain("md".to_string()));
@@ -353,7 +353,7 @@ mod tests {
             HTMLContent::Plain(title.to_string()),
         );
 
-        ShallowSection {
+        UnresolvedSection {
             metadata: HTMLMetaData(metadata),
             content: HTMLContent::Plain("<p>hello</p>".to_string()),
         }
@@ -392,3 +392,4 @@ mod tests {
         assert!(err.to_string().contains("invalid bool metadata"));
     }
 }
+
