@@ -22,7 +22,7 @@ enum MissingPathLevel {
 struct WatchStrategy {
     debounce: Duration,
     should_handle_event: fn(&EventKind) -> bool,
-    format_change_lines: fn(&[Utf8PathBuf]) -> Vec<String>,
+    format_change_lines: fn(&mut WatchChangeFoldState, &[Utf8PathBuf]) -> Vec<String>,
     missing_path_level: fn(&Utf8Path, &Utf8Path) -> MissingPathLevel,
 }
 
@@ -39,6 +39,12 @@ struct WatchBatcher {
     debounce: Duration,
     last_run: Instant,
     pending_changes: Vec<Utf8PathBuf>,
+}
+
+#[derive(Default)]
+struct WatchChangeFoldState {
+    last_path: Option<String>,
+    last_count: usize,
 }
 
 impl WatchBatcher {
@@ -131,36 +137,41 @@ fn display_watch_path(path: &Utf8Path) -> String {
     path.as_str().replace('\\', "/")
 }
 
-fn fold_watch_change_lines(changed_paths: &[Utf8PathBuf]) -> Vec<String> {
+fn fold_watch_change_lines(
+    state: &mut WatchChangeFoldState,
+    changed_paths: &[Utf8PathBuf],
+) -> Vec<String> {
+    let mut grouped: Vec<(String, usize)> = Vec::new();
+    for path in changed_paths {
+        let path = display_watch_path(path.as_path());
+        if let Some((current, count)) = grouped.last_mut() {
+            if *current == path {
+                *count += 1;
+                continue;
+            }
+        }
+        grouped.push((path, 1));
+    }
+
     let mut lines = Vec::new();
-    let mut iter = changed_paths.iter();
-    let Some(first) = iter.next() else {
-        return lines;
-    };
-
-    let mut current = display_watch_path(first.as_path());
-    let mut count = 1usize;
-
-    for path in iter {
-        let next = display_watch_path(path.as_path());
-        if next == current {
-            count += 1;
-            continue;
+    for (path, count) in grouped {
+        match state.last_path.as_deref() {
+            Some(last) if last == path => {
+                state.last_count += count;
+            }
+            _ => {
+                state.last_path = Some(path.clone());
+                state.last_count = count;
+            }
         }
-        if count > 1 {
-            lines.push(format!("[watch] Change: \"{}\" (x{})", current, count));
+
+        if state.last_count > 1 {
+            lines.push(format!("[watch] Change: \"{}\" (x{})", path, state.last_count));
         } else {
-            lines.push(format!("[watch] Change: \"{}\"", current));
+            lines.push(format!("[watch] Change: \"{}\"", path));
         }
-        current = next;
-        count = 1;
     }
 
-    if count > 1 {
-        lines.push(format!("[watch] Change: \"{}\" (x{})", current, count));
-    } else {
-        lines.push(format!("[watch] Change: \"{}\"", current));
-    }
     lines
 }
 
@@ -248,6 +259,7 @@ where
 {
     let (tx, rx) = std::sync::mpsc::channel();
     let mut batcher = WatchBatcher::new(strategy.debounce);
+    let mut fold_state = WatchChangeFoldState::default();
 
     // Automatically select the best implementation for your platform.
     // You can also access each implementation directly e.g. INotifyWatcher.
@@ -302,7 +314,7 @@ where
                         continue;
                     };
 
-                    for line in (strategy.format_change_lines)(&changed_paths) {
+                    for line in (strategy.format_change_lines)(&mut fold_state, &changed_paths) {
                         println!("{line}");
                     }
                     std::io::stdout().flush()?;
@@ -520,7 +532,8 @@ mod tests {
             Utf8PathBuf::from("site/trees/c.md"),
             Utf8PathBuf::from("site/trees/b.md"),
         ];
-        let lines = fold_watch_change_lines(&changed);
+        let mut state = WatchChangeFoldState::default();
+        let lines = fold_watch_change_lines(&mut state, &changed);
         assert_eq!(
             lines,
             vec![
@@ -538,11 +551,35 @@ mod tests {
             Utf8PathBuf::from(r".\site\trees\a.md"),
             Utf8PathBuf::from(r".\site\trees\a.md"),
         ];
-        let lines = fold_watch_change_lines(&changed);
+        let mut state = WatchChangeFoldState::default();
+        let lines = fold_watch_change_lines(&mut state, &changed);
         assert_eq!(lines, vec!["[watch] Change: \"./site/trees/a.md\" (x2)"]);
     }
 
-    fn custom_change_lines(_: &[Utf8PathBuf]) -> Vec<String> {
+    #[test]
+    fn test_fold_watch_change_lines_accumulates_across_batches() {
+        let mut state = WatchChangeFoldState::default();
+
+        let first = fold_watch_change_lines(&mut state, &[Utf8PathBuf::from("site/trees/a.md")]);
+        assert_eq!(first, vec!["[watch] Change: \"site/trees/a.md\""]);
+
+        let second = fold_watch_change_lines(
+            &mut state,
+            &[
+                Utf8PathBuf::from("site/trees/a.md"),
+                Utf8PathBuf::from("site/trees/a.md"),
+            ],
+        );
+        assert_eq!(second, vec!["[watch] Change: \"site/trees/a.md\" (x3)"]);
+
+        let third = fold_watch_change_lines(&mut state, &[Utf8PathBuf::from("site/trees/b.md")]);
+        assert_eq!(third, vec!["[watch] Change: \"site/trees/b.md\""]);
+
+        let fourth = fold_watch_change_lines(&mut state, &[Utf8PathBuf::from("site/trees/a.md")]);
+        assert_eq!(fourth, vec!["[watch] Change: \"site/trees/a.md\""]);
+    }
+
+    fn custom_change_lines(_: &mut WatchChangeFoldState, _: &[Utf8PathBuf]) -> Vec<String> {
         vec!["[watch] custom".to_string()]
     }
 
@@ -556,7 +593,8 @@ mod tests {
             format_change_lines: custom_change_lines,
             ..default_watch_strategy()
         };
-        let lines = (strategy.format_change_lines)(&[Utf8PathBuf::from("a.md")]);
+        let mut fold_state = WatchChangeFoldState::default();
+        let lines = (strategy.format_change_lines)(&mut fold_state, &[Utf8PathBuf::from("a.md")]);
         assert_eq!(lines, vec!["[watch] custom"]);
     }
 
