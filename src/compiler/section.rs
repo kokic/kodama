@@ -190,13 +190,13 @@ impl UnresolvedSection {
     pub fn slug(&self) -> eyre::Result<Slug> {
         self.metadata
             .slug()
-            .ok_or_else(|| eyre!("missing required metadata `slug` in unresolved section"))
+            .ok_or_else(|| eyre!("missing required metadata `slug` in section"))
     }
 
     pub fn ext(&self) -> eyre::Result<&str> {
         self.metadata.ext().map(String::as_str).ok_or_else(|| {
             eyre!(
-                "missing required metadata `ext` in unresolved section. Please update kodama to v0.3.3+ and delete the expired `.cache` folder"
+                "missing required metadata `ext` in section. Please update kodama to v0.3.3+ and delete the expired `.cache` folder"
             )
         })
     }
