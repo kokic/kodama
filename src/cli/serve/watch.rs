@@ -2,12 +2,83 @@
 // Released under the GPL-3.0 license as described in the file LICENSE.
 // Authors: Kokic (@kokic), Spore (@s-cerevisiae)
 
-use std::io::Write;
+use std::{
+    io::Write,
+    time::{Duration, Instant},
+};
 
 use camino::{Utf8Path, Utf8PathBuf};
 use notify::{Config, EventKind, RecommendedWatcher, RecursiveMode, Watcher};
 
 use crate::{compiler::DirtySet, path_utils};
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum MissingPathLevel {
+    Hint,
+    Warning,
+}
+
+#[derive(Clone, Copy)]
+struct WatchStrategy {
+    debounce: Duration,
+    should_handle_event: fn(&EventKind) -> bool,
+    format_change_lines: fn(&[Utf8PathBuf]) -> Vec<String>,
+    missing_path_level: fn(&Utf8Path, &Utf8Path) -> MissingPathLevel,
+}
+
+fn default_watch_strategy() -> WatchStrategy {
+    WatchStrategy {
+        debounce: Duration::from_millis(250),
+        should_handle_event: should_handle_watch_event,
+        format_change_lines: fold_watch_change_lines,
+        missing_path_level: default_missing_path_level,
+    }
+}
+
+struct WatchBatcher {
+    debounce: Duration,
+    last_run: Instant,
+    pending_changes: Vec<Utf8PathBuf>,
+}
+
+impl WatchBatcher {
+    fn new(debounce: Duration) -> Self {
+        let now = Instant::now();
+        Self {
+            debounce,
+            last_run: now.checked_sub(debounce).unwrap_or(now),
+            pending_changes: Vec::new(),
+        }
+    }
+
+    #[cfg(test)]
+    fn with_last_run(debounce: Duration, last_run: Instant) -> Self {
+        Self {
+            debounce,
+            last_run,
+            pending_changes: Vec::new(),
+        }
+    }
+
+    fn push_paths<I>(&mut self, paths: I)
+    where
+        I: IntoIterator<Item = Utf8PathBuf>,
+    {
+        self.pending_changes.extend(paths);
+    }
+
+    fn take_ready(&mut self, now: Instant) -> Option<Vec<Utf8PathBuf>> {
+        if self.pending_changes.is_empty() {
+            return None;
+        }
+        if now.saturating_duration_since(self.last_run) < self.debounce {
+            return None;
+        }
+
+        self.last_run = now;
+        Some(std::mem::take(&mut self.pending_changes))
+    }
+}
 
 pub(super) fn compose_watched_paths(
     root_dir: &Utf8Path,
@@ -107,6 +178,14 @@ fn is_optional_missing_watch_path(path: &Utf8Path, assets_dir: &Utf8Path) -> boo
     is_optional_import_watch_path(path) || path == assets_dir
 }
 
+fn default_missing_path_level(path: &Utf8Path, assets_dir: &Utf8Path) -> MissingPathLevel {
+    if is_optional_missing_watch_path(path, assets_dir) {
+        MissingPathLevel::Hint
+    } else {
+        MissingPathLevel::Warning
+    }
+}
+
 fn strip_tree_prefix(path: &Utf8Path, trees_dir: &Utf8Path) -> Option<Utf8PathBuf> {
     let relative = path.strip_prefix(trees_dir).ok()?;
     let pretty = Utf8PathBuf::from(path_utils::pretty_path(relative));
@@ -150,10 +229,25 @@ pub(super) fn watch_paths<P: AsRef<Utf8Path>, F>(
 where
     F: FnMut(&[Utf8PathBuf]) -> eyre::Result<()>,
 {
+    watch_paths_with_strategy(
+        watched_paths,
+        assets_dir,
+        default_watch_strategy(),
+        &mut action,
+    )
+}
+
+fn watch_paths_with_strategy<P: AsRef<Utf8Path>, F>(
+    watched_paths: &[P],
+    assets_dir: &Utf8Path,
+    strategy: WatchStrategy,
+    action: &mut F,
+) -> eyre::Result<()>
+where
+    F: FnMut(&[Utf8PathBuf]) -> eyre::Result<()>,
+{
     let (tx, rx) = std::sync::mpsc::channel();
-    let debounce = std::time::Duration::from_millis(250);
-    let mut last_run = std::time::Instant::now() - debounce;
-    let mut pending_changes: Vec<Utf8PathBuf> = Vec::new();
+    let mut batcher = WatchBatcher::new(strategy.debounce);
 
     // Automatically select the best implementation for your platform.
     // You can also access each implementation directly e.g. INotifyWatcher.
@@ -167,16 +261,19 @@ where
         let watched_path = watched_path.as_ref();
         if !watched_path.exists() {
             let watched_path_display = display_watch_path(watched_path);
-            if is_optional_missing_watch_path(watched_path, assets_dir) {
-                color_print::ceprintln!(
-                    "<dim>[watch] Hint: Optional path \"{}\" does not exist, skipping.</>",
-                    watched_path_display
-                );
-            } else {
-                color_print::ceprintln!(
-                    "<y>[watch] Warning: Path \"{}\" does not exist, skipping.</>",
-                    watched_path_display
-                );
+            match (strategy.missing_path_level)(watched_path, assets_dir) {
+                MissingPathLevel::Hint => {
+                    color_print::ceprintln!(
+                        "<dim>[watch] Hint: Optional path \"{}\" does not exist, skipping.</>",
+                        watched_path_display
+                    );
+                }
+                MissingPathLevel::Warning => {
+                    color_print::ceprintln!(
+                        "<y>[watch] Warning: Path \"{}\" does not exist, skipping.</>",
+                        watched_path_display
+                    );
+                }
             }
             continue;
         }
@@ -193,23 +290,19 @@ where
                 // Generally, we only need to listen for changes in file content `ModifyKind::Data(_)`,
                 // but since notify-rs always only gets `Modify(Any)` on Windows,
                 // we expand the listening scope here.
-                if should_handle_watch_event(&event.kind) {
-                    event.paths.iter().for_each(|path| {
-                        if let Ok(path) = Utf8PathBuf::from_path_buf(path.clone()) {
-                            pending_changes.push(path);
-                        }
-                    });
-                    if pending_changes.is_empty() {
-                        continue;
-                    }
+                if (strategy.should_handle_event)(&event.kind) {
+                    let event_paths = event
+                        .paths
+                        .iter()
+                        .filter_map(|path| Utf8PathBuf::from_path_buf(path.clone()).ok())
+                        .collect::<Vec<_>>();
+                    batcher.push_paths(event_paths);
 
-                    let now = std::time::Instant::now();
-                    if now.duration_since(last_run) < debounce {
+                    let Some(changed_paths) = batcher.take_ready(Instant::now()) else {
                         continue;
-                    }
+                    };
 
-                    let changed_paths: Vec<Utf8PathBuf> = std::mem::take(&mut pending_changes);
-                    for line in fold_watch_change_lines(&changed_paths) {
+                    for line in (strategy.format_change_lines)(&changed_paths) {
                         println!("{line}");
                     }
                     std::io::stdout().flush()?;
@@ -217,7 +310,6 @@ where
                         // A warning color should be used here, as rebuild failures during user editing are acceptable.
                         color_print::ceprintln!("<y>[watch] Rebuild failed: {}</>", err);
                     }
-                    last_run = now;
                 }
             }
             Err(error) => {
@@ -235,7 +327,10 @@ mod tests {
         event::{AccessKind, CreateKind, ModifyKind, RemoveKind},
         RecursiveMode,
     };
-    use std::fs;
+    use std::{
+        fs,
+        time::{Duration, Instant},
+    };
 
     use super::*;
 
@@ -346,9 +441,15 @@ mod tests {
         assert!(should_handle_watch_event(&EventKind::Modify(
             ModifyKind::Any
         )));
-        assert!(should_handle_watch_event(&EventKind::Create(CreateKind::Any)));
-        assert!(should_handle_watch_event(&EventKind::Remove(RemoveKind::Any)));
-        assert!(!should_handle_watch_event(&EventKind::Access(AccessKind::Any)));
+        assert!(should_handle_watch_event(&EventKind::Create(
+            CreateKind::Any
+        )));
+        assert!(should_handle_watch_event(&EventKind::Remove(
+            RemoveKind::Any
+        )));
+        assert!(!should_handle_watch_event(&EventKind::Access(
+            AccessKind::Any
+        )));
     }
 
     #[test]
@@ -399,7 +500,10 @@ mod tests {
 
     #[test]
     fn test_display_watch_path_normalizes_separators() {
-        assert_eq!(display_watch_path(Utf8Path::new("site/trees/a.md")), "site/trees/a.md");
+        assert_eq!(
+            display_watch_path(Utf8Path::new("site/trees/a.md")),
+            "site/trees/a.md"
+        );
         assert_eq!(
             display_watch_path(Utf8Path::new(r".\site\trees\a.md")),
             "./site/trees/a.md"
@@ -436,5 +540,61 @@ mod tests {
         ];
         let lines = fold_watch_change_lines(&changed);
         assert_eq!(lines, vec!["[watch] Change: \"./site/trees/a.md\" (x2)"]);
+    }
+
+    fn custom_change_lines(_: &[Utf8PathBuf]) -> Vec<String> {
+        vec!["[watch] custom".to_string()]
+    }
+
+    fn always_warning(_: &Utf8Path, _: &Utf8Path) -> MissingPathLevel {
+        MissingPathLevel::Warning
+    }
+
+    #[test]
+    fn test_watch_strategy_supports_custom_change_formatter() {
+        let strategy = WatchStrategy {
+            format_change_lines: custom_change_lines,
+            ..default_watch_strategy()
+        };
+        let lines = (strategy.format_change_lines)(&[Utf8PathBuf::from("a.md")]);
+        assert_eq!(lines, vec!["[watch] custom"]);
+    }
+
+    #[test]
+    fn test_watch_strategy_supports_custom_missing_path_level() {
+        let strategy = WatchStrategy {
+            missing_path_level: always_warning,
+            ..default_watch_strategy()
+        };
+        let level = (strategy.missing_path_level)(
+            Utf8Path::new("site/import-meta.html"),
+            Utf8Path::new("site/assets"),
+        );
+        assert_eq!(level, MissingPathLevel::Warning);
+    }
+
+    #[test]
+    fn test_watch_batcher_respects_debounce_duration() {
+        let debounce = Duration::from_millis(500);
+        let anchor = Instant::now();
+        let mut batcher = WatchBatcher::with_last_run(debounce, anchor);
+
+        batcher.push_paths(vec![Utf8PathBuf::from("a.md")]);
+        assert!(batcher
+            .take_ready(anchor + Duration::from_millis(100))
+            .is_none());
+        assert_eq!(
+            batcher.take_ready(anchor + Duration::from_millis(500)),
+            Some(vec![Utf8PathBuf::from("a.md")])
+        );
+
+        batcher.push_paths(vec![Utf8PathBuf::from("b.md")]);
+        assert!(batcher
+            .take_ready(anchor + Duration::from_millis(800))
+            .is_none());
+        assert_eq!(
+            batcher.take_ready(anchor + Duration::from_millis(1000)),
+            Some(vec![Utf8PathBuf::from("b.md")])
+        );
     }
 }
