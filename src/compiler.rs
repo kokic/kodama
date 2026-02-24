@@ -44,7 +44,7 @@ use self::{
 };
 
 pub use incremental::expand_dirty_paths;
-pub use source_scan::{all_trees_source, should_ignore_dir, should_ignore_file, Workspace};
+pub use source_scan::{all_trees_source, Workspace};
 
 pub type DirtySet = HashSet<Utf8PathBuf>;
 
