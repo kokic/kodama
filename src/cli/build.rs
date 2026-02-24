@@ -13,6 +13,7 @@ use eyre::{eyre, WrapErr};
 
 use crate::{
     assets_sync,
+    cli::output::OutputControlArgs,
     compiler::{self, all_trees_source, DirtySet},
     config,
     environment::{self, output_path, BuildMode},
@@ -37,13 +38,8 @@ pub struct BuildCommand {
     #[arg(visible_alias = "nc", long, default_value_t = false)]
     no_cache: bool,
 
-    /// Skip generating `kodama.json`.
-    #[arg(long, default_value_t = false)]
-    no_indexes: bool,
-
-    /// Skip generating `kodama.graph.json`.
-    #[arg(long, default_value_t = false)]
-    no_graph: bool,
+    #[command(flatten)]
+    output: OutputControlArgs,
 }
 
 static VERBOSE: OnceLock<bool> = OnceLock::new();
@@ -79,10 +75,7 @@ pub fn build(command: &BuildCommand) -> eyre::Result<()> {
             verbose: command.verbose,
             verbose_skip: command.verbose_skip,
             no_cache: command.no_cache,
-            outputs: compiler::CompileOutputs {
-                indexes: !command.no_indexes,
-                graph: !command.no_graph,
-            },
+            outputs: command.output.resolve(compiler::CompileOutputs::default()),
         },
     )
 }

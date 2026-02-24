@@ -10,6 +10,7 @@ use notify::{Config, EventKind, RecommendedWatcher, RecursiveMode, Watcher};
 
 use crate::{
     cli::build::{build_with_dirty, BuildOptions},
+    cli::output::OutputControlArgs,
     compiler::{CompileOutputs, DirtySet},
     config,
     environment::{self, BuildMode},
@@ -34,13 +35,8 @@ pub struct ServeCommand {
     #[arg(short, long, default_value_t = false)]
     disable_reload: bool,
 
-    /// Generate `kodama.json` in serve mode.
-    #[arg(long, default_value_t = false)]
-    indexes: bool,
-
-    /// Generate `kodama.graph.json` in serve mode.
-    #[arg(long, default_value_t = false)]
-    graph: bool,
+    #[command(flatten)]
+    output: OutputControlArgs,
 }
 
 static LIVE_RELOAD: OnceLock<bool> = OnceLock::new();
@@ -50,10 +46,10 @@ pub fn live_reload() -> &'static bool {
 }
 
 fn compile_outputs(command: &ServeCommand) -> CompileOutputs {
-    CompileOutputs {
-        indexes: command.indexes,
-        graph: command.graph,
-    }
+    command.output.resolve(CompileOutputs {
+        indexes: false,
+        graph: false,
+    })
 }
 
 /// This function invoked the [`config::init_environment`] function to initialize the environment]
@@ -552,8 +548,7 @@ mod tests {
             verbose: false,
             verbose_skip: false,
             disable_reload: false,
-            indexes: false,
-            graph: false,
+            output: OutputControlArgs::default(),
         };
         let outputs = compile_outputs(&command);
         assert!(!outputs.indexes);
@@ -567,11 +562,34 @@ mod tests {
             verbose: false,
             verbose_skip: false,
             disable_reload: false,
-            indexes: true,
-            graph: true,
+            output: OutputControlArgs {
+                indexes: true,
+                no_indexes: false,
+                graph: true,
+                no_graph: false,
+            },
         };
         let outputs = compile_outputs(&command);
         assert!(outputs.indexes);
         assert!(outputs.graph);
+    }
+
+    #[test]
+    fn test_compile_outputs_can_be_disabled_with_compat_flags_in_serve() {
+        let command = ServeCommand {
+            config: config::DEFAULT_CONFIG_PATH.into(),
+            verbose: false,
+            verbose_skip: false,
+            disable_reload: false,
+            output: OutputControlArgs {
+                indexes: false,
+                no_indexes: true,
+                graph: false,
+                no_graph: true,
+            },
+        };
+        let outputs = compile_outputs(&command);
+        assert!(!outputs.indexes);
+        assert!(!outputs.graph);
     }
 }

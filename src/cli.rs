@@ -5,5 +5,6 @@
 pub mod new;
 pub mod init;
 pub mod build;
+pub mod output;
 pub mod serve;
 pub mod snip;
