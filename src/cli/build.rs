@@ -67,7 +67,7 @@ pub fn verbose_skip() -> &'static bool {
     VERBOSE_SKIP.get().unwrap_or(&false)
 }
 
-pub fn enable_no_cache() -> &'static bool {
+pub fn no_cache_enabled() -> &'static bool {
     NO_CACHE.get().unwrap_or(&false)
 }
 

@@ -39,7 +39,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_split_base() {
+    fn test_split_file_name() {
         assert_eq!(split_file_name("a/b".into()), Some(("a".into(), "b")));
         assert_eq!(split_file_name("a/b/c".into()), Some(("a/b".into(), "c")));
         assert_eq!(split_file_name("/".into()), None);

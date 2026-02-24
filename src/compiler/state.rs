@@ -160,7 +160,7 @@ impl CompileState {
                              * Making oneself the content of a backlink should not be expected behavior.
                              */
                             if link_slug != slug
-                                && is_enable_backlinks(shallows, link_slug)?
+                                && backlinks_enabled(shallows, link_slug)?
                                 && is_backlink(shallows, slug)?
                             {
                                 callback.insert_backlinks(link_slug, vec![slug]);
@@ -270,9 +270,9 @@ fn get_metadata(shallows: &Shallows, slug: Slug) -> Option<&HTMLMetaData> {
     shallows.get(&slug).map(|s| &s.metadata)
 }
 
-fn is_enable_backlinks(shallows: &Shallows, slug: Slug) -> eyre::Result<bool> {
+fn backlinks_enabled(shallows: &Shallows, slug: Slug) -> eyre::Result<bool> {
     match shallows.get(&slug) {
-        Some(section) => section.metadata.is_enable_backlinks(),
+        Some(section) => section.metadata.backlinks_enabled(),
         None => Ok(true),
     }
 }

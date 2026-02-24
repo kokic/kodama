@@ -179,7 +179,7 @@ fn is_source_modified(
     relative_path: &Utf8Path,
     dirty_paths: Option<&DirtySet>,
 ) -> eyre::Result<bool> {
-    if *crate::cli::build::enable_no_cache() {
+    if *crate::cli::build::no_cache_enabled() {
         return Ok(true);
     }
 
@@ -425,11 +425,11 @@ pub fn compile(
     Ok(())
 }
 
-pub fn should_ignored_file(path: &Utf8Path) -> bool {
+pub fn should_ignore_file(path: &Utf8Path) -> bool {
     path.file_name().is_some_and(|name| name == "README.md")
 }
 
-pub fn should_ignored_dir(path: &Utf8Path) -> bool {
+pub fn should_ignore_dir(path: &Utf8Path) -> bool {
     path.file_name()
         .is_some_and(|name| name.starts_with(['.', '_']))
 }
@@ -487,7 +487,7 @@ pub fn all_trees_source(
                 .wrap_err_with(|| failed_to_read_dir(source_dir))?
                 .into_path();
 
-            if path.is_file() && !should_ignored_file(&path) {
+            if path.is_file() && !should_ignore_file(&path) {
                 let Some((slug, ext)) = to_slug_ext(source_dir, &path) else {
                     compile_typst_svg(&path)?;
                     continue;
@@ -496,13 +496,13 @@ pub fn all_trees_source(
                 if let Some(ext) = slug_exts.insert(slug, ext) {
                     bail!(file_collide(&path, ext));
                 };
-            } else if path.is_dir() && !should_ignored_dir(&path) {
+            } else if path.is_dir() && !should_ignore_dir(&path) {
                 for entry in WalkDir::new(&path)
                     .follow_links(true)
                     .into_iter()
                     .filter_entry(|e| {
                         Utf8Path::from_path(e.path())
-                            .is_some_and(|p| p.is_file() || !should_ignored_dir(p))
+                            .is_some_and(|p| p.is_file() || !should_ignore_dir(p))
                     })
                 {
                     let std_path = entry
@@ -576,20 +576,20 @@ mod tests {
     }
 
     #[test]
-    fn test_should_ignored_helpers_handle_missing_file_name() {
+    fn test_should_ignore_helpers_handle_missing_file_name() {
         let empty = Utf8Path::new("");
-        assert!(!should_ignored_file(empty));
-        assert!(!should_ignored_dir(empty));
+        assert!(!should_ignore_file(empty));
+        assert!(!should_ignore_dir(empty));
     }
 
     #[test]
-    fn test_should_ignored_helpers_match_expected_names() {
-        assert!(should_ignored_file(Utf8Path::new("README.md")));
-        assert!(!should_ignored_file(Utf8Path::new("docs.md")));
+    fn test_should_ignore_helpers_match_expected_names() {
+        assert!(should_ignore_file(Utf8Path::new("README.md")));
+        assert!(!should_ignore_file(Utf8Path::new("docs.md")));
 
-        assert!(should_ignored_dir(Utf8Path::new(".git")));
-        assert!(should_ignored_dir(Utf8Path::new("_tmp")));
-        assert!(!should_ignored_dir(Utf8Path::new("trees")));
+        assert!(should_ignore_dir(Utf8Path::new(".git")));
+        assert!(should_ignore_dir(Utf8Path::new("_tmp")));
+        assert!(!should_ignore_dir(Utf8Path::new("trees")));
     }
 
     #[test]

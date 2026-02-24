@@ -181,7 +181,7 @@ where
         self.get_str(KEY_EXT)
     }
 
-    fn is_enable_backlinks(&self) -> eyre::Result<bool> {
+    fn backlinks_enabled(&self) -> eyre::Result<bool> {
         self.get_bool(KEY_BACKLINKS).map(|v| v.unwrap_or(true))
     }
 
@@ -190,7 +190,7 @@ where
             .map(|v| v.unwrap_or(false))
     }
 
-    fn is_enable_references(&self) -> eyre::Result<bool> {
+    fn references_enabled(&self) -> eyre::Result<bool> {
         self.get_bool(KEY_REFERENCES).map(|v| v.unwrap_or(true))
     }
 

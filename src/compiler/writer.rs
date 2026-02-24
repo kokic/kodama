@@ -77,7 +77,7 @@ impl Writer {
         let callback = state.callback().0.get(&slug);
         let footer_html = Writer::footer(
             section.metadata.footer_mode()?,
-            section.metadata.is_enable_references()?,
+            section.metadata.references_enabled()?,
             state,
             &section.references,
             callback,
