@@ -2,7 +2,7 @@
 // Released under the GPL-3.0 license as described in the file LICENSE.
 // Authors: Kokic (@kokic), Alias Qli (@AliasQli), Spore (@s-cerevisiae)
 
-use std::collections::{HashMap, HashSet, VecDeque};
+use std::collections::{HashSet, VecDeque};
 
 use camino::{Utf8Path, Utf8PathBuf};
 
@@ -126,6 +126,8 @@ pub(super) fn affected_slugs_from_dirty(
 
 #[cfg(test)]
 mod tests {
+    use std::collections::HashMap;
+
     use super::*;
     use crate::{
         compiler::section::{HTMLContent, LazyContent, LocalLink, UnresolvedSection},
