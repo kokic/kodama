@@ -10,6 +10,7 @@ use eyre::eyre;
 use crate::{config::{self, Config}, path_utils};
 
 mod config_access;
+mod cache;
 mod hashing;
 mod imports;
 mod paths;
@@ -22,6 +23,7 @@ pub use config_access::{
     reload_marker_path, serve_command, serve_dir, theme_paths, toc_max_width, trees_dir,
     trees_dir_without_root, typst_root_dir,
 };
+pub use cache::ensure_cache_version;
 pub use hashing::{verify_and_file_hash, verify_update_hash};
 pub use imports::{import_fonts_html, import_math_html, import_meta_html, import_style_html};
 pub use paths::{

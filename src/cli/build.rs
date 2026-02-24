@@ -96,6 +96,7 @@ pub fn build_with_dirty(
     dirty_paths: Option<&DirtySet>,
 ) -> eyre::Result<()> {
     environment::init_environment(config.into(), mode)?;
+    environment::ensure_cache_version()?;
     _ = VERBOSE.set(options.verbose);
     _ = VERBOSE_SKIP.set(options.verbose_skip);
     _ = NO_CACHE.set(options.no_cache);
