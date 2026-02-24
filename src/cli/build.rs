@@ -4,7 +4,11 @@
 
 use std::{
     fs,
-    sync::OnceLock,
+    io::Write,
+    sync::{
+        atomic::{AtomicU64, Ordering},
+        OnceLock,
+    },
     time::{SystemTime, UNIX_EPOCH},
 };
 
@@ -45,6 +49,7 @@ pub struct BuildCommand {
 static VERBOSE: OnceLock<bool> = OnceLock::new();
 static VERBOSE_SKIP: OnceLock<bool> = OnceLock::new();
 static NO_CACHE: OnceLock<bool> = OnceLock::new();
+static RELOAD_MARKER_SEQUENCE: AtomicU64 = AtomicU64::new(0);
 
 #[derive(Clone, Copy)]
 pub struct BuildOptions {
@@ -150,12 +155,87 @@ fn write_reload_marker(mode: BuildMode) -> eyre::Result<()> {
 
     let output_dir = environment::output_dir();
     let marker_path = environment::reload_marker_path(output_dir.as_path());
-    environment::create_parent_dirs(&marker_path);
-    let stamp = SystemTime::now()
+    write_reload_marker_atomically(marker_path.as_path(), &next_reload_marker_stamp())?;
+    Ok(())
+}
+
+fn next_reload_marker_stamp() -> String {
+    let nanos = SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .unwrap_or_default()
         .as_nanos();
-    fs::write(&marker_path, stamp.to_string())
-        .wrap_err_with(|| eyre!("failed to write reload marker to `{}`", marker_path))?;
+    let sequence = RELOAD_MARKER_SEQUENCE.fetch_add(1, Ordering::Relaxed);
+    format!("{nanos}-{sequence}")
+}
+
+fn write_reload_marker_atomically(marker_path: &Utf8Path, stamp: &str) -> eyre::Result<()> {
+    environment::create_parent_dirs(marker_path);
+    let parent = marker_path.parent().ok_or_else(|| {
+        eyre!(
+            "failed to resolve parent directory for reload marker `{}`",
+            marker_path
+        )
+    })?;
+    let filename = marker_path.file_name().ok_or_else(|| {
+        eyre!(
+            "failed to resolve filename for reload marker `{}`",
+            marker_path
+        )
+    })?;
+    let temp_filename = format!("{filename}.tmp.{}.{}", std::process::id(), stamp);
+    let temp_path = parent.join(temp_filename);
+
+    let write_result = (|| -> eyre::Result<()> {
+        let mut file = fs::File::create(temp_path.as_std_path())
+            .wrap_err_with(|| eyre!("failed to create temp reload marker `{}`", temp_path))?;
+        file.write_all(stamp.as_bytes())
+            .wrap_err_with(|| eyre!("failed to write temp reload marker `{}`", temp_path))?;
+        file.sync_all()
+            .wrap_err_with(|| eyre!("failed to sync temp reload marker `{}`", temp_path))?;
+        Ok(())
+    })();
+
+    if let Err(err) = write_result {
+        let _ = fs::remove_file(temp_path.as_std_path());
+        return Err(err);
+    }
+
+    fs::rename(temp_path.as_std_path(), marker_path.as_std_path()).wrap_err_with(|| {
+        eyre!(
+            "failed to atomically replace reload marker `{}` from `{}`",
+            marker_path,
+            temp_path
+        )
+    })?;
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use camino::Utf8PathBuf;
+
+    #[test]
+    fn test_next_reload_marker_stamp_is_unique() {
+        let a = next_reload_marker_stamp();
+        let b = next_reload_marker_stamp();
+        assert_ne!(a, b);
+    }
+
+    #[test]
+    fn test_write_reload_marker_atomically_overwrites() {
+        let base = std::env::temp_dir().join(format!("kodama-reload-marker-{}", fastrand::u64(..)));
+        let base = Utf8PathBuf::from_path_buf(base).unwrap();
+        let marker = base.join("serve/kodama.reload");
+
+        write_reload_marker_atomically(marker.as_path(), "v1").unwrap();
+        let first = fs::read_to_string(marker.as_std_path()).unwrap();
+        assert_eq!(first, "v1");
+
+        write_reload_marker_atomically(marker.as_path(), "v2").unwrap();
+        let second = fs::read_to_string(marker.as_std_path()).unwrap();
+        assert_eq!(second, "v2");
+
+        let _ = fs::remove_dir_all(base.as_std_path());
+    }
 }

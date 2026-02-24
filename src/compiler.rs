@@ -318,6 +318,18 @@ fn graph_snapshot(state: &state::CompileState) -> GraphSnapshot {
     GraphSnapshot { sections }
 }
 
+fn sync_optional_output(path: &Utf8Path, payload: Option<&str>, output_name: &str) -> eyre::Result<()> {
+    if let Some(payload) = payload {
+        environment::create_parent_dirs(path);
+        std::fs::write(path, payload).wrap_err_with(|| {
+            eyre!("failed to write {} to `{}`", output_name, path)
+        })?;
+    } else {
+        let _ = remove_file_if_exists(path)?;
+    }
+    Ok(())
+}
+
 pub fn compile(
     workspace: Workspace,
     dirty_paths: Option<&DirtySet>,
@@ -385,24 +397,30 @@ pub fn compile(
     Writer::write_needed_slugs(slugs_to_write, &state)
         .wrap_err("failed to write compiled HTML files")?;
 
-    if outputs.graph {
+    let graph_payload = if outputs.graph {
         let graph = graph_snapshot(&state);
-        let serialized = serde_json::to_string(&graph)
-            .wrap_err_with(|| eyre!("failed to serialize graph to JSON"))?;
-        let graph_path = environment::graph_path(&environment::output_dir());
-        environment::create_parent_dirs(&graph_path);
-        std::fs::write(&graph_path, serialized)
-            .wrap_err_with(|| eyre!("failed to write graph to `{}`", graph_path))?;
-    }
+        Some(
+            serde_json::to_string(&graph)
+                .wrap_err_with(|| eyre!("failed to serialize graph to JSON"))?,
+        )
+    } else {
+        None
+    };
+    let indexes_payload = if let Some(indexes) = indexes {
+        Some(
+            serde_json::to_string(&indexes)
+                .wrap_err_with(|| eyre!("failed to serialize indexes to JSON"))?,
+        )
+    } else {
+        None
+    };
 
-    if let Some(indexes) = indexes {
-        let serialized = serde_json::to_string(&indexes)
-            .wrap_err_with(|| eyre!("failed to serialize indexes to JSON"))?;
-        let indexes_path = environment::indexes_path(&environment::output_dir());
-        environment::create_parent_dirs(&indexes_path);
-        std::fs::write(&indexes_path, serialized)
-            .wrap_err_with(|| eyre!("failed to write indexes to `{}`", indexes_path))?;
-    }
+    let output_dir = environment::output_dir();
+    let graph_path = environment::graph_path(output_dir.as_path());
+    sync_optional_output(graph_path.as_path(), graph_payload.as_deref(), "graph")?;
+
+    let indexes_path = environment::indexes_path(output_dir.as_path());
+    sync_optional_output(indexes_path.as_path(), indexes_payload.as_deref(), "indexes")?;
 
     Ok(())
 }
@@ -715,6 +733,21 @@ mod tests {
         assert_eq!(source_relative, Utf8PathBuf::from("foo/bar.md"));
         assert_eq!(slug, Slug::new("foo/bar"));
         assert!(matches!(ext, Ext::Markdown));
+    }
+
+    #[test]
+    fn test_sync_optional_output_writes_and_removes_artifact() {
+        let base = std::env::temp_dir().join(format!("kodama-sync-output-{}", fastrand::u64(..)));
+        let base = Utf8PathBuf::from_path_buf(base).unwrap();
+        let path = base.join("publish/kodama.json");
+
+        sync_optional_output(path.as_path(), Some("{\"ok\":true}"), "indexes").unwrap();
+        assert_eq!(fs::read_to_string(&path).unwrap(), "{\"ok\":true}");
+
+        sync_optional_output(path.as_path(), None, "indexes").unwrap();
+        assert!(!path.exists());
+
+        let _ = fs::remove_dir_all(base);
     }
 
     #[test]
