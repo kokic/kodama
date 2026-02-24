@@ -5,26 +5,31 @@
 use super::{content::EventExtended, processer::url_action};
 use std::{fs, mem};
 
+use camino::Utf8PathBuf;
 use crate::{
     compiler::section::{EmbedContent, LocalLink, SectionOption},
+    path_utils,
     environment::{self, assets_dir, root_dir},
     html_flake::{html_code_block, html_link},
     process::typst_image::is_inline_typst,
     recorder::State,
+    slug::Slug,
 };
 use pulldown_cmark::{html, Event, Tag, TagEnd};
 
 pub struct Embed<'e, E> {
     events: E,
+    current_slug: Slug,
     state: State,
     url: Option<String>,
     content: Vec<Event<'e>>,
 }
 
 impl<'e, E> Embed<'e, E> {
-    pub fn process(events: E) -> Self {
+    pub fn process(events: E, current_slug: Slug) -> Self {
         Self {
             events,
+            current_slug,
             state: State::None,
             url: None,
             content: Vec::new(),
@@ -47,24 +52,19 @@ impl<'e, E: Iterator<Item = Event<'e>>> Iterator for Embed<'e, E> {
         for e in self.events.by_ref() {
             match e {
                 Event::Start(Tag::Link { ref dest_url, .. }) => {
-                    let (mut url, action) = url_action(dest_url);
+                    let (url, action) = url_action(dest_url);
                     if action == State::Embed.strify() {
                         self.state = State::Embed;
-                        self.url = Some(relocate_trees_path(url)); // [0]
+                        self.url = Some(resolve_embed_url(&url, self.current_slug)); // [0]
                     } else if action == State::Include.strify() {
                         self.state = State::Include;
-                        // Note: `Include` path starts from the root directory
-                        self.url = Some(url);
+                        self.url = Some(resolve_include_url(&url, self.current_slug));
                     } else if is_external_link(&url) {
                         self.state = State::ExternalLink;
                         self.url = Some(url);
                     } else if is_local_link(dest_url) {
                         self.state = State::LocalLink;
-
-                        if url.ends_with(".md") {
-                            url.truncate(url.len() - 3);
-                        }
-                        self.url = Some(relocate_trees_path(url));
+                        self.url = Some(resolve_local_link_url(&url, self.current_slug));
                     } else if is_assets_file(&url) {
                         self.state = State::AssetFile;
                         self.url = Some(url);
@@ -103,7 +103,8 @@ impl<'e, E: Iterator<Item = Event<'e>>> Iterator for Embed<'e, E> {
                             Some(text)
                         };
 
-                        let content = fs::read_to_string(root_dir().join(&url))
+                        let include_path = root_dir().join(&url);
+                        let content = fs::read_to_string(&include_path)
                             .unwrap_or_else(|_| format!("failed to include file: {url}"));
                         let escaped = htmlize::escape_text(content);
                         let html = html_code_block(&escaped, &language_tag.unwrap_or_default());
@@ -163,6 +164,52 @@ impl<'e, E: Iterator<Item = Event<'e>>> Iterator for Embed<'e, E> {
             }
         }
         None
+    }
+}
+
+fn resolve_embed_url(raw_url: &str, current_slug: Slug) -> String {
+    relocate_trees_path(resolve_section_url(raw_url, current_slug))
+}
+
+fn resolve_local_link_url(raw_url: &str, current_slug: Slug) -> String {
+    let resolved = resolve_section_url(raw_url, current_slug);
+    let resolved = strip_markdown_extension(&resolved);
+    relocate_trees_path(resolved)
+}
+
+fn resolve_include_url(raw_url: &str, current_slug: Slug) -> String {
+    let path = if raw_url.starts_with('/') {
+        Utf8PathBuf::from(raw_url.trim_start_matches('/'))
+    } else {
+        path_utils::relative_to_current(current_slug.as_str(), raw_url)
+    };
+    path_utils::pretty_path(path.as_path())
+}
+
+fn resolve_section_url(raw_url: &str, current_slug: Slug) -> String {
+    let path = if raw_url.starts_with('/') {
+        Utf8PathBuf::from(raw_url)
+    } else {
+        path_utils::relative_to_current(current_slug.as_str(), raw_url)
+    };
+    let pretty = path_utils::pretty_path(path.as_path());
+    if pretty.is_empty() {
+        "/".to_string()
+    } else {
+        format!("/{pretty}")
+    }
+}
+
+fn strip_markdown_extension(url: &str) -> String {
+    let mut path = Utf8PathBuf::from(url.trim_start_matches('/'));
+    if path.extension() == Some("md") {
+        path.set_extension("");
+    }
+    let pretty = path_utils::pretty_path(path.as_path());
+    if pretty.is_empty() {
+        "/".to_string()
+    } else {
+        format!("/{pretty}")
     }
 }
 
@@ -293,6 +340,40 @@ mod tests {
         assert_eq!(
             relocate_trees_path("/trees/path".to_string()),
             "/path".to_string()
+        );
+    }
+
+    #[test]
+    fn test_resolve_include_url_supports_root_and_relative_paths() {
+        assert_eq!(
+            resolve_include_url("/import-meta.html", Slug::new("a/b")),
+            "import-meta.html"
+        );
+        assert_eq!(
+            resolve_include_url("./shared/snippet.txt", Slug::new("docs/chapter")),
+            "docs/shared/snippet.txt"
+        );
+        assert_eq!(
+            resolve_include_url("../snippet.txt", Slug::new("docs/chapter")),
+            "snippet.txt"
+        );
+    }
+
+    #[test]
+    fn test_resolve_local_and_embed_urls_are_normalized_early() {
+        crate::environment::mock_environment().unwrap();
+
+        assert_eq!(
+            resolve_local_link_url("./a.b.md", Slug::new("guide/index")),
+            "/guide/a.b"
+        );
+        assert_eq!(
+            resolve_embed_url("../ref.md", Slug::new("guide/chapter/page")),
+            "/guide/ref.md"
+        );
+        assert_eq!(
+            resolve_local_link_url("/trees/root.md", Slug::new("guide/index")),
+            "/root"
         );
     }
 }

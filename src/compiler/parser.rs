@@ -54,7 +54,7 @@ pub fn parse_markdown(slug: Slug) -> eyre::Result<UnresolvedSection> {
             let events = Footnote::process(events, slug);
             let events = Figure::process(events);
             let events = TypstImage::process(events, slug);
-            let events = Embed::process(events);
+            let events = Embed::process(events, slug);
             normalize_html_content(to_contents(events))
         })
         .wrap_err("failed to parse metadata")?;
@@ -67,7 +67,7 @@ pub fn parse_markdown(slug: Slug) -> eyre::Result<UnresolvedSection> {
 pub fn parse_spanned_markdown(markdown_input: &str, slug: Slug) -> HTMLContent {
     let events = pulldown_cmark::Parser::new_ext(markdown_input, OPTIONS);
     let events = ignore_paragraph(events);
-    let events = Embed::process(TypstImage::process(events, slug));
+    let events = Embed::process(TypstImage::process(events, slug), slug);
     normalize_html_content(to_contents(events))
 }
 
@@ -92,7 +92,7 @@ pub mod tests {
         let events = Footnote::process(events, mocked_slug);
         let events = Figure::process(events);
         let events = TypstImage::process(events, mocked_slug);
-        let events = Embed::process(events);
+        let events = Embed::process(events, mocked_slug);
 
         let content = normalize_html_content(to_contents(events));
         assert_eq!(content.as_str().unwrap(), "<table><thead><tr><th>a</th><th>b</th></tr></thead><tbody>\n<tr><td>c</td><td>d</td></tr>\n</tbody></table>\n");
@@ -107,7 +107,7 @@ pub mod tests {
         let events = Footnote::process(events, mocked_slug);
         let events = Figure::process(events);
         let events = TypstImage::process(events, mocked_slug);
-        let events = Embed::process(events);
+        let events = Embed::process(events, mocked_slug);
 
         let content = normalize_html_content(to_contents(events));
         assert_eq!(content.as_str().unwrap(), "<pre><code class=\"language-rs\">let x = 1;\n</code></pre>\n");
@@ -122,7 +122,7 @@ pub mod tests {
         let events = Footnote::process(events, mocked_slug);
         let events = Figure::process(events);
         let events = TypstImage::process(events, mocked_slug);
-        let events = Embed::process(events);
+        let events = Embed::process(events, mocked_slug);
 
         let content = normalize_html_content(to_contents(events));
         assert_eq!(content.as_str().unwrap(), "<p><span class=\"link external\"><a href=\"https://example.com\" title=\"Bob [https://example.com]\">Bob</a></span></p>\n");
