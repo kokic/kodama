@@ -90,8 +90,11 @@ fn section_snippets() -> eyre::Result<()> {
                 .collect::<Vec<_>>()
                 .join("-");
             let body = [format!("[{label}]: {url}")];
-            let taxon = metadata.get(entry::KEY_TAXON)?.as_str()?;
-            let description = taxon.to_string();
+            let description = metadata
+                .get(entry::KEY_TAXON)
+                .and_then(HTMLContent::as_str)
+                .unwrap_or("")
+                .to_string();
 
             Some((slug_str, Snippet::md(prefix.to_string(), body, description)))
         })
