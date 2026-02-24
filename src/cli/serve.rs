@@ -362,7 +362,8 @@ where
                     }
                     std::io::stdout().flush()?;
                     if let Err(err) = action(&changed_paths) {
-                        color_print::ceprintln!("<r>[watch] Rebuild failed: {}</>", err);
+                        // A warning color should be used here, as rebuild failures during user editing are acceptable
+                        color_print::ceprintln!("<y>[watch] Rebuild failed: {}</>", err);
                     }
                     last_run = now;
                 }
