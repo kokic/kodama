@@ -13,7 +13,7 @@ pub mod typst;
 pub mod writer;
 
 use std::{collections::HashMap, fs::File, io::BufReader};
-use std::collections::HashSet;
+use std::collections::{HashSet, VecDeque};
 
 use camino::{Utf8Path, Utf8PathBuf};
 use eyre::{bail, eyre, WrapErr};
@@ -94,8 +94,58 @@ pub fn expand_dirty_paths(workspace: &Workspace, dirty_paths: &DirtySet) -> Dirt
     expanded
 }
 
+fn dirty_source_slugs(workspace: &Workspace, dirty_paths: &DirtySet) -> HashSet<Slug> {
+    workspace
+        .slug_exts
+        .iter()
+        .filter_map(|(&slug, &ext)| {
+            let relative = source_relative_path(slug, ext);
+            dirty_paths.contains(relative.as_path()).then_some(slug)
+        })
+        .collect()
+}
+
+fn affected_slugs_from_dirty(
+    state: &state::CompileState,
+    dirty_source_slugs: &HashSet<Slug>,
+) -> HashSet<Slug> {
+    let mut affected = dirty_source_slugs.clone();
+    let mut queue: VecDeque<Slug> = dirty_source_slugs.iter().copied().collect();
+
+    // If a linker page changes, the target's backlink list changes too.
+    for (&target_slug, callback) in &state.callback().0 {
+        if callback
+            .backlinks
+            .iter()
+            .any(|backlink_slug| dirty_source_slugs.contains(backlink_slug))
+            && affected.insert(target_slug)
+        {
+            queue.push_back(target_slug);
+        }
+    }
+
+    while let Some(slug) = queue.pop_front() {
+        let Some(callback) = state.callback().0.get(&slug) else {
+            continue;
+        };
+
+        if callback.parent != slug && affected.insert(callback.parent) {
+            queue.push_back(callback.parent);
+        }
+
+        for &backlink_slug in &callback.backlinks {
+            if affected.insert(backlink_slug) {
+                queue.push_back(backlink_slug);
+            }
+        }
+    }
+
+    affected
+}
+
 pub fn compile(workspace: Workspace, dirty_paths: Option<&DirtySet>) -> eyre::Result<()> {
     let mut shallows = HashMap::new();
+    let all_slugs: Vec<Slug> = workspace.slug_exts.keys().copied().collect();
 
     for (&slug, &ext) in &workspace.slug_exts {
         let relative_path = source_relative_path(slug, ext);
@@ -135,7 +185,21 @@ pub fn compile(workspace: Workspace, dirty_paths: Option<&DirtySet>) -> eyre::Re
         .collect();
 
     let state = state::compile_all(shallows)?;
-    Writer::write_needed_slugs(workspace.slug_exts.into_iter().map(|x| x.0), &state)
+    let slugs_to_write: Vec<Slug> = match dirty_paths {
+        Some(dirty_paths) => {
+            let dirty_slugs = dirty_source_slugs(&workspace, dirty_paths);
+            if dirty_slugs.is_empty() {
+                all_slugs.clone()
+            } else {
+                affected_slugs_from_dirty(&state, &dirty_slugs)
+                    .into_iter()
+                    .collect()
+            }
+        }
+        None => all_slugs.clone(),
+    };
+
+    Writer::write_needed_slugs(slugs_to_write, &state)
         .wrap_err("failed to write compiled HTML files")?;
 
     let serialized = serde_json::to_string(&indexes)
@@ -270,6 +334,24 @@ pub struct Workspace {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::compiler::section::{HTMLContent, LazyContent, LocalLink, ShallowSection};
+    use crate::entry::{HTMLMetaData, KEY_EXT, KEY_PAGE_TITLE, KEY_SLUG, KEY_TITLE};
+    use crate::ordered_map::OrderedMap;
+
+    fn shallow(slug: &str, content: HTMLContent) -> ShallowSection {
+        let mut metadata = OrderedMap::new();
+        metadata.insert(KEY_SLUG.to_string(), HTMLContent::Plain(slug.to_string()));
+        metadata.insert(KEY_EXT.to_string(), HTMLContent::Plain("md".to_string()));
+        metadata.insert(KEY_TITLE.to_string(), HTMLContent::Plain(slug.to_string()));
+        metadata.insert(
+            KEY_PAGE_TITLE.to_string(),
+            HTMLContent::Plain(slug.to_string()),
+        );
+        ShallowSection {
+            metadata: HTMLMetaData(metadata),
+            content,
+        }
+    }
 
     #[test]
     fn test_should_ignored_helpers_handle_missing_file_name() {
@@ -319,5 +401,47 @@ mod tests {
         let expanded = expand_dirty_paths(&workspace, &dirty);
         assert!(expanded.contains(&Utf8PathBuf::from("a.md")));
         assert!(expanded.contains(&Utf8PathBuf::from("b.typst")));
+    }
+
+    #[test]
+    fn test_dirty_source_slugs_maps_relative_paths_to_slug_ids() {
+        let mut slug_exts = HashMap::new();
+        slug_exts.insert(Slug::new("a"), Ext::Markdown);
+        slug_exts.insert(Slug::new("b"), Ext::Typst);
+        let workspace = Workspace { slug_exts };
+
+        let mut dirty = DirtySet::new();
+        dirty.insert(Utf8PathBuf::from("a.md"));
+        dirty.insert(Utf8PathBuf::from("unknown.txt"));
+
+        let dirty_slugs = dirty_source_slugs(&workspace, &dirty);
+        assert!(dirty_slugs.contains(&Slug::new("a")));
+        assert!(!dirty_slugs.contains(&Slug::new("b")));
+    }
+
+    #[test]
+    fn test_affected_slugs_include_link_targets_when_linker_changes() {
+        let mut shallows = HashMap::new();
+        shallows.insert(
+            Slug::new("a"),
+            shallow(
+                "a",
+                HTMLContent::Lazy(vec![LazyContent::Local(LocalLink {
+                    url: "/b.md".to_string(),
+                    text: None,
+                })]),
+            ),
+        );
+        shallows.insert(
+            Slug::new("b"),
+            shallow("b", HTMLContent::Plain("<p>b</p>".to_string())),
+        );
+
+        let state = state::compile_all(shallows).unwrap();
+        let dirty_slugs = HashSet::from([Slug::new("a")]);
+        let affected = affected_slugs_from_dirty(&state, &dirty_slugs);
+
+        assert!(affected.contains(&Slug::new("a")));
+        assert!(affected.contains(&Slug::new("b")));
     }
 }
