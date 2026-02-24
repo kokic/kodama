@@ -217,7 +217,7 @@ mod tests {
             shallow("b", HTMLContent::Plain("<p>b</p>".to_string())),
         );
 
-        let state = state::compile_all(shallows).unwrap();
+        let state = state::compile_all(&shallows).unwrap();
         let dirty_slugs = HashSet::from([Slug::new("a")]);
         let affected = affected_slugs_from_dirty(&state, &dirty_slugs);
 

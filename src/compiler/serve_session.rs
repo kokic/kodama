@@ -1,0 +1,144 @@
+// Copyright (c) 2025 Kodama Project. All rights reserved.
+// Released under the GPL-3.0 license as described in the file LICENSE.
+// Authors: Kokic (@kokic), Alias Qli (@AliasQli), Spore (@s-cerevisiae)
+
+use std::collections::{HashMap, HashSet};
+
+use eyre::{eyre, WrapErr};
+
+use crate::{
+    environment::{self, verify_and_file_hash},
+    slug::{Ext, Slug},
+};
+
+use super::{
+    compile_from_shallows, incremental::{dirty_source_slugs, source_relative_path},
+    parse_source, stale::cleanup_stale_slug_artifacts, write_entry_cache, CompileOutputs, DirtySet,
+    Workspace,
+};
+use super::section::UnresolvedSection;
+
+#[derive(Default)]
+pub struct ServeCompileSession {
+    initialized: bool,
+    shallows: HashMap<Slug, UnresolvedSection>,
+}
+
+impl ServeCompileSession {
+    pub fn is_initialized(&self) -> bool {
+        self.initialized
+    }
+
+    pub fn compile_full(&mut self, workspace: Workspace, outputs: CompileOutputs) -> eyre::Result<()> {
+        let stale_slugs = cleanup_stale_slug_artifacts(&workspace)
+            .wrap_err("failed to clean stale slug artifacts")?;
+        let shallows = super::collect_shallows(&workspace, None)?;
+        self.shallows = shallows;
+        self.initialized = true;
+        compile_from_shallows(&workspace, &self.shallows, None, outputs, stale_slugs)
+    }
+
+    pub fn compile_incremental(
+        &mut self,
+        workspace: Workspace,
+        dirty_paths: &DirtySet,
+        outputs: CompileOutputs,
+    ) -> eyre::Result<()> {
+        let stale_slugs = cleanup_stale_slug_artifacts(&workspace)
+            .wrap_err("failed to clean stale slug artifacts")?;
+
+        self.shallows
+            .retain(|slug, _| workspace.slug_exts.contains_key(slug));
+
+        let dirty_slugs = dirty_source_slugs(&workspace, dirty_paths);
+        let mut parse_targets: HashSet<Slug> = dirty_slugs.clone();
+
+        for (&slug, &ext) in &workspace.slug_exts {
+            if self.needs_refresh(slug, ext) {
+                parse_targets.insert(slug);
+            }
+        }
+
+        let needs_full_write = parse_targets
+            .iter()
+            .any(|slug| !dirty_slugs.contains(slug));
+
+        for slug in parse_targets {
+            let Some(&ext) = workspace.slug_exts.get(&slug) else {
+                continue;
+            };
+            let relative_path = source_relative_path(slug, ext);
+            let _ = verify_and_file_hash(relative_path.as_path())
+                .wrap_err_with(|| eyre!("failed to verify hash of `{relative_path}`"))?;
+            let entry_path = environment::entry_file_path(relative_path.as_path());
+            let shallow = parse_source(slug, ext)?;
+            write_entry_cache(entry_path.as_path(), &shallow)?;
+            self.shallows.insert(slug, shallow);
+        }
+        self.initialized = true;
+
+        compile_from_shallows(
+            &workspace,
+            &self.shallows,
+            if needs_full_write { None } else { Some(dirty_paths) },
+            outputs,
+            stale_slugs,
+        )
+    }
+
+    fn needs_refresh(&self, slug: Slug, ext: Ext) -> bool {
+        let Some(shallow) = self.shallows.get(&slug) else {
+            return true;
+        };
+        let expected_ext = ext.to_string();
+        shallow
+            .ext()
+            .map(|value| value != expected_ext.as_str())
+            .unwrap_or(true)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::{
+        compiler::section::{HTMLContent, UnresolvedSection},
+        entry::{HTMLMetaData, KEY_EXT, KEY_SLUG},
+        ordered_map::OrderedMap,
+    };
+
+    use super::*;
+
+    fn shallow(slug: &str, ext: &str) -> UnresolvedSection {
+        let mut metadata = OrderedMap::new();
+        metadata.insert(KEY_SLUG.to_string(), HTMLContent::Plain(slug.to_string()));
+        metadata.insert(KEY_EXT.to_string(), HTMLContent::Plain(ext.to_string()));
+        UnresolvedSection {
+            metadata: HTMLMetaData(metadata),
+            content: HTMLContent::Plain(String::new()),
+        }
+    }
+
+    #[test]
+    fn test_needs_refresh_when_shallow_missing() {
+        let session = ServeCompileSession::default();
+        assert!(session.needs_refresh(Slug::new("a"), Ext::Markdown));
+    }
+
+    #[test]
+    fn test_needs_refresh_when_extension_matches() {
+        let mut session = ServeCompileSession::default();
+        session
+            .shallows
+            .insert(Slug::new("a"), shallow("a", "md"));
+        assert!(!session.needs_refresh(Slug::new("a"), Ext::Markdown));
+    }
+
+    #[test]
+    fn test_needs_refresh_when_extension_differs() {
+        let mut session = ServeCompileSession::default();
+        session
+            .shallows
+            .insert(Slug::new("a"), shallow("a", "md"));
+        assert!(session.needs_refresh(Slug::new("a"), Ext::Typst));
+    }
+}

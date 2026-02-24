@@ -366,7 +366,7 @@ mod tests {
         let mut shallows = HashMap::new();
         shallows.insert(Slug::new("a"), shallow_section("a", "A"));
 
-        let state = compile_all(shallows).unwrap();
+        let state = compile_all(&shallows).unwrap();
         let section = state.compiled().get(&Slug::new("a")).unwrap();
         let (html, _title) = Writer::html_doc(section, &state).unwrap();
 
@@ -385,7 +385,7 @@ mod tests {
         );
         shallows.insert(Slug::new("a"), section);
 
-        let state = compile_all(shallows).unwrap();
+        let state = compile_all(&shallows).unwrap();
         let section = state.compiled().get(&Slug::new("a")).unwrap();
         let err = Writer::html_doc(section, &state).unwrap_err();
 

@@ -148,7 +148,7 @@ mod tests {
             shallow("child", HTMLContent::Plain("<p>child</p>".to_string())),
         );
 
-        let state = state::compile_all(shallows).unwrap();
+        let state = state::compile_all(&shallows).unwrap();
         let snapshot = graph_snapshot(&state);
 
         let index = snapshot.sections.get(&Slug::new("index")).unwrap();

@@ -5,10 +5,7 @@
 use std::{
     fs,
     io::Write,
-    sync::{
-        atomic::{AtomicU64, Ordering},
-        OnceLock,
-    },
+    sync::{atomic::{AtomicU64, Ordering}, Mutex, OnceLock},
     time::{SystemTime, UNIX_EPOCH},
 };
 
@@ -50,6 +47,7 @@ static VERBOSE: OnceLock<bool> = OnceLock::new();
 static VERBOSE_SKIP: OnceLock<bool> = OnceLock::new();
 static NO_CACHE: OnceLock<bool> = OnceLock::new();
 static RELOAD_MARKER_SEQUENCE: AtomicU64 = AtomicU64::new(0);
+static SERVE_SESSION: OnceLock<Mutex<Option<compiler::ServeCompileSession>>> = OnceLock::new();
 
 #[derive(Clone, Copy)]
 pub struct BuildOptions {
@@ -108,7 +106,7 @@ pub fn build_with_dirty(
     let root = environment::root_dir();
     let workspace = all_trees_source(&environment::trees_dir(), dirty_paths)?;
     let expanded_dirty = dirty_paths.map(|paths| compiler::expand_dirty_paths(&workspace, paths));
-    compiler::compile(workspace, expanded_dirty.as_ref(), options.outputs).wrap_err_with(|| {
+    compile_with_mode(mode, workspace, expanded_dirty.as_ref(), options.outputs).wrap_err_with(|| {
         let root_display = root
             .canonicalize()
             .map(|p| p.display().to_string())
@@ -120,6 +118,63 @@ pub fn build_with_dirty(
     write_reload_marker(mode)?;
 
     Ok(())
+}
+
+fn compile_with_mode(
+    mode: BuildMode,
+    workspace: compiler::Workspace,
+    dirty_paths: Option<&DirtySet>,
+    outputs: compiler::CompileOutputs,
+) -> eyre::Result<()> {
+    if matches!(mode, BuildMode::Serve) {
+        return compile_serve_with_session(workspace, dirty_paths, outputs);
+    }
+
+    clear_serve_session();
+    compiler::compile(workspace, dirty_paths, outputs)
+}
+
+fn serve_session_lock() -> &'static Mutex<Option<compiler::ServeCompileSession>> {
+    SERVE_SESSION.get_or_init(|| Mutex::new(None))
+}
+
+fn with_serve_session<R>(
+    f: impl FnOnce(&mut Option<compiler::ServeCompileSession>) -> eyre::Result<R>,
+) -> eyre::Result<R> {
+    let lock = serve_session_lock();
+    match lock.lock() {
+        Ok(mut guard) => f(&mut guard),
+        Err(poisoned) => {
+            color_print::ceprintln!(
+                "<y>Warning: serve session lock is poisoned; continuing with recovered state.</>"
+            );
+            let mut guard = poisoned.into_inner();
+            f(&mut guard)
+        }
+    }
+}
+
+fn compile_serve_with_session(
+    workspace: compiler::Workspace,
+    dirty_paths: Option<&DirtySet>,
+    outputs: compiler::CompileOutputs,
+) -> eyre::Result<()> {
+    with_serve_session(|slot| {
+        let session = slot.get_or_insert_with(compiler::ServeCompileSession::default);
+        match dirty_paths {
+            Some(dirty_paths) if session.is_initialized() => {
+                session.compile_incremental(workspace, dirty_paths, outputs)
+            }
+            _ => session.compile_full(workspace, outputs),
+        }
+    })
+}
+
+fn clear_serve_session() {
+    let _ = with_serve_session(|slot| {
+        *slot = None;
+        Ok(())
+    });
 }
 
 fn export_css_files() -> eyre::Result<()> {

@@ -30,15 +30,11 @@ pub struct CompileState {
 
 type UnresolvedSections = HashMap<Slug, UnresolvedSection>;
 
-pub fn compile_all(mut shallows: UnresolvedSections) -> eyre::Result<CompileState> {
-    for shallow in shallows.values_mut() {
-        shallow.metadata.compute_textual_attrs();
-    }
-
+pub fn compile_all(shallows: &UnresolvedSections) -> eyre::Result<CompileState> {
     let residued: BTreeSet<Slug> = shallows.keys().copied().collect();
 
     let mut state = CompileState::new(residued);
-    if state.compile(&shallows, Slug::new("index"))?.is_none() {
+    if state.compile(shallows, Slug::new("index"))?.is_none() {
         color_print::ceprintln!(
             "<y>Warning: Missing `index` section, please provide `index.md` or `index.typst`.</>"
         );
@@ -48,7 +44,7 @@ pub fn compile_all(mut shallows: UnresolvedSections) -> eyre::Result<CompileStat
      * Unlinked or unembedded pages.
      */
     while let Some(slug) = state.residued.pop_first() {
-        state.compile(&shallows, slug)?;
+        state.compile(shallows, slug)?;
     }
 
     Ok(state)
@@ -349,7 +345,7 @@ mod tests {
             shallow_with_content("b", HTMLContent::Lazy(vec![embed_to_a])),
         );
 
-        let err = compile_all(shallows).unwrap_err();
+        let err = compile_all(&shallows).unwrap_err();
         assert!(err.to_string().contains("cyclic embed"));
     }
 }

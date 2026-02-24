@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2025 Kodama Project. All rights reserved.
+// Copyright (c) 2025 Kodama Project. All rights reserved.
 // Released under the GPL-3.0 license as described in the file LICENSE.
 // Authors: Kokic (@kokic), Alias Qli (@AliasQli), Spore (@s-cerevisiae)
 
@@ -13,6 +13,7 @@ pub mod typst;
 pub mod writer;
 mod artifacts;
 mod incremental;
+mod serve_session;
 mod source_scan;
 mod stale;
 
@@ -22,7 +23,7 @@ use std::{
     io::BufReader,
 };
 
-use camino::Utf8PathBuf;
+use camino::{Utf8Path, Utf8PathBuf};
 use eyre::{eyre, WrapErr};
 use parser::parse_markdown;
 use section::{HTMLContent, UnresolvedSection};
@@ -44,6 +45,7 @@ use self::{
 };
 
 pub use incremental::expand_dirty_paths;
+pub use serve_session::ServeCompileSession;
 pub use source_scan::{all_trees_source, Workspace};
 
 pub type DirtySet = HashSet<Utf8PathBuf>;
@@ -68,42 +70,20 @@ pub fn compile(
     dirty_paths: Option<&DirtySet>,
     outputs: CompileOutputs,
 ) -> eyre::Result<()> {
-    let mut shallows = HashMap::new();
-    let all_slugs: Vec<Slug> = workspace.slug_exts.keys().copied().collect();
     let stale_slugs = cleanup_stale_slug_artifacts(&workspace)
         .wrap_err("failed to clean stale slug artifacts")?;
+    let shallows = collect_shallows(&workspace, dirty_paths)?;
+    compile_from_shallows(&workspace, &shallows, dirty_paths, outputs, stale_slugs)
+}
 
-    for (&slug, &ext) in &workspace.slug_exts {
-        let relative_path = source_relative_path(slug, ext);
-
-        let is_modified = is_source_modified(relative_path.as_path(), dirty_paths)
-            .wrap_err_with(|| eyre!("failed to verify hash of `{relative_path}`"))?;
-        let entry_path = environment::entry_file_path(&relative_path);
-        let shallow = if !is_modified && entry_path.exists() {
-            let entry_file = BufReader::new(
-                File::open(&entry_path)
-                    .wrap_err_with(|| eyre!("failed to open entry file at `{}`", entry_path))?,
-            );
-            let shallow: UnresolvedSection = serde_json::from_reader(entry_file)
-                .wrap_err_with(|| eyre!("failed to deserialize entry file at `{}`", entry_path))?;
-            shallow
-        } else {
-            let shallow = match ext {
-                Ext::Markdown => parse_markdown(slug)
-                    .wrap_err_with(|| eyre!("failed to parse markdown file `{slug}.{ext}`"))?,
-                Ext::Typst => parse_typst(slug, environment::typst_root_dir())
-                    .wrap_err_with(|| eyre!("failed to parse typst file `{slug}.{ext}`"))?,
-            };
-            let serialized = serde_json::to_string(&shallow)
-                .wrap_err_with(|| eyre!("failed to serialize entry for `{slug}.{ext}`"))?;
-            std::fs::write(&entry_path, serialized)
-                .wrap_err_with(|| eyre!("failed to write entry to `{}`", entry_path))?;
-
-            shallow
-        };
-
-        shallows.insert(slug, shallow);
-    }
+pub(super) fn compile_from_shallows(
+    workspace: &Workspace,
+    shallows: &HashMap<Slug, UnresolvedSection>,
+    dirty_paths: Option<&DirtySet>,
+    outputs: CompileOutputs,
+    stale_slugs: HashSet<Slug>,
+) -> eyre::Result<()> {
+    let all_slugs: Vec<Slug> = workspace.slug_exts.keys().copied().collect();
 
     let indexes = outputs.indexes.then(|| {
         shallows
@@ -115,7 +95,7 @@ pub fn compile(
     let state = state::compile_all(shallows)?;
     let slugs_to_write: Vec<Slug> = match dirty_paths {
         Some(dirty_paths) => {
-            let dirty_slugs = dirty_source_slugs(&workspace, dirty_paths);
+            let dirty_slugs = dirty_source_slugs(workspace, dirty_paths);
             if dirty_slugs.is_empty() || !stale_slugs.is_empty() {
                 all_slugs.clone()
             } else {
@@ -158,3 +138,60 @@ pub fn compile(
     Ok(())
 }
 
+pub(super) fn collect_shallows(
+    workspace: &Workspace,
+    dirty_paths: Option<&DirtySet>,
+) -> eyre::Result<HashMap<Slug, UnresolvedSection>> {
+    let mut shallows = HashMap::new();
+
+    for (&slug, &ext) in &workspace.slug_exts {
+        let shallow = load_shallow(slug, ext, dirty_paths)?;
+        shallows.insert(slug, shallow);
+    }
+
+    Ok(shallows)
+}
+
+pub(super) fn parse_source(slug: Slug, ext: Ext) -> eyre::Result<UnresolvedSection> {
+    let mut shallow = match ext {
+        Ext::Markdown => parse_markdown(slug)
+            .wrap_err_with(|| eyre!("failed to parse markdown file `{slug}.{ext}`"))?,
+        Ext::Typst => parse_typst(slug, environment::typst_root_dir())
+            .wrap_err_with(|| eyre!("failed to parse typst file `{slug}.{ext}`"))?,
+    };
+    shallow.metadata.compute_textual_attrs();
+    Ok(shallow)
+}
+
+pub(super) fn write_entry_cache(
+    entry_path: &Utf8Path,
+    shallow: &UnresolvedSection,
+) -> eyre::Result<()> {
+    let serialized = serde_json::to_string(shallow)
+        .wrap_err_with(|| eyre!("failed to serialize entry for `{}`", entry_path))?;
+    std::fs::write(entry_path, serialized)
+        .wrap_err_with(|| eyre!("failed to write entry to `{}`", entry_path))?;
+    Ok(())
+}
+
+fn load_shallow(slug: Slug, ext: Ext, dirty_paths: Option<&DirtySet>) -> eyre::Result<UnresolvedSection> {
+    let relative_path = source_relative_path(slug, ext);
+    let is_modified = is_source_modified(relative_path.as_path(), dirty_paths)
+        .wrap_err_with(|| eyre!("failed to verify hash of `{relative_path}`"))?;
+    let entry_path = environment::entry_file_path(&relative_path);
+
+    if !is_modified && entry_path.exists() {
+        let entry_file = BufReader::new(
+            File::open(&entry_path)
+                .wrap_err_with(|| eyre!("failed to open entry file at `{}`", entry_path))?,
+        );
+        let mut shallow: UnresolvedSection = serde_json::from_reader(entry_file)
+            .wrap_err_with(|| eyre!("failed to deserialize entry file at `{}`", entry_path))?;
+        shallow.metadata.compute_textual_attrs();
+        return Ok(shallow);
+    }
+
+    let shallow = parse_source(slug, ext)?;
+    write_entry_cache(entry_path.as_path(), &shallow)?;
+    Ok(shallow)
+}
