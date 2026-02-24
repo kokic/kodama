@@ -117,3 +117,75 @@ pub fn entry_file_path<P: AsRef<Utf8Path>>(path: P) -> Utf8PathBuf {
     create_parent_dirs(&entry_path);
     entry_path
 }
+
+#[cfg(test)]
+mod tests {
+    use std::fs;
+
+    use camino::Utf8PathBuf;
+
+    use super::*;
+
+    fn case_dir(name: &str) -> Utf8PathBuf {
+        let mut path = std::env::temp_dir();
+        path.push(format!("kodama-env-paths-{name}-{}", fastrand::u64(..)));
+        Utf8PathBuf::from_path_buf(path).expect("temp path should be valid utf8")
+    }
+
+    #[test]
+    fn test_create_parent_dirs_creates_missing_directories() {
+        let root = case_dir("parent");
+        let target = root.join("a/b/c/file.txt");
+        create_parent_dirs(target.as_path());
+        assert!(target.parent().is_some_and(|parent| parent.exists()));
+        let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn test_full_url_normalizes_leading_prefixes() {
+        let root = case_dir("full-url");
+        fs::create_dir_all(root.as_std_path()).unwrap();
+
+        super::super::with_test_environment(root.clone(), super::super::BuildMode::Build, || {
+            let base = super::super::base_url();
+            assert_eq!(full_url("/notes/a"), format!("{base}notes/a"));
+            assert_eq!(full_url("./notes/a"), format!("{base}notes/a"));
+            assert_eq!(full_url("notes/a"), format!("{base}notes/a"));
+        });
+
+        let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn test_hash_and_entry_paths_preserve_original_extension_suffix() {
+        let root = case_dir("hash-entry");
+        fs::create_dir_all(root.as_std_path()).unwrap();
+
+        super::super::with_test_environment(root.clone(), super::super::BuildMode::Build, || {
+            let hash = hash_file_path("nested/a.b.md");
+            let entry = entry_file_path("nested/a.b.md");
+
+            assert!(hash.as_str().contains("a.b.md.hash"));
+            assert!(entry.as_str().contains("a.b.md.entry"));
+            assert!(hash.parent().is_some_and(|parent| parent.exists()));
+            assert!(entry.parent().is_some_and(|parent| parent.exists()));
+        });
+
+        let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn test_output_html_path_uses_html_extension() {
+        let root = case_dir("output-html");
+        fs::create_dir_all(root.as_std_path()).unwrap();
+
+        super::super::with_test_environment(root.clone(), super::super::BuildMode::Build, || {
+            let output = output_html_path("nested/topic.md");
+            assert_eq!(output.extension(), Some("html"));
+            assert!(output.parent().is_some_and(|parent| parent.exists()));
+            assert!(output.starts_with(super::super::output_dir().as_path()));
+        });
+
+        let _ = fs::remove_dir_all(root);
+    }
+}

@@ -102,6 +102,33 @@ fn with_config<R>(f: impl FnOnce(&Config) -> R) -> R {
     with_environment(|env| f(&env.config))
 }
 
+#[cfg(test)]
+pub(super) fn with_test_environment<R>(
+    root: Utf8PathBuf,
+    build_mode: BuildMode,
+    f: impl FnOnce() -> R,
+) -> R {
+    static TEST_ENV_MUTEX: OnceLock<std::sync::Mutex<()>> = OnceLock::new();
+    let lock = TEST_ENV_MUTEX.get_or_init(|| std::sync::Mutex::new(()));
+    let _guard = lock.lock().expect("test env mutex must be lockable");
+
+    struct Reset;
+    impl Drop for Reset {
+        fn drop(&mut self) {
+            update_environment(default_environment());
+        }
+    }
+
+    let _reset = Reset;
+    update_environment(Environment {
+        root: root.clone(),
+        config_file: root.join(crate::config::DEFAULT_CONFIG_PATH),
+        config: Config::default(),
+        build_mode,
+    });
+    f()
+}
+
 pub fn init_environment(toml_file: Utf8PathBuf, build_mode: BuildMode) -> eyre::Result<()> {
     let toml_file = config::find_config(toml_file)?;
 

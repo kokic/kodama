@@ -58,3 +58,71 @@ pub fn verify_update_hash<P: AsRef<Utf8Path>>(
 
     Ok(is_modified)
 }
+
+#[cfg(test)]
+mod tests {
+    use std::fs;
+
+    use camino::Utf8PathBuf;
+
+    use super::*;
+
+    fn case_dir(name: &str) -> Utf8PathBuf {
+        let mut path = std::env::temp_dir();
+        path.push(format!("kodama-env-hash-{name}-{}", fastrand::u64(..)));
+        Utf8PathBuf::from_path_buf(path).expect("temp path should be valid utf8")
+    }
+
+    #[test]
+    fn test_is_hash_updated_returns_modified_when_hash_file_missing() {
+        let root = case_dir("missing");
+        let hash_path = root.join("missing.hash");
+        let (is_modified, _) = is_hash_updated("content", hash_path.as_path());
+        assert!(is_modified);
+    }
+
+    #[test]
+    fn test_is_hash_updated_returns_modified_for_invalid_hash_history() {
+        let root = case_dir("invalid");
+        fs::create_dir_all(root.as_std_path()).unwrap();
+        let hash_path = root.join("history.hash");
+        fs::write(hash_path.as_std_path(), "not-a-number").unwrap();
+
+        let (is_modified, _) = is_hash_updated("content", hash_path.as_path());
+        assert!(is_modified);
+
+        let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn test_is_hash_updated_returns_unmodified_for_matching_hash() {
+        let root = case_dir("matching");
+        fs::create_dir_all(root.as_std_path()).unwrap();
+        let hash_path = root.join("matching.hash");
+        let (_, current_hash) = is_hash_updated("content", hash_path.as_path());
+        fs::write(hash_path.as_std_path(), current_hash.to_string()).unwrap();
+
+        let (is_modified, _) = is_hash_updated("content", hash_path.as_path());
+        assert!(!is_modified);
+
+        let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn test_verify_update_hash_roundtrip_detects_changes() {
+        let root = case_dir("roundtrip");
+        fs::create_dir_all(root.as_std_path()).unwrap();
+
+        super::super::with_test_environment(root.clone(), super::super::BuildMode::Build, || {
+            let relative = "hash-tests/a.md";
+            assert!(verify_update_hash(relative, "v1").unwrap());
+            assert!(!verify_update_hash(relative, "v1").unwrap());
+            assert!(verify_update_hash(relative, "v2").unwrap());
+
+            let hash_path = super::super::hash_file_path(relative);
+            assert!(hash_path.exists());
+        });
+
+        let _ = fs::remove_dir_all(root);
+    }
+}
