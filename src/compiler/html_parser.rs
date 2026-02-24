@@ -233,7 +233,10 @@ impl<'a> Iterator for HTMLParser<'a> {
                 Some(key) => key.as_str(),
                 None => return Some(Err(eyre!("malformed attribute in typst html tag"))),
             };
-            attrs.insert(key, unescape_attribute(c.name("value").map_or("", |s| s.as_str())));
+            attrs.insert(
+                key,
+                unescape_attribute(c.name("value").map_or("", |s| s.as_str())),
+            );
         }
 
         Some(Ok(HTMLMatch {

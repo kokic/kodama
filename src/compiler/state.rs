@@ -1,12 +1,14 @@
-﻿// Copyright (c) 2025 Kodama Project. All rights reserved.
+// Copyright (c) 2025 Kodama Project. All rights reserved.
 // Released under the GPL-3.0 license as described in the file LICENSE.
 // Authors: Kokic (@kokic), Spore (@s-cerevisiae)
 
-use std::collections::{BTreeSet, HashMap, HashSet};
 use eyre::eyre;
+use std::collections::{BTreeSet, HashMap, HashSet};
 
 use crate::{
-    entry::{EntryMetaData, HTMLMetaData, KEY_EXT, KEY_SLUG, KEY_TITLE, MetaData, is_plain_metadata},
+    entry::{
+        is_plain_metadata, EntryMetaData, HTMLMetaData, MetaData, KEY_EXT, KEY_SLUG, KEY_TITLE,
+    },
     environment,
     ordered_map::OrderedMap,
     path_utils,
@@ -15,7 +17,9 @@ use crate::{
 
 use super::{
     callback::Callback,
-    section::{HTMLContent, LazyContent, Section, SectionContent, SectionContents, UnresolvedSection},
+    section::{
+        HTMLContent, LazyContent, Section, SectionContent, SectionContents, UnresolvedSection,
+    },
     taxon::Taxon,
 };
 
@@ -61,17 +65,26 @@ impl CompileState {
         }
     }
 
-    fn compile(&mut self, shallows: &UnresolvedSections, slug: Slug) -> eyre::Result<Option<&Section>> {
+    fn compile(
+        &mut self,
+        shallows: &UnresolvedSections,
+        slug: Slug,
+    ) -> eyre::Result<Option<&Section>> {
         self.fetch_section(shallows, slug)
     }
 
-    fn fetch_section(&mut self, shallows: &UnresolvedSections, slug: Slug) -> eyre::Result<Option<&Section>> {
+    fn fetch_section(
+        &mut self,
+        shallows: &UnresolvedSections,
+        slug: Slug,
+    ) -> eyre::Result<Option<&Section>> {
         if self.compiled.contains_key(&slug) {
             return Ok(self.compiled.get(&slug));
         }
 
         if self.visiting.contains(&slug) {
-            let mut chain: Vec<String> = self.compile_stack.iter().map(ToString::to_string).collect();
+            let mut chain: Vec<String> =
+                self.compile_stack.iter().map(ToString::to_string).collect();
             chain.push(slug.to_string());
             return Err(eyre!("cyclic embed detected: {}", chain.join(" -> ")));
         }
@@ -200,7 +213,8 @@ impl CompileState {
                 } else {
                     return Err(eyre!(
                         "metadata field `{}` in `{}` is expected to be plain text",
-                        key, slug
+                        key,
+                        slug
                     ));
                 }
             } else {
@@ -277,10 +291,8 @@ fn is_reference(shallows: &UnresolvedSections, slug: Slug) -> eyre::Result<bool>
     match shallows.get(&slug) {
         Some(section) => {
             let metadata = &section.metadata;
-            Ok(
-                metadata.is_asref()?.unwrap_or(environment::asref())
-                    || Taxon::is_reference(metadata.data_taxon().map_or("", String::as_str)),
-            )
+            Ok(metadata.is_asref()?.unwrap_or(environment::asref())
+                || Taxon::is_reference(metadata.data_taxon().map_or("", String::as_str)))
         }
         None => Ok(false),
     }
@@ -298,9 +310,9 @@ fn is_backlink(shallows: &UnresolvedSections, slug: Slug) -> eyre::Result<bool> 
 
 #[cfg(test)]
 mod tests {
+    use super::super::section::{EmbedContent, SectionOption};
     use super::*;
     use crate::ordered_map::OrderedMap;
-    use super::super::section::{EmbedContent, SectionOption};
 
     fn shallow_with_content(slug: &str, content: HTMLContent) -> UnresolvedSection {
         let mut metadata = OrderedMap::new();
@@ -349,4 +361,3 @@ mod tests {
         assert!(err.to_string().contains("cyclic embed"));
     }
 }
-

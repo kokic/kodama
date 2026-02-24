@@ -20,12 +20,13 @@ pub struct UpgradeCommand {
 }
 
 pub fn upgrade(command: &UpgradeCommand) -> eyre::Result<()> {
-    let source_path = config::find_config(Utf8PathBuf::from(&command.config)).wrap_err_with(|| {
-        eyre!(
-            "failed to locate configuration file from \"{}\"",
-            command.config
-        )
-    })?;
+    let source_path =
+        config::find_config(Utf8PathBuf::from(&command.config)).wrap_err_with(|| {
+            eyre!(
+                "failed to locate configuration file from \"{}\"",
+                command.config
+            )
+        })?;
     let source = std::fs::read_to_string(&source_path)
         .wrap_err_with(|| eyre!("failed to read config file \"{}\"", source_path))?;
     let upgraded = upgrade_content(&source)?;

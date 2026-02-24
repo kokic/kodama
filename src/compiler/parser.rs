@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2025 Kodama Project. All rights reserved.
+// Copyright (c) 2025 Kodama Project. All rights reserved.
 // Released under the GPL-3.0 license as described in the file LICENSE.
 // Authors: Kokic (@kokic), Spore (@s-cerevisiae)
 
@@ -110,12 +110,16 @@ pub mod tests {
         let events = Embed::process(events, mocked_slug);
 
         let content = normalize_html_content(to_contents(events));
-        assert_eq!(content.as_str().unwrap(), "<pre><code class=\"language-rs\">let x = 1;\n</code></pre>\n");
+        assert_eq!(
+            content.as_str().unwrap(),
+            "<pre><code class=\"language-rs\">let x = 1;\n</code></pre>\n"
+        );
     }
 
     #[test]
     pub fn test_reference_link() {
-        let source = "---\nlink: [Alice][example]\n---\n\n[Bob][example]\n\n[example]: https://example.com";
+        let source =
+            "---\nlink: [Alice][example]\n---\n\n[Bob][example]\n\n[example]: https://example.com";
         let mocked_slug = Slug::new("-");
 
         let events = pulldown_cmark::Parser::new_ext(source, OPTIONS);
@@ -128,4 +132,3 @@ pub mod tests {
         assert_eq!(content.as_str().unwrap(), "<p><span class=\"link external\"><a href=\"https://example.com\" title=\"Bob [https://example.com]\">Bob</a></span></p>\n");
     }
 }
-

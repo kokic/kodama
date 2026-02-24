@@ -2,8 +2,8 @@
 // Released under the GPL-3.0 license as described in the file LICENSE.
 // Authors: Kokic (@kokic), Spore (@s-cerevisiae)
 
-use std::fs::{self};
 use std::collections::HashSet;
+use std::fs::{self};
 
 use camino::{Utf8Path, Utf8PathBuf};
 use eyre::eyre;

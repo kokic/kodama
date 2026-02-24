@@ -53,7 +53,10 @@ impl Callback {
                 if value.parent != "index" && existed.parent != value.parent {
                     color_print::ceprintln!(
                         "<y>Warning: Multiple parents for `{}`: `{}` and `{}`. Using {}.</>",
-                        child_slug, existed.parent, value.parent, existed.parent
+                        child_slug,
+                        existed.parent,
+                        value.parent,
+                        existed.parent
                     );
                 }
             }

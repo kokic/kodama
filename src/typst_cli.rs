@@ -229,7 +229,8 @@ mod tests {
 
     #[test]
     fn test_to_html_string_reports_typst_root_hint_for_missing_source() {
-        let base = std::env::temp_dir().join(format!("kodama-typst-root-hint-{}", fastrand::u64(..)));
+        let base =
+            std::env::temp_dir().join(format!("kodama-typst-root-hint-{}", fastrand::u64(..)));
         fs::create_dir_all(&base).unwrap();
         let base = Utf8PathBuf::from_path_buf(base).unwrap();
 

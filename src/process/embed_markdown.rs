@@ -5,16 +5,16 @@
 use super::{content::EventExtended, processer::url_action};
 use std::{fs, mem};
 
-use camino::Utf8PathBuf;
 use crate::{
     compiler::section::{EmbedContent, LocalLink, SectionOption},
-    path_utils,
     environment::{self, assets_dir, root_dir},
     html_flake::{html_code_block, html_link},
+    path_utils,
     process::typst_image::is_inline_typst,
     recorder::State,
     slug::Slug,
 };
+use camino::Utf8PathBuf;
 use pulldown_cmark::{html, Event, Tag, TagEnd};
 
 pub struct Embed<'e, E> {
@@ -55,7 +55,8 @@ impl<'e, E: Iterator<Item = Event<'e>>> Iterator for Embed<'e, E> {
                     let (url, action) = url_action(dest_url);
                     if action == State::Embed.strify() {
                         self.state = State::Embed;
-                        self.url = Some(resolve_embed_url(&url, self.current_slug)); // [0]
+                        self.url = Some(resolve_embed_url(&url, self.current_slug));
+                    // [0]
                     } else if action == State::Include.strify() {
                         self.state = State::Include;
                         self.url = Some(resolve_include_url(&url, self.current_slug));

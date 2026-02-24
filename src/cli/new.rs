@@ -89,7 +89,7 @@ pub fn add_project_files(site_path: &Utf8Path, no_typst: bool) -> eyre::Result<(
     if !no_typst {
         // Create the default Typst library directory `trees/_lib`
         std::fs::create_dir(&default_lib_dir)
-            .wrap_err("failed to create default _lib directory")?;        
+            .wrap_err("failed to create default _lib directory")?;
         std::fs::write(
             default_lib_dir.join("kodama.typ"),
             include_str!("../include/kodama.typ"),

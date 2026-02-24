@@ -11,12 +11,14 @@ use crate::{
     slug::{Ext, Slug},
 };
 
-use super::{
-    compile_from_shallows, incremental::{dirty_source_slugs, source_relative_path},
-    parse_source, stale::cleanup_stale_slug_artifacts, write_entry_cache, CompileOutputs, DirtySet,
-    Workspace,
-};
 use super::section::UnresolvedSection;
+use super::{
+    compile_from_shallows,
+    incremental::{dirty_source_slugs, source_relative_path},
+    parse_source,
+    stale::cleanup_stale_slug_artifacts,
+    write_entry_cache, CompileOutputs, DirtySet, Workspace,
+};
 
 #[derive(Default)]
 pub struct ServeCompileSession {
@@ -29,7 +31,11 @@ impl ServeCompileSession {
         self.initialized
     }
 
-    pub fn compile_full(&mut self, workspace: Workspace, outputs: CompileOutputs) -> eyre::Result<()> {
+    pub fn compile_full(
+        &mut self,
+        workspace: Workspace,
+        outputs: CompileOutputs,
+    ) -> eyre::Result<()> {
         let stale_slugs = cleanup_stale_slug_artifacts(&workspace)
             .wrap_err("failed to clean stale slug artifacts")?;
         let shallows = super::collect_shallows(&workspace, None)?;
@@ -59,9 +65,7 @@ impl ServeCompileSession {
             }
         }
 
-        let needs_full_write = parse_targets
-            .iter()
-            .any(|slug| !dirty_slugs.contains(slug));
+        let needs_full_write = parse_targets.iter().any(|slug| !dirty_slugs.contains(slug));
 
         for slug in parse_targets {
             let Some(&ext) = workspace.slug_exts.get(&slug) else {
@@ -80,7 +84,11 @@ impl ServeCompileSession {
         compile_from_shallows(
             &workspace,
             &self.shallows,
-            if needs_full_write { None } else { Some(dirty_paths) },
+            if needs_full_write {
+                None
+            } else {
+                Some(dirty_paths)
+            },
             outputs,
             stale_slugs,
         )
@@ -127,18 +135,14 @@ mod tests {
     #[test]
     fn test_needs_refresh_when_extension_matches() {
         let mut session = ServeCompileSession::default();
-        session
-            .shallows
-            .insert(Slug::new("a"), shallow("a", "md"));
+        session.shallows.insert(Slug::new("a"), shallow("a", "md"));
         assert!(!session.needs_refresh(Slug::new("a"), Ext::Markdown));
     }
 
     #[test]
     fn test_needs_refresh_when_extension_differs() {
         let mut session = ServeCompileSession::default();
-        session
-            .shallows
-            .insert(Slug::new("a"), shallow("a", "md"));
+        session.shallows.insert(Slug::new("a"), shallow("a", "md"));
         assert!(session.needs_refresh(Slug::new("a"), Ext::Typst));
     }
 }

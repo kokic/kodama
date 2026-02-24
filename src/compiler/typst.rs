@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2025 Kodama Project. All rights reserved.
+// Copyright (c) 2025 Kodama Project. All rights reserved.
 // Released under the GPL-3.0 license as described in the file LICENSE.
 // Authors: Alias Qli (@AliasQli), Spore (@s-cerevisiae), Kokic (@kokic)
 
@@ -11,7 +11,7 @@ use super::section::{HTMLContent, HTMLContentBuilder, LazyContent};
 use super::UnresolvedSection;
 use crate::entry::{HTMLMetaData, KEY_EXT, KEY_SLUG};
 use crate::ordered_map::OrderedMap;
-use crate::process::{metadata};
+use crate::process::metadata;
 use crate::slug::Slug;
 use crate::typst_cli;
 use std::borrow::Cow;
@@ -115,4 +115,3 @@ pub fn parse_typst<P: AsRef<Utf8Path>>(slug: Slug, root_dir: P) -> eyre::Result<
         content,
     })
 }
-

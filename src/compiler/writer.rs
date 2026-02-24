@@ -1,12 +1,17 @@
-﻿// Copyright (c) 2025 Kodama Project. All rights reserved.
+// Copyright (c) 2025 Kodama Project. All rights reserved.
 // Released under the GPL-3.0 license as described in the file LICENSE.
 // Authors: Kokic (@kokic), Spore (@s-cerevisiae)
 
-use std::{collections::HashSet, ops::Not};
 use eyre::eyre;
+use std::{collections::HashSet, ops::Not};
 
 use crate::{
-    compiler::{counter::Counter}, config::build::FooterMode, entry::MetaData, environment::{self, verify_update_hash}, html_flake::{self, html_footer_section}, slug::Slug
+    compiler::counter::Counter,
+    config::build::FooterMode,
+    entry::MetaData,
+    environment::{self, verify_update_hash},
+    html_flake::{self, html_footer_section},
+    slug::Slug,
 };
 
 use super::{
@@ -156,28 +161,28 @@ impl Writer {
 
         let backlinks_text = environment::get_footer_backlinks_text();
         let backlinks_html = if let Some(s) = callback {
-                let mut backlinks: Vec<Slug> = s.backlinks.iter().copied().collect();
-                backlinks.sort();
-                let mut content = String::new();
-                for slug in backlinks {
-                    let Some(section) = state.compiled().get(&slug) else {
-                        color_print::ceprintln!(
-                            "<y>Warning: missing backlink section `{}`; skipping footer backlink.</>",
-                            slug
-                        );
-                        continue;
-                    };
-                    content.push_str(&Writer::footer_section_to_html(footer_mode, section)?);
-                }
+            let mut backlinks: Vec<Slug> = s.backlinks.iter().copied().collect();
+            backlinks.sort();
+            let mut content = String::new();
+            for slug in backlinks {
+                let Some(section) = state.compiled().get(&slug) else {
+                    color_print::ceprintln!(
+                        "<y>Warning: missing backlink section `{}`; skipping footer backlink.</>",
+                        slug
+                    );
+                    continue;
+                };
+                content.push_str(&Writer::footer_section_to_html(footer_mode, section)?);
+            }
 
-                if content.is_empty() {
-                    String::default()
-                } else {
-                    html_footer_section("backlinks", &backlinks_text, &content)
-                }
-            } else {
+            if content.is_empty() {
                 String::default()
-            };
+            } else {
+                html_footer_section("backlinks", &backlinks_text, &content)
+            }
+        } else {
+            String::default()
+        };
 
         Ok(html_flake::html_footer(&references_html, &backlinks_html))
     }
@@ -392,4 +397,3 @@ mod tests {
         assert!(err.to_string().contains("invalid bool metadata"));
     }
 }
-

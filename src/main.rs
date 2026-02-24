@@ -64,18 +64,18 @@ enum Command {
     #[command(visible_alias = "i")]
     Init(InitCommand),
 
-    /// Compile current workspace dir to HTMLs. 
-    /// 
+    /// Compile current workspace dir to HTMLs.
+    ///
     /// Emits "kodama.json" and "kodama.graph.json" by default (override with output flags).
     #[command(visible_alias = "b")]
     Build(BuildCommand),
 
     /// Serve a forest at http://localhost:<port>, and rebuilds it on changes.
-    /// 
+    ///
     /// Does not emit "kodama.json" / "kodama.graph.json" by default.
     ///
-    /// Server by default depends on the miniserve program in the user's environment. 
-    /// Also see the configuration file (e.g., "Kodama.toml"). 
+    /// Server by default depends on the miniserve program in the user's environment.
+    /// Also see the configuration file (e.g., "Kodama.toml").
     #[command(visible_alias = "s")]
     Serve(ServeCommand),
 

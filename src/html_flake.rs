@@ -3,7 +3,11 @@
 // Authors: Kokic (@kokic), Spore (@s-cerevisiae)
 
 use crate::{
-    cli::serve, entry::{EntryMetaData, MetaData}, environment::{self, input_path}, html_macro::html, slug::Slug
+    cli::serve,
+    entry::{EntryMetaData, MetaData},
+    environment::{self, input_path},
+    html_macro::html,
+    slug::Slug,
 };
 
 pub fn html_article_inner(

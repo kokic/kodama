@@ -3,7 +3,10 @@
 // Authors: Kokic (@kokic), Spore (@s-cerevisiae)
 
 use crate::{
-    compiler::{parser::parse_spanned_markdown, section::HTMLContent}, entry::KEY_SLUG, ordered_map::OrderedMap, slug::Slug
+    compiler::{parser::parse_spanned_markdown, section::HTMLContent},
+    entry::KEY_SLUG,
+    ordered_map::OrderedMap,
+    slug::Slug,
 };
 use eyre::eyre;
 use pulldown_cmark::{Event, Tag, TagEnd};
@@ -65,16 +68,14 @@ fn parse_metadata(s: &str, metadata: &mut OrderedMap<String, HTMLContent>) -> ey
 
     for (line_no, s) in s.lines().enumerate() {
         if !s.trim().is_empty() {
-            let pos = s
-                .find(':')
-                .ok_or_else(|| {
-                    eyre!(
-                        "invalid metadata in `{}` at line {}: expected `name: value`, found `{}`",
-                        current_slug,
-                        line_no + 1,
-                        s
-                    )
-                })?;
+            let pos = s.find(':').ok_or_else(|| {
+                eyre!(
+                    "invalid metadata in `{}` at line {}: expected `name: value`, found `{}`",
+                    current_slug,
+                    line_no + 1,
+                    s
+                )
+            })?;
             let key = s[0..pos].trim();
             let val = s[pos + 1..].trim();
 

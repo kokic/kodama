@@ -5,7 +5,10 @@
 use std::{
     fs,
     io::Write,
-    sync::{atomic::{AtomicU64, Ordering}, Mutex, OnceLock},
+    sync::{
+        atomic::{AtomicU64, Ordering},
+        Mutex, OnceLock,
+    },
     time::{SystemTime, UNIX_EPOCH},
 };
 
@@ -106,13 +109,15 @@ pub fn build_with_dirty(
     let root = environment::root_dir();
     let workspace = all_trees_source(&environment::trees_dir(), dirty_paths)?;
     let expanded_dirty = dirty_paths.map(|paths| compiler::expand_dirty_paths(&workspace, paths));
-    compile_with_mode(mode, workspace, expanded_dirty.as_ref(), options.outputs).wrap_err_with(|| {
-        let root_display = root
-            .canonicalize()
-            .map(|p| p.display().to_string())
-            .unwrap_or_else(|_| root.as_str().to_string());
-        eyre!("failed to compile site `{}`", root_display)
-    })?;
+    compile_with_mode(mode, workspace, expanded_dirty.as_ref(), options.outputs).wrap_err_with(
+        || {
+            let root_display = root
+                .canonicalize()
+                .map(|p| p.display().to_string())
+                .unwrap_or_else(|_| root.as_str().to_string());
+            eyre!("failed to compile site `{}`", root_display)
+        },
+    )?;
 
     sync_assets_dir()?;
     write_reload_marker(mode)?;

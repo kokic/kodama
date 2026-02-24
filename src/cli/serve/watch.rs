@@ -166,7 +166,10 @@ fn fold_watch_change_lines(
         }
 
         if state.last_count > 1 {
-            lines.push(format!("[watch] Change: \"{}\" (x{})", path, state.last_count));
+            lines.push(format!(
+                "[watch] Change: \"{}\" (x{})",
+                path, state.last_count
+            ));
         } else {
             lines.push(format!("[watch] Change: \"{}\"", path));
         }

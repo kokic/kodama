@@ -67,10 +67,7 @@ pub const KEY_ASBACK: &str = "asback";
 /// `footer-mode: embed | link`
 pub const KEY_FOOTER_MODE: &str = "footer-mode";
 
-const FANCY_METADATA: [&str; 2] = [
-    KEY_TITLE,
-    KEY_TAXON,
-];
+const FANCY_METADATA: [&str; 2] = [KEY_TITLE, KEY_TAXON];
 
 const PLAIN_METADATA: [&str; 12] = [
     KEY_SLUG,
@@ -310,7 +307,10 @@ impl EntryMetaData {
             return Ok(None);
         };
         value.parse().map(Some).map_err(|_| {
-            let slug = self.get_str(KEY_SLUG).map(String::as_str).unwrap_or("<unknown>");
+            let slug = self
+                .get_str(KEY_SLUG)
+                .map(String::as_str)
+                .unwrap_or("<unknown>");
             eyre!(
                 "invalid metadata in `{}`: `footer-mode = {}` (expected `embed` or `link`)",
                 slug,

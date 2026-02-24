@@ -40,9 +40,7 @@ impl Taxon {
     }
 
     pub fn to_data_taxon(taxon_display: &str) -> &str {
-        let dot = taxon_display
-            .find(".")
-            .map_or(taxon_display.len(), |n| n);
+        let dot = taxon_display.find(".").map_or(taxon_display.len(), |n| n);
         &taxon_display[0..dot]
     }
 }

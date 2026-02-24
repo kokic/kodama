@@ -2,9 +2,9 @@
 // Released under the GPL-3.0 license as described in the file LICENSE.
 // Authors: Kokic (@kokic)
 
-pub mod new;
-pub mod init;
 pub mod build;
+pub mod init;
+pub mod new;
 pub mod output;
 pub mod serve;
 pub mod snip;

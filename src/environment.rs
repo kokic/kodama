@@ -7,28 +7,30 @@ use std::sync::{OnceLock, RwLock};
 use camino::Utf8PathBuf;
 use eyre::eyre;
 
-use crate::{config::{self, Config}, path_utils};
+use crate::{
+    config::{self, Config},
+    path_utils,
+};
 
-mod config_access;
 mod cache;
+mod config_access;
 mod hashing;
 mod imports;
 mod paths;
 
-pub use config_access::{
-    asref, assets_dir, base_url, base_url_raw, deploy_edit_url, editor_url,
-    footer_mode, get_cache_dir, get_edit_text, get_footer_backlinks_text,
-    get_footer_references_text, get_toc_text, graph_path, indexes_path, inline_css,
-    is_short_slug, is_toc_left, is_toc_mobile_sticky, is_toc_sticky, output_dir,
-    reload_marker_path, serve_command, serve_dir, theme_paths, toc_max_width, trees_dir,
-    trees_dir_without_root, typst_root_dir,
-};
 pub use cache::ensure_cache_version;
+pub use config_access::{
+    asref, assets_dir, base_url, base_url_raw, deploy_edit_url, editor_url, footer_mode,
+    get_cache_dir, get_edit_text, get_footer_backlinks_text, get_footer_references_text,
+    get_toc_text, graph_path, indexes_path, inline_css, is_short_slug, is_toc_left,
+    is_toc_mobile_sticky, is_toc_sticky, output_dir, reload_marker_path, serve_command, serve_dir,
+    theme_paths, toc_max_width, trees_dir, trees_dir_without_root, typst_root_dir,
+};
 pub use hashing::{verify_and_file_hash, verify_update_hash};
 pub use imports::{import_fonts_html, import_math_html, import_meta_html, import_style_html};
 pub use paths::{
-    create_parent_dirs, entry_dir, entry_file_path, full_html_url, full_url,
-    hash_dir, hash_file_path, input_path, output_path,
+    create_parent_dirs, entry_dir, entry_file_path, full_html_url, full_url, hash_dir,
+    hash_file_path, input_path, output_path,
 };
 
 pub struct Environment {

@@ -11,7 +11,7 @@ pub enum State {
     Embed,
 
     /// Include contents
-    Include, 
+    Include,
 
     /// Shared for inline typst
     Shared,
@@ -33,7 +33,7 @@ pub enum State {
 
     LocalLink,
     ExternalLink,
-    AssetFile, 
+    AssetFile,
 }
 
 impl State {

@@ -39,7 +39,10 @@ fn to_slug_ext(source_dir: &Utf8Path, p: &Utf8Path) -> Option<(Slug, Ext)> {
 /// Collect all source file paths in `<trees>` dir.
 ///
 /// **Side effect: update the `.hash` & `.svg` file of all modified `.typ` files.**
-pub fn all_trees_source(trees_dir: &Utf8Path, dirty_paths: Option<&DirtySet>) -> eyre::Result<Workspace> {
+pub fn all_trees_source(
+    trees_dir: &Utf8Path,
+    dirty_paths: Option<&DirtySet>,
+) -> eyre::Result<Workspace> {
     let mut slug_exts = HashMap::new();
 
     let failed_to_read_dir = |dir: &Utf8Path| eyre!("failed to read directory `{}`", dir);
