@@ -2,7 +2,7 @@
 // Released under the GPL-3.0 license as described in the file LICENSE.
 // Authors: Kokic (@kokic), Spore (@s-cerevisiae)
 
-use std::{collections::HashSet, io::Write, sync::OnceLock};
+use std::{io::Write, sync::OnceLock};
 
 use camino::{Utf8Path, Utf8PathBuf};
 use eyre::eyre;
@@ -241,6 +241,39 @@ fn display_watch_path(path: &Utf8Path) -> String {
     path.as_str().replace('\\', "/")
 }
 
+fn fold_watch_change_lines(changed_paths: &[Utf8PathBuf]) -> Vec<String> {
+    let mut lines = Vec::new();
+    let mut iter = changed_paths.iter();
+    let Some(first) = iter.next() else {
+        return lines;
+    };
+
+    let mut current = display_watch_path(first.as_path());
+    let mut count = 1usize;
+
+    for path in iter {
+        let next = display_watch_path(path.as_path());
+        if next == current {
+            count += 1;
+            continue;
+        }
+        if count > 1 {
+            lines.push(format!("[watch] Change: \"{}\" (x{})", current, count));
+        } else {
+            lines.push(format!("[watch] Change: \"{}\"", current));
+        }
+        current = next;
+        count = 1;
+    }
+
+    if count > 1 {
+        lines.push(format!("[watch] Change: \"{}\" (x{})", current, count));
+    } else {
+        lines.push(format!("[watch] Change: \"{}\"", current));
+    }
+    lines
+}
+
 fn is_optional_import_watch_path(path: &Utf8Path) -> bool {
     matches!(
         path.file_name(),
@@ -301,7 +334,7 @@ where
     let (tx, rx) = std::sync::mpsc::channel();
     let debounce = std::time::Duration::from_millis(250);
     let mut last_run = std::time::Instant::now() - debounce;
-    let mut pending_changes: HashSet<Utf8PathBuf> = HashSet::new();
+    let mut pending_changes: Vec<Utf8PathBuf> = Vec::new();
 
     // Automatically select the best implementation for your platform.
     // You can also access each implementation directly e.g. INotifyWatcher.
@@ -344,7 +377,7 @@ where
                 if should_handle_watch_event(&event.kind) {
                     event.paths.iter().for_each(|path| {
                         if let Ok(path) = Utf8PathBuf::from_path_buf(path.clone()) {
-                            pending_changes.insert(path);
+                            pending_changes.push(path);
                         }
                     });
                     if pending_changes.is_empty() {
@@ -356,9 +389,9 @@ where
                         continue;
                     }
 
-                    let changed_paths: Vec<Utf8PathBuf> = pending_changes.drain().collect();
-                    for path in &changed_paths {
-                        println!("[watch] Change: \"{}\"", display_watch_path(path.as_path()));
+                    let changed_paths: Vec<Utf8PathBuf> = std::mem::take(&mut pending_changes);
+                    for line in fold_watch_change_lines(&changed_paths) {
+                        println!("{line}");
                     }
                     std::io::stdout().flush()?;
                     if let Err(err) = action(&changed_paths) {
@@ -554,6 +587,38 @@ mod tests {
             display_watch_path(Utf8Path::new(r".\site\trees\a.md")),
             "./site/trees/a.md"
         );
+    }
+
+    #[test]
+    fn test_fold_watch_change_lines_collapses_only_consecutive_duplicates() {
+        let changed = vec![
+            Utf8PathBuf::from("site/trees/a.md"),
+            Utf8PathBuf::from("site/trees/a.md"),
+            Utf8PathBuf::from("site/trees/b.md"),
+            Utf8PathBuf::from("site/trees/b.md"),
+            Utf8PathBuf::from("site/trees/c.md"),
+            Utf8PathBuf::from("site/trees/b.md"),
+        ];
+        let lines = fold_watch_change_lines(&changed);
+        assert_eq!(
+            lines,
+            vec![
+                "[watch] Change: \"site/trees/a.md\" (x2)".to_string(),
+                "[watch] Change: \"site/trees/b.md\" (x2)".to_string(),
+                "[watch] Change: \"site/trees/c.md\"".to_string(),
+                "[watch] Change: \"site/trees/b.md\"".to_string(),
+            ]
+        );
+    }
+
+    #[test]
+    fn test_fold_watch_change_lines_normalizes_windows_separators() {
+        let changed = vec![
+            Utf8PathBuf::from(r".\site\trees\a.md"),
+            Utf8PathBuf::from(r".\site\trees\a.md"),
+        ];
+        let lines = fold_watch_change_lines(&changed);
+        assert_eq!(lines, vec!["[watch] Change: \"./site/trees/a.md\" (x2)"]);
     }
 
     #[test]
