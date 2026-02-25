@@ -10,6 +10,7 @@ pub mod figure;
 pub mod footnote;
 pub mod metadata;
 pub mod processer;
+pub mod text_elaborator;
 pub mod typst_image;
 
 pub fn ignore_paragraph<'e, I>(events: I) -> impl Iterator<Item = Event<'e>>

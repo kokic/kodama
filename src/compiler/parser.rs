@@ -14,7 +14,8 @@ use crate::{
     ordered_map::OrderedMap,
     process::{
         content::to_contents, embed_markdown::Embed, figure::Figure, footnote::Footnote,
-        ignore_paragraph, metadata::Metadata, typst_image::TypstImage,
+        ignore_paragraph, metadata::Metadata, text_elaborator::TextElaborator,
+        typst_image::TypstImage,
     },
     slug::Slug,
 };
@@ -54,6 +55,7 @@ pub fn parse_markdown(slug: Slug) -> eyre::Result<UnresolvedSection> {
             let events = Footnote::process(events, slug);
             let events = Figure::process(events);
             let events = TypstImage::process(events, slug);
+            let events = TextElaborator::process(events);
             let events = Embed::process(events, slug);
             normalize_html_content(to_contents(events))
         })
@@ -67,7 +69,9 @@ pub fn parse_markdown(slug: Slug) -> eyre::Result<UnresolvedSection> {
 pub fn parse_spanned_markdown(markdown_input: &str, slug: Slug) -> HTMLContent {
     let events = pulldown_cmark::Parser::new_ext(markdown_input, OPTIONS);
     let events = ignore_paragraph(events);
-    let events = Embed::process(TypstImage::process(events, slug), slug);
+    let events = TypstImage::process(events, slug);
+    let events = TextElaborator::process(events);
+    let events = Embed::process(events, slug);
     normalize_html_content(to_contents(events))
 }
 
@@ -92,6 +96,7 @@ pub mod tests {
         let events = Footnote::process(events, mocked_slug);
         let events = Figure::process(events);
         let events = TypstImage::process(events, mocked_slug);
+        let events = TextElaborator::process(events);
         let events = Embed::process(events, mocked_slug);
 
         let content = normalize_html_content(to_contents(events));
@@ -107,6 +112,7 @@ pub mod tests {
         let events = Footnote::process(events, mocked_slug);
         let events = Figure::process(events);
         let events = TypstImage::process(events, mocked_slug);
+        let events = TextElaborator::process(events);
         let events = Embed::process(events, mocked_slug);
 
         let content = normalize_html_content(to_contents(events));
@@ -126,9 +132,19 @@ pub mod tests {
         let events = Footnote::process(events, mocked_slug);
         let events = Figure::process(events);
         let events = TypstImage::process(events, mocked_slug);
+        let events = TextElaborator::process(events);
         let events = Embed::process(events, mocked_slug);
 
         let content = normalize_html_content(to_contents(events));
         assert_eq!(content.as_str().unwrap(), "<p><span class=\"link external\"><a href=\"https://example.com\" title=\"Bob [https://example.com]\">Bob</a></span></p>\n");
+    }
+
+    #[test]
+    pub fn test_parse_spanned_markdown_wraps_cjk_text() {
+        let content = parse_spanned_markdown("hello 中文 world", Slug::new("-"));
+        assert_eq!(
+            content.as_str().unwrap(),
+            "hello <span class=\"cjk-text\">中文</span> world"
+        );
     }
 }
