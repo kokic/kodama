@@ -58,7 +58,7 @@ impl<'e, E: Iterator<Item = Event<'e>>> Iterator for TextElaborator<'e, E> {
             return Some(pending);
         }
 
-        for event in self.events.by_ref() {
+        while let Some(event) = self.events.next() {
             match event {
                 Event::Start(Tag::CodeBlock(_)) => {
                     self.in_code_block += 1;
