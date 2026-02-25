@@ -49,7 +49,7 @@ pub struct BuildCommand {
 static VERBOSE: OnceLock<bool> = OnceLock::new();
 static VERBOSE_SKIP: OnceLock<bool> = OnceLock::new();
 static NO_CACHE: OnceLock<bool> = OnceLock::new();
-static RELOAD_MARKER_SEQUENCE: AtomicU64 = AtomicU64::new(0);
+static ATOMIC_WRITE_SEQUENCE: AtomicU64 = AtomicU64::new(0);
 static SERVE_SESSION: OnceLock<Mutex<Option<compiler::ServeCompileSession>>> = OnceLock::new();
 
 #[derive(Clone, Copy)]
@@ -183,17 +183,72 @@ fn clear_serve_session() {
 }
 
 fn export_css_files() -> eyre::Result<()> {
-    export_css_file(html_flake::html_main_style(), "main.css")?;
+    sync_css_file(html_flake::html_main_style(), "main.css")?;
     Ok(())
 }
 
-fn export_css_file(css_content: &str, name: &str) -> eyre::Result<()> {
+fn sync_css_file(css_content: &str, name: &str) -> eyre::Result<()> {
     let path = output_path(name);
     let path = Utf8Path::new(&path);
-    if !path.exists() {
-        fs::write(path, css_content)
-            .wrap_err_with(|| eyre!("failed to write CSS file to \"{}\"", path))?;
+    sync_text_output(path, css_content, "CSS file")
+}
+
+fn sync_text_output(path: &Utf8Path, content: &str, label: &str) -> eyre::Result<()> {
+    match fs::read_to_string(path.as_std_path()) {
+        Ok(existing) if existing == content => return Ok(()),
+        Ok(_) => {}
+        Err(err) if err.kind() == std::io::ErrorKind::NotFound => {}
+        Err(err) => {
+            return Err(err).wrap_err_with(|| eyre!("failed to read {} from \"{}\"", label, path));
+        }
     }
+
+    write_text_atomically(path, content, label)
+}
+
+fn write_text_atomically(path: &Utf8Path, content: &str, label: &str) -> eyre::Result<()> {
+    environment::create_parent_dirs(path);
+    let parent = path.parent().ok_or_else(|| {
+        eyre!(
+            "failed to resolve parent directory for {} `{}`",
+            label,
+            path
+        )
+    })?;
+    let filename = path
+        .file_name()
+        .ok_or_else(|| eyre!("failed to resolve filename for {} `{}`", label, path))?;
+    let temp_filename = format!(
+        "{filename}.tmp.{}.{}",
+        std::process::id(),
+        next_atomic_write_stamp()
+    );
+    let temp_path = parent.join(temp_filename);
+
+    let write_result = (|| -> eyre::Result<()> {
+        let mut file = fs::File::create(temp_path.as_std_path())
+            .wrap_err_with(|| eyre!("failed to create temp {} `{}`", label, temp_path))?;
+        file.write_all(content.as_bytes())
+            .wrap_err_with(|| eyre!("failed to write temp {} `{}`", label, temp_path))?;
+        file.sync_all()
+            .wrap_err_with(|| eyre!("failed to sync temp {} `{}`", label, temp_path))?;
+        Ok(())
+    })();
+
+    if let Err(err) = write_result {
+        let _ = fs::remove_file(temp_path.as_std_path());
+        return Err(err);
+    }
+
+    fs::rename(temp_path.as_std_path(), path.as_std_path()).wrap_err_with(|| {
+        eyre!(
+            "failed to atomically replace {} `{}` from `{}`",
+            label,
+            path,
+            temp_path
+        )
+    })?;
+
     Ok(())
 }
 
@@ -221,54 +276,20 @@ fn write_reload_marker(mode: BuildMode) -> eyre::Result<()> {
 }
 
 fn next_reload_marker_stamp() -> String {
+    next_atomic_write_stamp()
+}
+
+fn next_atomic_write_stamp() -> String {
     let nanos = SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .unwrap_or_default()
         .as_nanos();
-    let sequence = RELOAD_MARKER_SEQUENCE.fetch_add(1, Ordering::Relaxed);
+    let sequence = ATOMIC_WRITE_SEQUENCE.fetch_add(1, Ordering::Relaxed);
     format!("{nanos}-{sequence}")
 }
 
 fn write_reload_marker_atomically(marker_path: &Utf8Path, stamp: &str) -> eyre::Result<()> {
-    environment::create_parent_dirs(marker_path);
-    let parent = marker_path.parent().ok_or_else(|| {
-        eyre!(
-            "failed to resolve parent directory for reload marker `{}`",
-            marker_path
-        )
-    })?;
-    let filename = marker_path.file_name().ok_or_else(|| {
-        eyre!(
-            "failed to resolve filename for reload marker `{}`",
-            marker_path
-        )
-    })?;
-    let temp_filename = format!("{filename}.tmp.{}.{}", std::process::id(), stamp);
-    let temp_path = parent.join(temp_filename);
-
-    let write_result = (|| -> eyre::Result<()> {
-        let mut file = fs::File::create(temp_path.as_std_path())
-            .wrap_err_with(|| eyre!("failed to create temp reload marker `{}`", temp_path))?;
-        file.write_all(stamp.as_bytes())
-            .wrap_err_with(|| eyre!("failed to write temp reload marker `{}`", temp_path))?;
-        file.sync_all()
-            .wrap_err_with(|| eyre!("failed to sync temp reload marker `{}`", temp_path))?;
-        Ok(())
-    })();
-
-    if let Err(err) = write_result {
-        let _ = fs::remove_file(temp_path.as_std_path());
-        return Err(err);
-    }
-
-    fs::rename(temp_path.as_std_path(), marker_path.as_std_path()).wrap_err_with(|| {
-        eyre!(
-            "failed to atomically replace reload marker `{}` from `{}`",
-            marker_path,
-            temp_path
-        )
-    })?;
-    Ok(())
+    sync_text_output(marker_path, stamp, "reload marker")
 }
 
 #[cfg(test)]
@@ -296,6 +317,23 @@ mod tests {
         write_reload_marker_atomically(marker.as_path(), "v2").unwrap();
         let second = fs::read_to_string(marker.as_std_path()).unwrap();
         assert_eq!(second, "v2");
+
+        let _ = fs::remove_dir_all(base.as_std_path());
+    }
+
+    #[test]
+    fn test_sync_css_file_overwrites_when_content_changes() {
+        let base = std::env::temp_dir().join(format!("kodama-css-sync-{}", fastrand::u64(..)));
+        let base = Utf8PathBuf::from_path_buf(base).unwrap();
+        let css_path = base.join("build/main.css");
+
+        sync_text_output(css_path.as_path(), "body{color:black;}", "CSS file").unwrap();
+        let first = fs::read_to_string(css_path.as_std_path()).unwrap();
+        assert_eq!(first, "body{color:black;}");
+
+        sync_text_output(css_path.as_path(), "body{color:white;}", "CSS file").unwrap();
+        let second = fs::read_to_string(css_path.as_std_path()).unwrap();
+        assert_eq!(second, "body{color:white;}");
 
         let _ = fs::remove_dir_all(base.as_std_path());
     }
