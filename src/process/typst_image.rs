@@ -2,7 +2,11 @@
 // Released under the GPL-3.0 license as described in the file LICENSE.
 // Authors: Kokic (@kokic), Spore (@s-cerevisiae)
 
-use std::{fmt::Write, fs};
+use std::{
+    fmt::Write,
+    fs,
+    sync::atomic::{AtomicBool, Ordering},
+};
 
 use camino::Utf8PathBuf;
 use pulldown_cmark::{Event, Tag, TagEnd};
@@ -17,6 +21,20 @@ use crate::{
 };
 
 use super::processer::url_action;
+
+static TYPEST_IMAGE_ERROR_FLAG: AtomicBool = AtomicBool::new(false);
+
+pub fn reset_typst_image_error_flag() {
+    TYPEST_IMAGE_ERROR_FLAG.store(false, Ordering::Relaxed);
+}
+
+pub fn typst_image_error_detected() -> bool {
+    TYPEST_IMAGE_ERROR_FLAG.load(Ordering::Relaxed)
+}
+
+fn record_typst_image_error() {
+    TYPEST_IMAGE_ERROR_FLAG.store(true, Ordering::Relaxed);
+}
 
 pub struct TypstImage<E> {
     events: E,
@@ -96,6 +114,7 @@ impl<'e, E: Iterator<Item = Event<'e>>> Iterator for TypstImage<E> {
                             match typst_cli::file_to_html(typst_url.as_str(), trees_dir.as_str()) {
                                 Ok(inline_html) => inline_html,
                                 Err(err) => {
+                                    record_typst_image_error();
                                     color_print::ceprintln!(
                                         "<r>{:?} at {}</>",
                                         err,
@@ -109,6 +128,7 @@ impl<'e, E: Iterator<Item = Event<'e>>> Iterator for TypstImage<E> {
                             match write_to_inline_html(typst_url, html_path) {
                                 Ok(inline_html) => inline_html,
                                 Err(err) => {
+                                    record_typst_image_error();
                                     color_print::ceprintln!(
                                         "<r>{:?} at {}</>",
                                         err,
@@ -153,6 +173,7 @@ impl<'e, E: Iterator<Item = Event<'e>>> Iterator for TypstImage<E> {
                         let html = match typst_cli::source_to_inline_svg(&inline_typst) {
                             Ok(svg) => svg,
                             Err(err) => {
+                                record_typst_image_error();
                                 color_print::ceprintln!("<r>{:?} at {}</>", err, self.current_slug);
                                 String::new()
                             }

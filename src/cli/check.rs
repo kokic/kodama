@@ -14,6 +14,7 @@ use crate::{
     config,
     environment::{self, BuildMode},
     path_utils,
+    process::typst_image::{reset_typst_image_error_flag, typst_image_error_detected},
     slug::{self, Ext, Slug},
 };
 
@@ -83,7 +84,13 @@ pub fn check(command: &CheckCommand) -> eyre::Result<()> {
         ));
     }
 
+    reset_typst_image_error_flag();
     let shallows = parse_shallows_no_cache(&workspace, &mut diagnostics);
+    if typst_image_error_detected() {
+        diagnostics.push(Diagnostic::error(
+            "Typst render errors were detected while elaborating markdown content.",
+        ));
+    }
     collect_dangling_local_links(&shallows, &workspace, &mut diagnostics);
     let has_parse_errors = diagnostics.iter().any(|d| d.severity == Severity::Error);
     if !has_parse_errors {
