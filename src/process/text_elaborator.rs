@@ -6,19 +6,21 @@ use std::collections::VecDeque;
 
 use pulldown_cmark::{Event, Tag, TagEnd};
 
+const DEFAULT_HAN_LANG: &str = "zh";
+
 #[derive(Clone, Copy, PartialEq, Eq)]
-enum SpanClass {
-    Han,
-    Japanese,
-    Korean,
+enum LangTag {
+    Zh,
+    Ja,
+    Ko,
 }
 
-impl SpanClass {
-    fn css_class(self) -> &'static str {
+impl LangTag {
+    fn as_bcp47(self) -> &'static str {
         match self {
-            Self::Han => "text-han",
-            Self::Japanese => "text-japanese",
-            Self::Korean => "text-korean",
+            Self::Zh => DEFAULT_HAN_LANG,
+            Self::Ja => "ja",
+            Self::Ko => "ko",
         }
     }
 }
@@ -89,14 +91,14 @@ impl<'e, E> TextElaborator<'e, E> {
         }
 
         let mut run = String::new();
-        let mut span_class: Option<SpanClass> = None;
+        let mut lang_tag: Option<LangTag> = None;
 
         for ch in text.chars() {
             match classify_char(ch) {
                 CharClass::Other => {
-                    if span_class.is_some() {
-                        self.flush_run(&mut run, span_class);
-                        span_class = None;
+                    if lang_tag.is_some() {
+                        self.flush_run(&mut run, lang_tag);
+                        lang_tag = None;
                     }
                     run.push(ch);
                 }
@@ -104,55 +106,55 @@ impl<'e, E> TextElaborator<'e, E> {
                     run.push(ch);
                 }
                 CharClass::Han => {
-                    if span_class.is_none() && !run.is_empty() {
+                    if lang_tag.is_none() && !run.is_empty() {
                         self.flush_run(&mut run, None);
                     }
-                    if span_class.is_none() {
-                        span_class = Some(SpanClass::Han);
+                    if lang_tag.is_none() {
+                        lang_tag = Some(LangTag::Zh);
                     }
                     run.push(ch);
                 }
                 CharClass::Japanese => {
-                    if span_class == Some(SpanClass::Korean) {
-                        self.flush_run(&mut run, span_class);
-                        span_class = None;
+                    if lang_tag == Some(LangTag::Ko) {
+                        self.flush_run(&mut run, lang_tag);
+                        lang_tag = None;
                     }
-                    if span_class.is_none() && !run.is_empty() {
+                    if lang_tag.is_none() && !run.is_empty() {
                         self.flush_run(&mut run, None);
                     }
-                    if matches!(span_class, None | Some(SpanClass::Han)) {
-                        span_class = Some(SpanClass::Japanese);
+                    if matches!(lang_tag, None | Some(LangTag::Zh)) {
+                        lang_tag = Some(LangTag::Ja);
                     }
                     run.push(ch);
                 }
                 CharClass::Korean => {
-                    if span_class == Some(SpanClass::Japanese) {
-                        self.flush_run(&mut run, span_class);
-                        span_class = None;
+                    if lang_tag == Some(LangTag::Ja) {
+                        self.flush_run(&mut run, lang_tag);
+                        lang_tag = None;
                     }
-                    if span_class.is_none() && !run.is_empty() {
+                    if lang_tag.is_none() && !run.is_empty() {
                         self.flush_run(&mut run, None);
                     }
-                    if matches!(span_class, None | Some(SpanClass::Han)) {
-                        span_class = Some(SpanClass::Korean);
+                    if matches!(lang_tag, None | Some(LangTag::Zh)) {
+                        lang_tag = Some(LangTag::Ko);
                     }
                     run.push(ch);
                 }
             }
         }
 
-        self.flush_run(&mut run, span_class);
+        self.flush_run(&mut run, lang_tag);
     }
 
-    fn flush_run(&mut self, run: &mut String, span_class: Option<SpanClass>) {
+    fn flush_run(&mut self, run: &mut String, lang_tag: Option<LangTag>) {
         if run.is_empty() {
             return;
         }
         let text = std::mem::take(run);
-        match span_class {
-            Some(span_class) => {
+        match lang_tag {
+            Some(lang_tag) => {
                 self.pending.push_back(Event::InlineHtml(
-                    format!(r#"<span class="{}">"#, span_class.css_class()).into(),
+                    format!(r#"<span lang="{}">"#, lang_tag.as_bcp47()).into(),
                 ));
                 self.pending.push_back(Event::Text(text.into()));
                 self.pending
@@ -244,28 +246,28 @@ mod tests {
         let actual = TextElaborator::process(events.into_iter()).collect::<Vec<_>>();
         assert_eq!(actual.len(), 5);
         assert_text(&actual[0], "hello ");
-        assert_inline_html(&actual[1], r#"<span class="text-han">"#);
+        assert_inline_html(&actual[1], r#"<span lang="zh">"#);
         assert_text(&actual[2], "中文");
         assert_inline_html(&actual[3], "</span>");
         assert_text(&actual[4], " world");
     }
 
     #[test]
-    fn test_uses_japanese_class_when_kana_present() {
+    fn test_uses_japanese_lang_when_kana_present() {
         let events = vec![Event::Text("漢字かな".into())];
         let actual = TextElaborator::process(events.into_iter()).collect::<Vec<_>>();
         assert_eq!(actual.len(), 3);
-        assert_inline_html(&actual[0], r#"<span class="text-japanese">"#);
+        assert_inline_html(&actual[0], r#"<span lang="ja">"#);
         assert_text(&actual[1], "漢字かな");
         assert_inline_html(&actual[2], "</span>");
     }
 
     #[test]
-    fn test_uses_korean_class_when_hangul_present() {
+    fn test_uses_korean_lang_when_hangul_present() {
         let events = vec![Event::Text("한글漢字".into())];
         let actual = TextElaborator::process(events.into_iter()).collect::<Vec<_>>();
         assert_eq!(actual.len(), 3);
-        assert_inline_html(&actual[0], r#"<span class="text-korean">"#);
+        assert_inline_html(&actual[0], r#"<span lang="ko">"#);
         assert_text(&actual[1], "한글漢字");
         assert_inline_html(&actual[2], "</span>");
     }
@@ -275,12 +277,22 @@ mod tests {
         let events = vec![Event::Text("かな한글".into())];
         let actual = TextElaborator::process(events.into_iter()).collect::<Vec<_>>();
         assert_eq!(actual.len(), 6);
-        assert_inline_html(&actual[0], r#"<span class="text-japanese">"#);
+        assert_inline_html(&actual[0], r#"<span lang="ja">"#);
         assert_text(&actual[1], "かな");
         assert_inline_html(&actual[2], "</span>");
-        assert_inline_html(&actual[3], r#"<span class="text-korean">"#);
+        assert_inline_html(&actual[3], r#"<span lang="ko">"#);
         assert_text(&actual[4], "한글");
         assert_inline_html(&actual[5], "</span>");
+    }
+
+    #[test]
+    fn test_uses_default_zh_lang_for_han_only_text() {
+        let events = vec![Event::Text("中文".into())];
+        let actual = TextElaborator::process(events.into_iter()).collect::<Vec<_>>();
+        assert_eq!(actual.len(), 3);
+        assert_inline_html(&actual[0], r#"<span lang="zh">"#);
+        assert_text(&actual[1], "中文");
+        assert_inline_html(&actual[2], "</span>");
     }
 
     #[test]
