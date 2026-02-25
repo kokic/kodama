@@ -91,13 +91,9 @@ fn write_text_atomically(path: &Utf8Path, payload: &str, output_name: &str) -> e
             path
         )
     })?;
-    let filename = path.file_name().ok_or_else(|| {
-        eyre!(
-            "failed to resolve filename for {} `{}`",
-            output_name,
-            path
-        )
-    })?;
+    let filename = path
+        .file_name()
+        .ok_or_else(|| eyre!("failed to resolve filename for {} `{}`", output_name, path))?;
     let temp_filename = format!(
         "{filename}.tmp.{}.{}",
         std::process::id(),
@@ -106,15 +102,12 @@ fn write_text_atomically(path: &Utf8Path, payload: &str, output_name: &str) -> e
     let temp_path = parent.join(temp_filename);
 
     let write_result = (|| -> eyre::Result<()> {
-        let mut file = std::fs::File::create(temp_path.as_std_path()).wrap_err_with(|| {
-            eyre!("failed to create temp {} `{}`", output_name, temp_path)
-        })?;
-        file.write_all(payload.as_bytes()).wrap_err_with(|| {
-            eyre!("failed to write temp {} `{}`", output_name, temp_path)
-        })?;
-        file.sync_all().wrap_err_with(|| {
-            eyre!("failed to sync temp {} `{}`", output_name, temp_path)
-        })?;
+        let mut file = std::fs::File::create(temp_path.as_std_path())
+            .wrap_err_with(|| eyre!("failed to create temp {} `{}`", output_name, temp_path))?;
+        file.write_all(payload.as_bytes())
+            .wrap_err_with(|| eyre!("failed to write temp {} `{}`", output_name, temp_path))?;
+        file.sync_all()
+            .wrap_err_with(|| eyre!("failed to sync temp {} `{}`", output_name, temp_path))?;
         Ok(())
     })();
 

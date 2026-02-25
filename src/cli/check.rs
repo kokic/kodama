@@ -14,8 +14,8 @@ use crate::{
     config,
     environment::{self, BuildMode},
     path_utils,
-    process::typst_image::{reset_typst_image_error_flag, typst_image_error_detected},
     process::embed_markdown::{include_error_detected, reset_include_error_flag},
+    process::typst_image::{reset_typst_image_error_flag, typst_image_error_detected},
     slug::{self, Ext, Slug},
 };
 

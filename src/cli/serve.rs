@@ -62,12 +62,10 @@ fn canonicalize_or_self(path: &Utf8Path) -> Utf8PathBuf {
 }
 
 fn is_path_under_dir(path: &Utf8Path, dir: &Utf8Path, dir_canonical: &Utf8Path) -> bool {
-    path.starts_with(dir)
-        || path.starts_with(dir_canonical)
-        || {
-            let canonical = canonicalize_or_self(path);
-            canonical.starts_with(dir) || canonical.starts_with(dir_canonical)
-        }
+    path.starts_with(dir) || path.starts_with(dir_canonical) || {
+        let canonical = canonicalize_or_self(path);
+        canonical.starts_with(dir) || canonical.starts_with(dir_canonical)
+    }
 }
 
 /// This function invoked the [`config::init_environment`] function to initialize the environment]
