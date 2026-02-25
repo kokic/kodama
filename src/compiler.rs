@@ -46,7 +46,7 @@ use self::{
 
 pub use incremental::expand_dirty_paths;
 pub use serve_session::ServeCompileSession;
-pub use source_scan::{all_trees_source, Workspace};
+pub use source_scan::{all_trees_source, all_trees_source_readonly, Workspace};
 
 pub type DirtySet = HashSet<Utf8PathBuf>;
 
@@ -168,7 +168,7 @@ pub(super) fn collect_shallows(
     Ok(shallows)
 }
 
-pub(super) fn parse_source(slug: Slug, ext: Ext) -> eyre::Result<UnresolvedSection> {
+pub(crate) fn parse_source(slug: Slug, ext: Ext) -> eyre::Result<UnresolvedSection> {
     let mut shallow = match ext {
         Ext::Markdown => parse_markdown(slug)
             .wrap_err_with(|| eyre!("failed to parse markdown file `{slug}.{ext}`"))?,

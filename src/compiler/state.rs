@@ -35,13 +35,28 @@ pub struct CompileState {
 type UnresolvedSections = HashMap<Slug, UnresolvedSection>;
 
 pub fn compile_all(shallows: &UnresolvedSections) -> eyre::Result<CompileState> {
+    compile_all_with_missing_index_warning(shallows, true)
+}
+
+pub fn compile_all_without_missing_index_warning(
+    shallows: &UnresolvedSections,
+) -> eyre::Result<CompileState> {
+    compile_all_with_missing_index_warning(shallows, false)
+}
+
+fn compile_all_with_missing_index_warning(
+    shallows: &UnresolvedSections,
+    emit_missing_index_warning: bool,
+) -> eyre::Result<CompileState> {
     let residued: BTreeSet<Slug> = shallows.keys().copied().collect();
 
     let mut state = CompileState::new(residued);
-    if state.compile(shallows, Slug::new("index"))?.is_none() {
+    if emit_missing_index_warning && state.compile(shallows, Slug::new("index"))?.is_none() {
         color_print::ceprintln!(
             "<y>Warning: Missing `index` section, please provide `index.md` or `index.typst`.</>"
         );
+    } else if !emit_missing_index_warning {
+        let _ = state.compile(shallows, Slug::new("index"))?;
     }
 
     /*

@@ -27,6 +27,7 @@ use clap::{
 
 use crate::cli::{
     build::BuildCommand,
+    check::CheckCommand,
     init::InitCommand,
     new::{NewCommand, NewCommandCli},
     serve::ServeCommand,
@@ -70,6 +71,10 @@ enum Command {
     #[command(visible_alias = "b")]
     Build(BuildCommand),
 
+    /// Validate sections and graph without generating build artifacts.
+    #[command(visible_alias = "c")]
+    Check(CheckCommand),
+
     /// Serve a forest at http://localhost:<port>, and rebuilds it on changes.
     ///
     /// Does not emit "kodama.json" / "kodama.graph.json" by default.
@@ -99,6 +104,7 @@ fn main() -> eyre::Result<()> {
         Command::Init(command) => crate::cli::init::init(command)?,
         Command::Serve(command) => crate::cli::serve::serve(command)?,
         Command::Build(command) => crate::cli::build::build(command)?,
+        Command::Check(command) => crate::cli::check::check(command)?,
         Command::Snip(command) => crate::cli::snip::snip(command)?,
         Command::Upgrade(command) => crate::cli::upgrade::upgrade(command)?,
     };

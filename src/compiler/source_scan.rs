@@ -36,12 +36,31 @@ fn to_slug_ext(source_dir: &Utf8Path, p: &Utf8Path) -> Option<(Slug, Ext)> {
     Some((slug, ext))
 }
 
+#[derive(Clone, Copy)]
+enum TypstAssetMode {
+    CompileSvg,
+    Skip,
+}
+
 /// Collect all source file paths in `<trees>` dir.
 ///
 /// **Side effect: update the `.hash` & `.svg` file of all modified `.typ` files.**
 pub fn all_trees_source(
     trees_dir: &Utf8Path,
     dirty_paths: Option<&DirtySet>,
+) -> eyre::Result<Workspace> {
+    all_trees_source_with_mode(trees_dir, dirty_paths, TypstAssetMode::CompileSvg)
+}
+
+/// Collect all source file paths in `<trees>` dir without generating side effects.
+pub fn all_trees_source_readonly(trees_dir: &Utf8Path) -> eyre::Result<Workspace> {
+    all_trees_source_with_mode(trees_dir, None, TypstAssetMode::Skip)
+}
+
+fn all_trees_source_with_mode(
+    trees_dir: &Utf8Path,
+    dirty_paths: Option<&DirtySet>,
+    typst_asset_mode: TypstAssetMode,
 ) -> eyre::Result<Workspace> {
     let mut slug_exts = HashMap::new();
 
@@ -56,6 +75,10 @@ pub fn all_trees_source(
 
     let mut collect_files = |source_dir: &Utf8Path| {
         let compile_typst_svg = |path: &Utf8PathBuf| -> eyre::Result<()> {
+            if !matches!(typst_asset_mode, TypstAssetMode::CompileSvg) {
+                return Ok(());
+            }
+
             // Hashable files only include `.md` and `.typ` currently.
             if let Some("typ") = path.extension() {
                 let relative = path.strip_prefix(source_dir)?;

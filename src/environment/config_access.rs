@@ -44,13 +44,13 @@ pub fn serve_dir() -> String {
 }
 
 pub fn output_dir() -> Utf8PathBuf {
-    let root = super::root_dir();
-    let output = if super::is_build() {
-        build_dir()
-    } else {
-        serve_dir()
-    };
-    root.join(output)
+    with_environment(|env| {
+        let output = match env.build_mode {
+            BuildMode::Build | BuildMode::Check => env.config.build.output.clone(),
+            BuildMode::Serve => env.config.serve.output.clone(),
+        };
+        env.root.join(output)
+    })
 }
 
 pub fn indexes_path(output_dir: &Utf8Path) -> Utf8PathBuf {
@@ -71,7 +71,7 @@ pub fn base_url_raw() -> String {
 
 pub fn base_url() -> String {
     with_environment(|env| match env.build_mode {
-        BuildMode::Build => env.config.kodama.base_url.clone(),
+        BuildMode::Build | BuildMode::Check => env.config.kodama.base_url.clone(),
         BuildMode::Serve => kodama::DEFAULT_BASE_URL.to_string(),
     })
 }

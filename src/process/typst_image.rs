@@ -91,13 +91,31 @@ impl<'e, E: Iterator<Item = Event<'e>>> Iterator for TypstImage<E> {
                     State::Html => {
                         let typst_url =
                             typst_path(self.current_slug, &self.url.take().unwrap_or_default());
-                        let html_path = output_path(typst_url.with_extension("html"));
-
-                        let html = match write_to_inline_html(typst_url, html_path) {
-                            Ok(inline_html) => inline_html,
-                            Err(err) => {
-                                color_print::ceprintln!("<r>{:?} at {}</>", err, self.current_slug);
-                                String::new()
+                        let html = if environment::is_check() {
+                            let trees_dir = environment::trees_dir();
+                            match typst_cli::file_to_html(typst_url.as_str(), trees_dir.as_str()) {
+                                Ok(inline_html) => inline_html,
+                                Err(err) => {
+                                    color_print::ceprintln!(
+                                        "<r>{:?} at {}</>",
+                                        err,
+                                        self.current_slug
+                                    );
+                                    String::new()
+                                }
+                            }
+                        } else {
+                            let html_path = output_path(typst_url.with_extension("html"));
+                            match write_to_inline_html(typst_url, html_path) {
+                                Ok(inline_html) => inline_html,
+                                Err(err) => {
+                                    color_print::ceprintln!(
+                                        "<r>{:?} at {}</>",
+                                        err,
+                                        self.current_slug
+                                    );
+                                    String::new()
+                                }
                             }
                         };
 

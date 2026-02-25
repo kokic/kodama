@@ -161,6 +161,9 @@ pub enum BuildMode {
     /// Build mode for the `kodama build` command.
     Build,
 
+    /// Check mode for the `kodama check` command.
+    Check,
+
     /// Serve mode for the `kodama serve` command.
     Serve,
 }
@@ -191,6 +194,10 @@ pub fn is_serve() -> bool {
 
 pub fn is_build() -> bool {
     with_environment(|env| matches!(env.build_mode, BuildMode::Build))
+}
+
+pub fn is_check() -> bool {
+    with_environment(|env| matches!(env.build_mode, BuildMode::Check))
 }
 
 #[cfg(test)]
