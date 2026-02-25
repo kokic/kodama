@@ -3,7 +3,10 @@
 // Authors: Kokic (@kokic), Spore (@s-cerevisiae)
 
 use super::{content::EventExtended, processer::url_action};
-use std::{fs, mem};
+use std::{
+    fs, mem,
+    sync::atomic::{AtomicBool, Ordering},
+};
 
 use crate::{
     compiler::section::{EmbedContent, LocalLink, SectionOption},
@@ -16,6 +19,20 @@ use crate::{
 };
 use camino::Utf8PathBuf;
 use pulldown_cmark::{html, Event, Tag, TagEnd};
+
+static INCLUDE_READ_ERROR_FLAG: AtomicBool = AtomicBool::new(false);
+
+pub fn reset_include_error_flag() {
+    INCLUDE_READ_ERROR_FLAG.store(false, Ordering::Relaxed);
+}
+
+pub fn include_error_detected() -> bool {
+    INCLUDE_READ_ERROR_FLAG.load(Ordering::Relaxed)
+}
+
+fn record_include_error() {
+    INCLUDE_READ_ERROR_FLAG.store(true, Ordering::Relaxed);
+}
 
 pub struct Embed<'e, E> {
     events: E,
@@ -105,8 +122,16 @@ impl<'e, E: Iterator<Item = Event<'e>>> Iterator for Embed<'e, E> {
                         };
 
                         let include_path = root_dir().join(&url);
-                        let content = fs::read_to_string(&include_path)
-                            .unwrap_or_else(|_| format!("failed to include file: {url}"));
+                        let content = fs::read_to_string(&include_path).unwrap_or_else(|err| {
+                            record_include_error();
+                            color_print::ceprintln!(
+                                "<y>Warning: failed to include file `{}` resolved to `{}`: {}</>",
+                                url,
+                                include_path,
+                                err
+                            );
+                            format!("failed to include file: {url}")
+                        });
                         let escaped = htmlize::escape_text(content);
                         let html = html_code_block(&escaped, &language_tag.unwrap_or_default());
                         return Some(Event::Html(html.into()).into());
