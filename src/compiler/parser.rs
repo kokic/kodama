@@ -144,7 +144,7 @@ pub mod tests {
         let content = parse_spanned_markdown("hello 中文 world", Slug::new("-"));
         assert_eq!(
             content.as_str().unwrap(),
-            "hello <span class=\"cjk-text\">中文</span> world"
+            "hello <span class=\"text-han\">中文</span> world"
         );
     }
 }

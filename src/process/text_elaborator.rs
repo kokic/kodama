@@ -6,6 +6,32 @@ use std::collections::VecDeque;
 
 use pulldown_cmark::{Event, Tag, TagEnd};
 
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum SpanClass {
+    Han,
+    Japanese,
+    Korean,
+}
+
+impl SpanClass {
+    fn css_class(self) -> &'static str {
+        match self {
+            Self::Han => "text-han",
+            Self::Japanese => "text-japanese",
+            Self::Korean => "text-korean",
+        }
+    }
+}
+
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum CharClass {
+    Han,
+    Japanese,
+    Korean,
+    Common,
+    Other,
+}
+
 pub struct TextElaborator<'e, E> {
     events: E,
     pending: VecDeque<Event<'e>>,
@@ -57,69 +83,138 @@ impl<'e, E: Iterator<Item = Event<'e>>> Iterator for TextElaborator<'e, E> {
 
 impl<'e, E> TextElaborator<'e, E> {
     fn enqueue_text(&mut self, text: &str) {
-        if !contains_cjk(text) {
+        if !contains_cjk_related(text) {
             self.pending.push_back(Event::Text(text.to_string().into()));
             return;
         }
 
-        let mut run_start = 0usize;
-        let mut run_is_cjk = None;
+        let mut run = String::new();
+        let mut span_class: Option<SpanClass> = None;
 
-        for (idx, ch) in text.char_indices() {
-            let is_cjk = is_cjk_char(ch);
-            match run_is_cjk {
-                Some(current) if current != is_cjk => {
-                    self.push_run(&text[run_start..idx], current);
-                    run_start = idx;
-                    run_is_cjk = Some(is_cjk);
+        for ch in text.chars() {
+            match classify_char(ch) {
+                CharClass::Other => {
+                    if span_class.is_some() {
+                        self.flush_run(&mut run, span_class);
+                        span_class = None;
+                    }
+                    run.push(ch);
                 }
-                None => {
-                    run_is_cjk = Some(is_cjk);
+                CharClass::Common => {
+                    run.push(ch);
                 }
-                _ => {}
+                CharClass::Han => {
+                    if span_class.is_none() && !run.is_empty() {
+                        self.flush_run(&mut run, None);
+                    }
+                    if span_class.is_none() {
+                        span_class = Some(SpanClass::Han);
+                    }
+                    run.push(ch);
+                }
+                CharClass::Japanese => {
+                    if span_class == Some(SpanClass::Korean) {
+                        self.flush_run(&mut run, span_class);
+                        span_class = None;
+                    }
+                    if span_class.is_none() && !run.is_empty() {
+                        self.flush_run(&mut run, None);
+                    }
+                    if matches!(span_class, None | Some(SpanClass::Han)) {
+                        span_class = Some(SpanClass::Japanese);
+                    }
+                    run.push(ch);
+                }
+                CharClass::Korean => {
+                    if span_class == Some(SpanClass::Japanese) {
+                        self.flush_run(&mut run, span_class);
+                        span_class = None;
+                    }
+                    if span_class.is_none() && !run.is_empty() {
+                        self.flush_run(&mut run, None);
+                    }
+                    if matches!(span_class, None | Some(SpanClass::Han)) {
+                        span_class = Some(SpanClass::Korean);
+                    }
+                    run.push(ch);
+                }
             }
         }
 
-        if let Some(is_cjk) = run_is_cjk {
-            self.push_run(&text[run_start..], is_cjk);
-        }
+        self.flush_run(&mut run, span_class);
     }
 
-    fn push_run(&mut self, run: &str, is_cjk: bool) {
+    fn flush_run(&mut self, run: &mut String, span_class: Option<SpanClass>) {
         if run.is_empty() {
             return;
         }
-        if is_cjk {
-            self.pending.push_back(Event::InlineHtml(
-                r#"<span class="cjk-text">"#.to_string().into(),
-            ));
-            self.pending.push_back(Event::Text(run.to_string().into()));
-            self.pending
-                .push_back(Event::InlineHtml("</span>".to_string().into()));
-        } else {
-            self.pending.push_back(Event::Text(run.to_string().into()));
+        let text = std::mem::take(run);
+        match span_class {
+            Some(span_class) => {
+                self.pending.push_back(Event::InlineHtml(
+                    format!(r#"<span class="{}">"#, span_class.css_class()).into(),
+                ));
+                self.pending.push_back(Event::Text(text.into()));
+                self.pending
+                    .push_back(Event::InlineHtml("</span>".to_string().into()));
+            }
+            None => {
+                self.pending.push_back(Event::Text(text.into()));
+            }
         }
     }
 }
 
-fn contains_cjk(text: &str) -> bool {
-    text.chars().any(is_cjk_char)
+fn contains_cjk_related(text: &str) -> bool {
+    text.chars().any(|ch| classify_char(ch) != CharClass::Other)
 }
 
-fn is_cjk_char(ch: char) -> bool {
+fn classify_char(ch: char) -> CharClass {
+    if is_japanese_char(ch) {
+        CharClass::Japanese
+    } else if is_korean_char(ch) {
+        CharClass::Korean
+    } else if is_han_char(ch) {
+        CharClass::Han
+    } else if is_cjk_common_char(ch) {
+        CharClass::Common
+    } else {
+        CharClass::Other
+    }
+}
+
+fn is_han_char(ch: char) -> bool {
+    matches!(ch, '\u{3400}'..='\u{4DBF}' | '\u{4E00}'..='\u{9FFF}' | '\u{F900}'..='\u{FAFF}')
+}
+
+fn is_japanese_char(ch: char) -> bool {
     matches!(
         ch,
-        '\u{3000}'..='\u{303F}'
-            | '\u{3040}'..='\u{309F}'
+        '\u{3040}'..='\u{309F}'
             | '\u{30A0}'..='\u{30FF}'
             | '\u{31F0}'..='\u{31FF}'
-            | '\u{3400}'..='\u{4DBF}'
-            | '\u{4E00}'..='\u{9FFF}'
+            | '\u{FF66}'..='\u{FF9D}'
+            | '\u{1B000}'..='\u{1B0FF}'
+            | '\u{1B100}'..='\u{1B12F}'
+    )
+}
+
+fn is_korean_char(ch: char) -> bool {
+    matches!(
+        ch,
+        '\u{1100}'..='\u{11FF}'
+            | '\u{3130}'..='\u{318F}'
             | '\u{A960}'..='\u{A97F}'
             | '\u{AC00}'..='\u{D7AF}'
             | '\u{D7B0}'..='\u{D7FF}'
-            | '\u{F900}'..='\u{FAFF}'
-            | '\u{FF00}'..='\u{FFEF}'
+            | '\u{FFA0}'..='\u{FFDC}'
+    )
+}
+
+fn is_cjk_common_char(ch: char) -> bool {
+    matches!(
+        ch,
+        '\u{3000}'..='\u{303F}' | '\u{FE10}'..='\u{FE6F}' | '\u{FF00}'..='\u{FF65}'
     )
 }
 
@@ -149,10 +244,43 @@ mod tests {
         let actual = TextElaborator::process(events.into_iter()).collect::<Vec<_>>();
         assert_eq!(actual.len(), 5);
         assert_text(&actual[0], "hello ");
-        assert_inline_html(&actual[1], r#"<span class="cjk-text">"#);
+        assert_inline_html(&actual[1], r#"<span class="text-han">"#);
         assert_text(&actual[2], "中文");
         assert_inline_html(&actual[3], "</span>");
         assert_text(&actual[4], " world");
+    }
+
+    #[test]
+    fn test_uses_japanese_class_when_kana_present() {
+        let events = vec![Event::Text("漢字かな".into())];
+        let actual = TextElaborator::process(events.into_iter()).collect::<Vec<_>>();
+        assert_eq!(actual.len(), 3);
+        assert_inline_html(&actual[0], r#"<span class="text-japanese">"#);
+        assert_text(&actual[1], "漢字かな");
+        assert_inline_html(&actual[2], "</span>");
+    }
+
+    #[test]
+    fn test_uses_korean_class_when_hangul_present() {
+        let events = vec![Event::Text("한글漢字".into())];
+        let actual = TextElaborator::process(events.into_iter()).collect::<Vec<_>>();
+        assert_eq!(actual.len(), 3);
+        assert_inline_html(&actual[0], r#"<span class="text-korean">"#);
+        assert_text(&actual[1], "한글漢字");
+        assert_inline_html(&actual[2], "</span>");
+    }
+
+    #[test]
+    fn test_splits_between_japanese_and_korean_runs() {
+        let events = vec![Event::Text("かな한글".into())];
+        let actual = TextElaborator::process(events.into_iter()).collect::<Vec<_>>();
+        assert_eq!(actual.len(), 6);
+        assert_inline_html(&actual[0], r#"<span class="text-japanese">"#);
+        assert_text(&actual[1], "かな");
+        assert_inline_html(&actual[2], "</span>");
+        assert_inline_html(&actual[3], r#"<span class="text-korean">"#);
+        assert_text(&actual[4], "한글");
+        assert_inline_html(&actual[5], "</span>");
     }
 
     #[test]
