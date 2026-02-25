@@ -48,12 +48,8 @@ html {
   --article-taxon-color: #888;
   --mark-color: rgb(255, 255, 151);
   --em-color: var(--text-color);
-
-  --alert-note-color: #1f6feb;
-  --alert-tip-color: #238636;
-  --alert-important-color: #8957e5;
-  --alert-warning-color: #9e6a03;
-  --alert-caution-color: #da3633;
+  
+  --alert-border-color: gray;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -246,44 +242,32 @@ blockquote {
 /* GFM Blockquote tags: https://github.com/orgs/community/discussions/16925 */
 
 blockquote[class^=markdown-alert-] {
-  padding: .5rem 1rem;
-  margin-bottom: 1rem;
+  margin: 0rem 0.5rem;
+  padding: 0rem 0.5rem;
+  font-style: normal;
+  border-left: .25em solid var(--alert-border-color);
 }
 
-blockquote.markdown-alert-note {
-  border-left-color: var(--alert-note-color);
+blockquote[class^=markdown-alert-]>p:first-child::before {
+  font-size: var(--section-details-h1-font-size);
+  color: var(--span-taxon-color);
+  margin-right: 0.5rem;
 }
 
 blockquote.markdown-alert-note>p:first-child::before {
   content: "Note";
 }
 
-blockquote.markdown-alert-tip {
-  border-left-color: var(--alert-tip-color);
-}
-
 blockquote.markdown-alert-tip>p:first-child::before {
   content: "Tip";
-}
-
-blockquote.markdown-alert-important {
-  border-left-color: var(--alert-important-color);
 }
 
 blockquote.markdown-alert-important>p:first-child::before {
   content: "Important";
 }
 
-blockquote.markdown-alert-warning {
-  border-left-color: var(--alert-warning-color);
-}
-
 blockquote.markdown-alert-warning>p:first-child::before {
   content: "Warning";
-}
-
-blockquote.markdown-alert-caution {
-  border-left-color: var(--alert-caution-color);
 }
 
 blockquote.markdown-alert-caution>p:first-child::before {
