@@ -35,14 +35,6 @@ pub fn theme_paths() -> Vec<Utf8PathBuf> {
     })
 }
 
-pub fn build_dir() -> String {
-    with_config(|cfg| cfg.build.output.clone())
-}
-
-pub fn serve_dir() -> String {
-    with_config(|cfg| cfg.serve.output.clone())
-}
-
 pub fn output_dir() -> Utf8PathBuf {
     with_environment(|env| {
         let output = match env.build_mode {
