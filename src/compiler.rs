@@ -99,8 +99,10 @@ pub(super) fn compile_from_shallows(
     let slugs_to_write: Vec<Slug> = match dirty_paths {
         Some(dirty_paths) => {
             let dirty_slugs = dirty_source_slugs(workspace, dirty_paths);
-            if dirty_slugs.is_empty() || !stale_slugs.is_empty() {
+            if !stale_slugs.is_empty() {
                 all_slugs.clone()
+            } else if dirty_slugs.is_empty() {
+                Vec::new()
             } else {
                 affected_slugs_from_dirty(&state, &dirty_slugs)
                     .into_iter()
