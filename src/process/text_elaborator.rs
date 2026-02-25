@@ -254,11 +254,11 @@ mod tests {
 
     #[test]
     fn test_uses_japanese_lang_when_kana_present() {
-        let events = vec![Event::Text("漢字かな".into())];
+        let events = vec![Event::Text("答えの潜む琥珀の太阳".into())];
         let actual = TextElaborator::process(events.into_iter()).collect::<Vec<_>>();
         assert_eq!(actual.len(), 3);
         assert_inline_html(&actual[0], r#"<span lang="ja">"#);
-        assert_text(&actual[1], "漢字かな");
+        assert_text(&actual[1], "答えの潜む琥珀の太阳");
         assert_inline_html(&actual[2], "</span>");
     }
 
