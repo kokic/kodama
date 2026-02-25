@@ -65,19 +65,6 @@ pub fn output_path<P: AsRef<Utf8Path>>(path: P) -> Utf8PathBuf {
     auto_create_dir_path(vec![dir, path])
 }
 
-/// Return the output HTML path `<output_dir>/<path>.html` for the given section.
-/// e.g. `/path/to/index.md` will return `<output_dir>/path/to/index.html`.
-///
-/// If the directory does not exist, it will be created.
-#[allow(dead_code)]
-pub fn output_html_path<P: AsRef<Utf8Path>>(path: P) -> Utf8PathBuf {
-    let mut output_path = super::output_dir();
-    output_path.push(path);
-    output_path.set_extension("html");
-    create_parent_dirs(&output_path);
-    output_path
-}
-
 pub fn hash_dir() -> Utf8PathBuf {
     super::get_cache_dir().join(HASH_DIR_NAME)
 }
@@ -174,18 +161,4 @@ mod tests {
         let _ = fs::remove_dir_all(root);
     }
 
-    #[test]
-    fn test_output_html_path_uses_html_extension() {
-        let root = case_dir("output-html");
-        fs::create_dir_all(root.as_std_path()).unwrap();
-
-        super::super::with_test_environment(root.clone(), super::super::BuildMode::Build, || {
-            let output = output_html_path("nested/topic.md");
-            assert_eq!(output.extension(), Some("html"));
-            assert!(output.parent().is_some_and(|parent| parent.exists()));
-            assert!(output.starts_with(super::super::output_dir().as_path()));
-        });
-
-        let _ = fs::remove_dir_all(root);
-    }
 }
