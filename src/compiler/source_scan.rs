@@ -156,6 +156,7 @@ fn all_trees_source_with_mode(
             "<y>Warning: Source directory `{}` does not exist, skipping.</>",
             trees_dir
         );
+        return Ok(Workspace { slug_exts });
     }
 
     collect_files(trees_dir)?;
@@ -165,6 +166,8 @@ fn all_trees_source_with_mode(
 
 #[cfg(test)]
 mod tests {
+    use camino::Utf8PathBuf;
+
     use super::*;
 
     #[test]
@@ -182,5 +185,15 @@ mod tests {
         assert!(should_ignore_dir(Utf8Path::new(".git")));
         assert!(should_ignore_dir(Utf8Path::new("_tmp")));
         assert!(!should_ignore_dir(Utf8Path::new("trees")));
+    }
+
+    #[test]
+    fn test_all_trees_source_readonly_returns_empty_workspace_when_trees_missing() {
+        let missing =
+            std::env::temp_dir().join(format!("kodama-missing-trees-{}", fastrand::u64(..)));
+        let missing = Utf8PathBuf::from_path_buf(missing).expect("temp path should be valid utf8");
+
+        let workspace = all_trees_source_readonly(missing.as_path()).expect("scan should succeed");
+        assert!(workspace.slug_exts.is_empty());
     }
 }
