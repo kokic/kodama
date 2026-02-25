@@ -40,7 +40,7 @@ pub struct TextElaborator<'e, E> {
     in_code_block: usize,
 }
 
-impl<'e, E> TextElaborator<'e, E> {
+impl<E> TextElaborator<'_, E> {
     pub fn process(events: E) -> Self {
         Self {
             events,
@@ -83,7 +83,7 @@ impl<'e, E: Iterator<Item = Event<'e>>> Iterator for TextElaborator<'e, E> {
     }
 }
 
-impl<'e, E> TextElaborator<'e, E> {
+impl<E> TextElaborator<'_, E> {
     fn enqueue_text(&mut self, text: &str) {
         if !contains_cjk_related(text) {
             self.pending.push_back(Event::Text(text.to_string().into()));

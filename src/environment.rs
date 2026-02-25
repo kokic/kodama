@@ -192,6 +192,7 @@ pub fn is_serve() -> bool {
     with_environment(|env| matches!(env.build_mode, BuildMode::Serve))
 }
 
+#[allow(dead_code)]
 pub fn is_build() -> bool {
     with_environment(|env| matches!(env.build_mode, BuildMode::Build))
 }
