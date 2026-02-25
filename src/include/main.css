@@ -255,23 +255,23 @@ blockquote[class^=markdown-alert-]>p:first-child::before {
 }
 
 blockquote.markdown-alert-note>p:first-child::before {
-  content: "Note";
+  content: "Note.";
 }
 
 blockquote.markdown-alert-tip>p:first-child::before {
-  content: "Tip";
+  content: "Tip.";
 }
 
 blockquote.markdown-alert-important>p:first-child::before {
-  content: "Important";
+  content: "Important.";
 }
 
 blockquote.markdown-alert-warning>p:first-child::before {
-  content: "Warning";
+  content: "Warning.";
 }
 
 blockquote.markdown-alert-caution>p:first-child::before {
-  content: "Caution";
+  content: "Caution.";
 }
 
 h1,
