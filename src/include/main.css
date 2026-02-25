@@ -48,7 +48,7 @@ html {
   --article-taxon-color: #888;
   --mark-color: rgb(255, 255, 151);
   --em-color: var(--text-color);
-  
+
   --alert-border-color: gray;
 }
 
@@ -245,7 +245,7 @@ blockquote[class^=markdown-alert-] {
   margin: 0rem 0.5rem;
   padding: 0rem 0.5rem;
   font-style: normal;
-  border-left: .25em solid var(--alert-border-color);
+  border-left: .25rem double var(--alert-border-color);
 }
 
 blockquote[class^=markdown-alert-]>p:first-child::before {
