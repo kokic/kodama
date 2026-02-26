@@ -4,8 +4,6 @@
 
 use std::{io::Write, sync::OnceLock};
 
-use camino::{Utf8Path, Utf8PathBuf};
-
 use crate::{
     cli::build::{build_with_dirty, BuildOptions},
     cli::output::OutputControlArgs,
@@ -19,7 +17,8 @@ mod watch;
 
 use process::spawn_serve_process;
 use watch::{
-    compose_dirty_paths, compose_watched_paths, should_restart_for_config_change, watch_paths,
+    analyze_watch_changes, compose_watched_paths, format_watch_change_stats,
+    should_restart_for_config_change, watch_paths,
 };
 
 #[derive(clap::Args)]
@@ -55,17 +54,6 @@ fn compile_outputs(command: &ServeCommand) -> CompileOutputs {
         indexes: false,
         graph: false,
     })
-}
-
-fn canonicalize_or_self(path: &Utf8Path) -> Utf8PathBuf {
-    path.canonicalize_utf8().unwrap_or_else(|_| path.to_owned())
-}
-
-fn is_path_under_dir(path: &Utf8Path, dir: &Utf8Path, dir_canonical: &Utf8Path) -> bool {
-    path.starts_with(dir) || path.starts_with(dir_canonical) || {
-        let canonical = canonicalize_or_self(path);
-        canonical.starts_with(dir) || canonical.starts_with(dir_canonical)
-    }
 }
 
 /// This function invoked the [`config::init_environment`] function to initialize the environment]
@@ -116,11 +104,15 @@ pub fn serve(command: &ServeCommand) -> eyre::Result<()> {
         crate::environment::theme_paths(),
     );
     watch_paths(&watched_paths, assets_dir.as_path(), |changed_paths| {
-        let dirty_paths = compose_dirty_paths(
+        let analysis = analyze_watch_changes(
             changed_paths,
             trees_dir.as_path(),
             trees_dir_canonical.as_path(),
+            assets_dir.as_path(),
+            assets_dir_canonical.as_path(),
         );
+        color_print::ceprintln!("<dim>{}</>", format_watch_change_stats(analysis.stats));
+
         let should_restart = changed_paths.iter().any(|changed_path| {
             should_restart_for_config_change(
                 changed_path.as_path(),
@@ -136,22 +128,16 @@ pub fn serve(command: &ServeCommand) -> eyre::Result<()> {
             let _ = serve.kill();
             let _ = serve.wait();
             serve = spawn_serve_process()?;
-        } else if changed_paths.iter().any(|changed_path| {
-            !is_path_under_dir(
-                changed_path.as_path(),
-                trees_dir.as_path(),
-                trees_dir_canonical.as_path(),
-            ) && !is_path_under_dir(
-                changed_path.as_path(),
-                assets_dir.as_path(),
-                assets_dir_canonical.as_path(),
-            )
-        }) {
+        } else if analysis.stats.global_paths > 0 {
             // Non-tree changes (theme/import/html snippets) may affect all pages globally.
             serve_build(None)?;
+        } else if !analysis.stats.has_effective_changes() {
+            color_print::ceprintln!(
+                "<dim>[watch] Skip rebuild: no effective changes after filtering.</>"
+            );
         } else {
             // Serve mode uses watcher-driven dirty set to avoid full hash scans on every rebuild.
-            serve_build(Some(&dirty_paths))?;
+            serve_build(Some(&analysis.dirty_paths))?;
         }
         Ok(())
     })?;
@@ -164,17 +150,7 @@ pub fn serve(command: &ServeCommand) -> eyre::Result<()> {
 
 #[cfg(test)]
 mod tests {
-    use std::fs;
-
-    use camino::Utf8PathBuf;
-
     use super::*;
-
-    fn case_dir(name: &str) -> Utf8PathBuf {
-        let mut path = std::env::temp_dir();
-        path.push(format!("kodama-serve-{name}-{}", fastrand::u64(..)));
-        Utf8PathBuf::from_path_buf(path).expect("temp path should be valid utf8")
-    }
 
     #[test]
     fn test_compile_outputs_default_to_disabled_in_serve() {
@@ -228,27 +204,4 @@ mod tests {
         assert!(!outputs.graph);
     }
 
-    #[test]
-    fn test_is_path_under_dir_matches_non_canonical_and_canonical_paths() {
-        let root = case_dir("path-under-dir");
-        let trees = root.join("trees");
-        fs::create_dir_all(trees.as_std_path()).unwrap();
-
-        let changed = root.join("trees/sub/../index.md");
-        let trees_canonical = trees.canonicalize_utf8().unwrap();
-        assert!(is_path_under_dir(
-            changed.as_path(),
-            trees.as_path(),
-            trees_canonical.as_path()
-        ));
-
-        let outside = root.join("themes/theme.html");
-        assert!(!is_path_under_dir(
-            outside.as_path(),
-            trees.as_path(),
-            trees_canonical.as_path()
-        ));
-
-        let _ = fs::remove_dir_all(root);
-    }
 }

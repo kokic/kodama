@@ -41,6 +41,38 @@ struct WatchBatcher {
     pending_changes: Vec<Utf8PathBuf>,
 }
 
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+pub(super) struct WatchChangeStats {
+    pub total_paths: usize,
+    pub tree_source_paths: usize,
+    pub tree_dependency_paths: usize,
+    pub asset_paths: usize,
+    pub global_paths: usize,
+    pub ignored_temp_paths: usize,
+    pub ignored_directory_paths: usize,
+}
+
+impl WatchChangeStats {
+    pub fn has_effective_changes(self) -> bool {
+        self.tree_source_paths > 0
+            || self.tree_dependency_paths > 0
+            || self.asset_paths > 0
+            || self.global_paths > 0
+    }
+}
+
+#[derive(Debug, Default)]
+pub(super) struct WatchChangeAnalysis {
+    pub dirty_paths: DirtySet,
+    pub stats: WatchChangeStats,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum NoisePathKind {
+    Temp,
+    Directory,
+}
+
 #[derive(Default)]
 struct WatchChangeFoldState {
     last_path: Option<String>,
@@ -108,6 +140,15 @@ pub(super) fn compose_watched_paths(
 
 fn canonicalize_or_self(path: &Utf8Path) -> Utf8PathBuf {
     path.canonicalize_utf8().unwrap_or_else(|_| path.to_owned())
+}
+
+fn is_path_under_dir(path: &Utf8Path, dir: &Utf8Path, dir_canonical: &Utf8Path) -> bool {
+    path.starts_with(dir)
+        || path.starts_with(dir_canonical)
+        || {
+            let canonical = canonicalize_or_self(path);
+            canonical.starts_with(dir) || canonical.starts_with(dir_canonical)
+        }
 }
 
 pub(super) fn should_restart_for_config_change(
@@ -223,6 +264,97 @@ fn relative_tree_path(
         })
 }
 
+fn is_source_extension(ext: Option<&str>) -> bool {
+    matches!(ext, Some("md") | Some("typst") | Some("typ"))
+}
+
+fn is_temp_like_path(path: &Utf8Path) -> bool {
+    let Some(file_name) = path.file_name() else {
+        return false;
+    };
+    let lower = file_name.to_ascii_lowercase();
+    lower == ".ds_store"
+        || file_name.starts_with(".#")
+        || (file_name.starts_with('#') && file_name.ends_with('#'))
+        || file_name.ends_with('~')
+        || lower.ends_with(".tmp")
+        || lower.ends_with(".temp")
+        || lower.ends_with(".swp")
+        || lower.ends_with(".swx")
+        || lower.ends_with(".bak")
+        || lower.ends_with(".crdownload")
+        || lower.contains("__jb_tmp__")
+        || lower.contains("__jb_old__")
+}
+
+fn classify_noise_path(path: &Utf8Path) -> Option<NoisePathKind> {
+    if is_temp_like_path(path) {
+        return Some(NoisePathKind::Temp);
+    }
+
+    if path.is_dir() {
+        return Some(NoisePathKind::Directory);
+    }
+
+    None
+}
+
+pub(super) fn analyze_watch_changes(
+    changed_paths: &[Utf8PathBuf],
+    trees_dir: &Utf8Path,
+    trees_dir_canonical: &Utf8Path,
+    assets_dir: &Utf8Path,
+    assets_dir_canonical: &Utf8Path,
+) -> WatchChangeAnalysis {
+    let mut dirty_paths = DirtySet::new();
+    let mut stats = WatchChangeStats::default();
+
+    for path in changed_paths {
+        stats.total_paths += 1;
+        if let Some(noise_kind) = classify_noise_path(path.as_path()) {
+            match noise_kind {
+                NoisePathKind::Temp => stats.ignored_temp_paths += 1,
+                NoisePathKind::Directory => stats.ignored_directory_paths += 1,
+            }
+            continue;
+        }
+
+        if let Some(relative) =
+            relative_tree_path(path.as_path(), trees_dir, trees_dir_canonical)
+        {
+            if is_source_extension(relative.extension()) {
+                stats.tree_source_paths += 1;
+            } else {
+                stats.tree_dependency_paths += 1;
+            }
+            dirty_paths.insert(relative);
+            continue;
+        }
+
+        if is_path_under_dir(path.as_path(), assets_dir, assets_dir_canonical) {
+            stats.asset_paths += 1;
+            continue;
+        }
+
+        stats.global_paths += 1;
+    }
+
+    WatchChangeAnalysis { dirty_paths, stats }
+}
+
+pub(super) fn format_watch_change_stats(stats: WatchChangeStats) -> String {
+    format!(
+        "[watch] Stats: total={}, tree_source={}, tree_dependency={}, assets={}, global={}, ignored_temp={}, ignored_dir={}",
+        stats.total_paths,
+        stats.tree_source_paths,
+        stats.tree_dependency_paths,
+        stats.asset_paths,
+        stats.global_paths,
+        stats.ignored_temp_paths,
+        stats.ignored_directory_paths
+    )
+}
+
 pub(super) fn compose_dirty_paths(
     changed_paths: &[Utf8PathBuf],
     trees_dir: &Utf8Path,
@@ -230,7 +362,12 @@ pub(super) fn compose_dirty_paths(
 ) -> DirtySet {
     changed_paths
         .iter()
-        .filter_map(|path| relative_tree_path(path.as_path(), trees_dir, trees_dir_canonical))
+        .filter_map(|path| {
+            if classify_noise_path(path.as_path()).is_some() {
+                return None;
+            }
+            relative_tree_path(path.as_path(), trees_dir, trees_dir_canonical)
+        })
         .collect()
 }
 
@@ -408,6 +545,96 @@ mod tests {
         assert!(dirty.contains(&Utf8PathBuf::from("a.typst")));
 
         let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn test_compose_dirty_paths_ignores_temp_and_directory_events() {
+        let root = case_dir("dirty-filter");
+        let trees = root.join("trees");
+        let dir = trees.join("sub");
+        fs::create_dir_all(dir.as_std_path()).unwrap();
+
+        let changed = vec![
+            trees.join("index.md"),
+            trees.join(".index.md.swp"),
+            dir.clone(),
+        ];
+
+        let trees_canonical = trees.canonicalize_utf8().unwrap();
+        let dirty = compose_dirty_paths(&changed, trees.as_path(), trees_canonical.as_path());
+        assert!(dirty.contains(&Utf8PathBuf::from("index.md")));
+        assert!(!dirty.contains(&Utf8PathBuf::from(".index.md.swp")));
+        assert!(!dirty.contains(&Utf8PathBuf::from("sub")));
+
+        let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn test_analyze_watch_changes_classifies_paths_and_filters_noise() {
+        let root = case_dir("analyze");
+        let trees = root.join("trees");
+        let assets = root.join("assets");
+        let themes = root.join("themes");
+        let tree_dir = trees.join("sub");
+        fs::create_dir_all(tree_dir.as_std_path()).unwrap();
+        fs::create_dir_all(assets.as_std_path()).unwrap();
+        fs::create_dir_all(themes.as_std_path()).unwrap();
+
+        let changed = vec![
+            trees.join("index.md"),
+            trees.join("includes/snippet.txt"),
+            trees.join(".index.md.swp"),
+            tree_dir.clone(),
+            assets.join("logo.svg"),
+            themes.join("theme.html"),
+        ];
+
+        let trees_canonical = trees.canonicalize_utf8().unwrap();
+        let assets_canonical = assets.canonicalize_utf8().unwrap();
+        let analysis = analyze_watch_changes(
+            &changed,
+            trees.as_path(),
+            trees_canonical.as_path(),
+            assets.as_path(),
+            assets_canonical.as_path(),
+        );
+
+        assert!(analysis.dirty_paths.contains(&Utf8PathBuf::from("index.md")));
+        assert!(analysis
+            .dirty_paths
+            .contains(&Utf8PathBuf::from("includes/snippet.txt")));
+        assert_eq!(
+            analysis.stats,
+            WatchChangeStats {
+                total_paths: 6,
+                tree_source_paths: 1,
+                tree_dependency_paths: 1,
+                asset_paths: 1,
+                global_paths: 1,
+                ignored_temp_paths: 1,
+                ignored_directory_paths: 1,
+            }
+        );
+        assert!(analysis.stats.has_effective_changes());
+
+        let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn test_format_watch_change_stats_contains_all_counters() {
+        let line = format_watch_change_stats(WatchChangeStats {
+            total_paths: 7,
+            tree_source_paths: 2,
+            tree_dependency_paths: 1,
+            asset_paths: 1,
+            global_paths: 1,
+            ignored_temp_paths: 1,
+            ignored_directory_paths: 1,
+        });
+        assert_eq!(
+            line,
+            "[watch] Stats: total=7, tree_source=2, tree_dependency=1, assets=1, global=1, ignored_temp=1, ignored_dir=1"
+        );
     }
 
     #[test]
