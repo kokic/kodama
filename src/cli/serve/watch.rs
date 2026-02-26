@@ -143,12 +143,10 @@ fn canonicalize_or_self(path: &Utf8Path) -> Utf8PathBuf {
 }
 
 fn is_path_under_dir(path: &Utf8Path, dir: &Utf8Path, dir_canonical: &Utf8Path) -> bool {
-    path.starts_with(dir)
-        || path.starts_with(dir_canonical)
-        || {
-            let canonical = canonicalize_or_self(path);
-            canonical.starts_with(dir) || canonical.starts_with(dir_canonical)
-        }
+    path.starts_with(dir) || path.starts_with(dir_canonical) || {
+        let canonical = canonicalize_or_self(path);
+        canonical.starts_with(dir) || canonical.starts_with(dir_canonical)
+    }
 }
 
 pub(super) fn should_restart_for_config_change(
@@ -319,9 +317,7 @@ pub(super) fn analyze_watch_changes(
             continue;
         }
 
-        if let Some(relative) =
-            relative_tree_path(path.as_path(), trees_dir, trees_dir_canonical)
-        {
+        if let Some(relative) = relative_tree_path(path.as_path(), trees_dir, trees_dir_canonical) {
             if is_source_extension(relative.extension()) {
                 stats.tree_source_paths += 1;
             } else {
@@ -353,22 +349,6 @@ pub(super) fn format_watch_change_stats(stats: WatchChangeStats) -> String {
         stats.ignored_temp_paths,
         stats.ignored_directory_paths
     )
-}
-
-pub(super) fn compose_dirty_paths(
-    changed_paths: &[Utf8PathBuf],
-    trees_dir: &Utf8Path,
-    trees_dir_canonical: &Utf8Path,
-) -> DirtySet {
-    changed_paths
-        .iter()
-        .filter_map(|path| {
-            if classify_noise_path(path.as_path()).is_some() {
-                return None;
-            }
-            relative_tree_path(path.as_path(), trees_dir, trees_dir_canonical)
-        })
-        .collect()
 }
 
 /// from: https://github.com/notify-rs/notify/blob/main/examples/monitor_raw.rs#L18
@@ -519,21 +499,32 @@ mod tests {
     }
 
     #[test]
-    fn test_compose_dirty_paths_collects_tree_relative_files() {
+    fn test_analyze_watch_changes_collects_tree_relative_files() {
         let root = Utf8PathBuf::from("site");
         let trees = root.join("trees");
         let trees_canonical = trees.clone();
+        let assets = root.join("assets");
+        let assets_canonical = assets.clone();
         let changed = vec![trees.join("a.md"), root.join("import-style.html")];
 
-        let dirty = compose_dirty_paths(&changed, trees.as_path(), trees_canonical.as_path());
-        assert!(dirty.contains(&Utf8PathBuf::from("a.md")));
-        assert!(!dirty.contains(&Utf8PathBuf::from("import-style.html")));
+        let analysis = analyze_watch_changes(
+            &changed,
+            trees.as_path(),
+            trees_canonical.as_path(),
+            assets.as_path(),
+            assets_canonical.as_path(),
+        );
+        assert!(analysis.dirty_paths.contains(&Utf8PathBuf::from("a.md")));
+        assert!(!analysis
+            .dirty_paths
+            .contains(&Utf8PathBuf::from("import-style.html")));
     }
 
     #[test]
-    fn test_compose_dirty_paths_handles_canonicalized_tree_paths() {
+    fn test_analyze_watch_changes_handles_canonicalized_tree_paths() {
         let root = case_dir("dirty-canonical");
         let trees = root.join("trees");
+        let assets = root.join("assets");
         let sub = trees.join("sub");
         fs::create_dir_all(&sub).unwrap();
         let file = trees.join("a.typst");
@@ -541,16 +532,23 @@ mod tests {
         let changed = vec![trees.join("sub/../a.typst")];
 
         let trees_canonical = trees.canonicalize_utf8().unwrap();
-        let dirty = compose_dirty_paths(&changed, trees.as_path(), trees_canonical.as_path());
-        assert!(dirty.contains(&Utf8PathBuf::from("a.typst")));
+        let analysis = analyze_watch_changes(
+            &changed,
+            trees.as_path(),
+            trees_canonical.as_path(),
+            assets.as_path(),
+            assets.as_path(),
+        );
+        assert!(analysis.dirty_paths.contains(&Utf8PathBuf::from("a.typst")));
 
         let _ = fs::remove_dir_all(root);
     }
 
     #[test]
-    fn test_compose_dirty_paths_ignores_temp_and_directory_events() {
+    fn test_analyze_watch_changes_ignores_temp_and_directory_events() {
         let root = case_dir("dirty-filter");
         let trees = root.join("trees");
+        let assets = root.join("assets");
         let dir = trees.join("sub");
         fs::create_dir_all(dir.as_std_path()).unwrap();
 
@@ -561,10 +559,18 @@ mod tests {
         ];
 
         let trees_canonical = trees.canonicalize_utf8().unwrap();
-        let dirty = compose_dirty_paths(&changed, trees.as_path(), trees_canonical.as_path());
-        assert!(dirty.contains(&Utf8PathBuf::from("index.md")));
-        assert!(!dirty.contains(&Utf8PathBuf::from(".index.md.swp")));
-        assert!(!dirty.contains(&Utf8PathBuf::from("sub")));
+        let analysis = analyze_watch_changes(
+            &changed,
+            trees.as_path(),
+            trees_canonical.as_path(),
+            assets.as_path(),
+            assets.as_path(),
+        );
+        assert!(analysis.dirty_paths.contains(&Utf8PathBuf::from("index.md")));
+        assert!(!analysis
+            .dirty_paths
+            .contains(&Utf8PathBuf::from(".index.md.swp")));
+        assert!(!analysis.dirty_paths.contains(&Utf8PathBuf::from("sub")));
 
         let _ = fs::remove_dir_all(root);
     }
@@ -599,7 +605,9 @@ mod tests {
             assets_canonical.as_path(),
         );
 
-        assert!(analysis.dirty_paths.contains(&Utf8PathBuf::from("index.md")));
+        assert!(analysis
+            .dirty_paths
+            .contains(&Utf8PathBuf::from("index.md")));
         assert!(analysis
             .dirty_paths
             .contains(&Utf8PathBuf::from("includes/snippet.txt")));
