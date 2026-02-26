@@ -63,19 +63,11 @@ pub fn verify_update_hash<P: AsRef<Utf8Path>>(
 mod tests {
     use std::fs;
 
-    use camino::Utf8PathBuf;
-
     use super::*;
-
-    fn case_dir(name: &str) -> Utf8PathBuf {
-        let mut path = std::env::temp_dir();
-        path.push(format!("kodama-env-hash-{name}-{}", fastrand::u64(..)));
-        Utf8PathBuf::from_path_buf(path).expect("temp path should be valid utf8")
-    }
 
     #[test]
     fn test_is_hash_updated_returns_modified_when_hash_file_missing() {
-        let root = case_dir("missing");
+        let root = crate::test_io::case_dir("env-hash-missing");
         let hash_path = root.join("missing.hash");
         let (is_modified, _) = is_hash_updated("content", hash_path.as_path());
         assert!(is_modified);
@@ -83,7 +75,7 @@ mod tests {
 
     #[test]
     fn test_is_hash_updated_returns_modified_for_invalid_hash_history() {
-        let root = case_dir("invalid");
+        let root = crate::test_io::case_dir("env-hash-invalid");
         fs::create_dir_all(root.as_std_path()).unwrap();
         let hash_path = root.join("history.hash");
         fs::write(hash_path.as_std_path(), "not-a-number").unwrap();
@@ -96,7 +88,7 @@ mod tests {
 
     #[test]
     fn test_is_hash_updated_returns_unmodified_for_matching_hash() {
-        let root = case_dir("matching");
+        let root = crate::test_io::case_dir("env-hash-matching");
         fs::create_dir_all(root.as_std_path()).unwrap();
         let hash_path = root.join("matching.hash");
         let (_, current_hash) = is_hash_updated("content", hash_path.as_path());
@@ -110,7 +102,7 @@ mod tests {
 
     #[test]
     fn test_verify_update_hash_roundtrip_detects_changes() {
-        let root = case_dir("roundtrip");
+        let root = crate::test_io::case_dir("env-hash-roundtrip");
         fs::create_dir_all(root.as_std_path()).unwrap();
 
         super::super::with_test_environment(root.clone(), super::super::BuildMode::Build, || {

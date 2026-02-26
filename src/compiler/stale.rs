@@ -3,6 +3,7 @@
 // Authors: Kokic (@kokic), Alias Qli (@AliasQli), Spore (@s-cerevisiae)
 
 use std::collections::HashSet;
+use std::{fs::File, io::BufReader};
 
 use camino::{Utf8Path, Utf8PathBuf};
 use eyre::{eyre, WrapErr};
@@ -14,6 +15,7 @@ use crate::{
 };
 
 use super::Workspace;
+use super::{section::UnresolvedSection, CachedSourceEntry};
 
 pub(super) fn source_from_entry_relative_path(
     entry_relative_path: &Utf8Path,
@@ -102,18 +104,59 @@ pub(super) fn cleanup_stale_slug_artifacts_with_paths(
             continue;
         }
 
-        stale_slugs.insert(slug);
+        let stale_entry_slugs = read_cached_slugs(entry_path.as_path(), slug);
+        stale_slugs.extend(stale_entry_slugs.iter().copied());
 
         let _ = remove_file_if_exists(entry_path.as_path())?;
 
         let hash_path = hash_cache_path_no_create(hash_dir, source_relative.as_path());
         let _ = remove_file_if_exists(hash_path.as_path())?;
 
-        let output_html = output_dir.join(format!("{}.html", slug));
-        let _ = remove_file_if_exists(output_html.as_path())?;
+        for stale_slug in stale_entry_slugs {
+            let output_html = output_dir.join(format!("{}.html", stale_slug));
+            let _ = remove_file_if_exists(output_html.as_path())?;
+        }
     }
 
     Ok(stale_slugs)
+}
+
+fn read_cached_slugs(entry_path: &Utf8Path, fallback_slug: Slug) -> Vec<Slug> {
+    let read_bundle = || -> eyre::Result<Vec<Slug>> {
+        let entry_file = BufReader::new(
+            File::open(entry_path)
+                .wrap_err_with(|| eyre!("failed to open cached entry `{}`", entry_path))?,
+        );
+        let cached: CachedSourceEntry = serde_json::from_reader(entry_file)
+            .wrap_err_with(|| eyre!("failed to deserialize cached entry `{}`", entry_path))?;
+        Ok(cached
+            .sections
+            .into_iter()
+            .map(|section| section.slug)
+            .collect())
+    };
+
+    if let Ok(slugs) = read_bundle() {
+        if !slugs.is_empty() {
+            return slugs;
+        }
+    }
+
+    let read_legacy = || -> eyre::Result<Vec<Slug>> {
+        let entry_file = BufReader::new(
+            File::open(entry_path)
+                .wrap_err_with(|| eyre!("failed to reopen cached entry `{}`", entry_path))?,
+        );
+        let section: UnresolvedSection = serde_json::from_reader(entry_file)
+            .wrap_err_with(|| eyre!("failed to deserialize legacy entry `{}`", entry_path))?;
+        let slug = section.slug().unwrap_or(fallback_slug);
+        Ok(vec![slug])
+    };
+
+    match read_legacy() {
+        Ok(slugs) if !slugs.is_empty() => slugs,
+        _ => vec![fallback_slug],
+    }
 }
 
 pub(super) fn cleanup_stale_slug_artifacts(workspace: &Workspace) -> eyre::Result<HashSet<Slug>> {
@@ -142,8 +185,7 @@ mod tests {
 
     #[test]
     fn test_cleanup_stale_slug_artifacts_removes_stale_output_and_cache() {
-        let base = std::env::temp_dir().join(format!("kodama-cleanup-{}", fastrand::u64(..)));
-        let base = Utf8PathBuf::from_path_buf(base).unwrap();
+        let base = crate::test_io::case_dir("cleanup-stale");
         let entry_dir = base.join("entry");
         let hash_dir = base.join("hash");
         let output_dir = base.join("output");

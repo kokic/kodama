@@ -211,7 +211,7 @@ fn failed_in_file(src_pos: &'static str, file_path: &str, stderr: std::borrow::C
 #[cfg(test)]
 mod tests {
     use super::{html_to_body_content, to_html_string};
-    use camino::{Utf8Path, Utf8PathBuf};
+    use camino::Utf8Path;
     use std::fs;
 
     #[test]
@@ -229,10 +229,8 @@ mod tests {
 
     #[test]
     fn test_to_html_string_reports_typst_root_hint_for_missing_source() {
-        let base =
-            std::env::temp_dir().join(format!("kodama-typst-root-hint-{}", fastrand::u64(..)));
+        let base = crate::test_io::case_dir("typst-root-hint");
         fs::create_dir_all(&base).unwrap();
-        let base = Utf8PathBuf::from_path_buf(base).unwrap();
 
         let err = to_html_string(
             Utf8Path::new("references/feature-typst.typst"),

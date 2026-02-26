@@ -109,19 +109,11 @@ pub fn entry_file_path<P: AsRef<Utf8Path>>(path: P) -> Utf8PathBuf {
 mod tests {
     use std::fs;
 
-    use camino::Utf8PathBuf;
-
     use super::*;
-
-    fn case_dir(name: &str) -> Utf8PathBuf {
-        let mut path = std::env::temp_dir();
-        path.push(format!("kodama-env-paths-{name}-{}", fastrand::u64(..)));
-        Utf8PathBuf::from_path_buf(path).expect("temp path should be valid utf8")
-    }
 
     #[test]
     fn test_create_parent_dirs_creates_missing_directories() {
-        let root = case_dir("parent");
+        let root = crate::test_io::case_dir("env-paths-parent");
         let target = root.join("a/b/c/file.txt");
         create_parent_dirs(target.as_path());
         assert!(target.parent().is_some_and(|parent| parent.exists()));
@@ -130,7 +122,7 @@ mod tests {
 
     #[test]
     fn test_full_url_normalizes_leading_prefixes() {
-        let root = case_dir("full-url");
+        let root = crate::test_io::case_dir("env-paths-full-url");
         fs::create_dir_all(root.as_std_path()).unwrap();
 
         super::super::with_test_environment(root.clone(), super::super::BuildMode::Build, || {
@@ -145,7 +137,7 @@ mod tests {
 
     #[test]
     fn test_hash_and_entry_paths_preserve_original_extension_suffix() {
-        let root = case_dir("hash-entry");
+        let root = crate::test_io::case_dir("env-paths-hash-entry");
         fs::create_dir_all(root.as_std_path()).unwrap();
 
         super::super::with_test_environment(root.clone(), super::super::BuildMode::Build, || {

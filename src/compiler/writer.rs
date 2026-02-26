@@ -348,6 +348,17 @@ mod tests {
 
     use super::*;
 
+    fn with_test_env(f: impl FnOnce()) {
+        let root = crate::test_io::case_dir("writer");
+        std::fs::create_dir_all(root.as_std_path()).unwrap();
+        crate::environment::with_test_environment(
+            root.clone(),
+            crate::environment::BuildMode::Build,
+            f,
+        );
+        let _ = std::fs::remove_dir_all(root.as_std_path());
+    }
+
     fn shallow_section(slug: &str, title: &str) -> UnresolvedSection {
         let mut metadata = OrderedMap::new();
         metadata.insert(KEY_SLUG.to_string(), HTMLContent::Plain(slug.to_string()));
@@ -366,34 +377,34 @@ mod tests {
 
     #[test]
     fn test_html_doc_skips_header_when_parent_section_is_missing() {
-        crate::environment::mock_environment().unwrap();
+        with_test_env(|| {
+            let mut shallows = HashMap::new();
+            shallows.insert(Slug::new("a"), shallow_section("a", "A"));
 
-        let mut shallows = HashMap::new();
-        shallows.insert(Slug::new("a"), shallow_section("a", "A"));
+            let state = compile_all(&shallows).unwrap();
+            let section = state.compiled().get(&Slug::new("a")).unwrap();
+            let (html, _title) = Writer::html_doc(section, &state).unwrap();
 
-        let state = compile_all(&shallows).unwrap();
-        let section = state.compiled().get(&Slug::new("a")).unwrap();
-        let (html, _title) = Writer::html_doc(section, &state).unwrap();
-
-        assert!(!html.contains(r#"class="header""#));
+            assert!(!html.contains(r#"class="header""#));
+        });
     }
 
     #[test]
     fn test_html_doc_returns_error_for_invalid_bool_metadata() {
-        crate::environment::mock_environment().unwrap();
+        with_test_env(|| {
+            let mut shallows = HashMap::new();
+            let mut section = shallow_section("a", "A");
+            section.metadata.0.insert(
+                KEY_REFERENCES.to_string(),
+                HTMLContent::Plain("maybe".to_string()),
+            );
+            shallows.insert(Slug::new("a"), section);
 
-        let mut shallows = HashMap::new();
-        let mut section = shallow_section("a", "A");
-        section.metadata.0.insert(
-            KEY_REFERENCES.to_string(),
-            HTMLContent::Plain("maybe".to_string()),
-        );
-        shallows.insert(Slug::new("a"), section);
+            let state = compile_all(&shallows).unwrap();
+            let section = state.compiled().get(&Slug::new("a")).unwrap();
+            let err = Writer::html_doc(section, &state).unwrap_err();
 
-        let state = compile_all(&shallows).unwrap();
-        let section = state.compiled().get(&Slug::new("a")).unwrap();
-        let err = Writer::html_doc(section, &state).unwrap_err();
-
-        assert!(err.to_string().contains("invalid bool metadata"));
+            assert!(err.to_string().contains("invalid bool metadata"));
+        });
     }
 }

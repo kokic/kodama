@@ -140,8 +140,6 @@ fn next_atomic_write_stamp() -> String {
 mod tests {
     use std::{collections::HashMap, fs};
 
-    use camino::Utf8PathBuf;
-
     use super::*;
     use crate::{
         compiler::section::{
@@ -227,8 +225,7 @@ mod tests {
 
     #[test]
     fn test_sync_optional_output_writes_and_removes_artifact() {
-        let base = std::env::temp_dir().join(format!("kodama-sync-output-{}", fastrand::u64(..)));
-        let base = Utf8PathBuf::from_path_buf(base).unwrap();
+        let base = crate::test_io::case_dir("sync-output");
         let path = base.join("publish/kodama.json");
 
         sync_optional_output(path.as_path(), Some("{\"ok\":true}"), "indexes").unwrap();
@@ -242,8 +239,7 @@ mod tests {
 
     #[test]
     fn test_sync_optional_output_overwrites_existing_artifact_atomically() {
-        let base = std::env::temp_dir().join(format!("kodama-sync-atomic-{}", fastrand::u64(..)));
-        let base = Utf8PathBuf::from_path_buf(base).unwrap();
+        let base = crate::test_io::case_dir("sync-atomic");
         let path = base.join("publish/kodama.graph.json");
 
         sync_optional_output(path.as_path(), Some("{\"v\":1}"), "graph").unwrap();

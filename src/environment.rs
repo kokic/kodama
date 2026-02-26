@@ -112,9 +112,7 @@ pub(super) fn with_test_environment<R>(
     build_mode: BuildMode,
     f: impl FnOnce() -> R,
 ) -> R {
-    static TEST_ENV_MUTEX: OnceLock<std::sync::Mutex<()>> = OnceLock::new();
-    let lock = TEST_ENV_MUTEX.get_or_init(|| std::sync::Mutex::new(()));
-    let _guard = lock.lock().expect("test env mutex must be lockable");
+    let _guard = lock_test_env_mutex();
 
     struct Reset;
     impl Drop for Reset {
@@ -149,11 +147,10 @@ pub fn init_environment(toml_file: Utf8PathBuf, build_mode: BuildMode) -> eyre::
     Ok(())
 }
 
-/// Mock environment for testing purposes.
-#[allow(dead_code)]
-pub fn mock_environment() -> eyre::Result<()> {
-    update_environment(default_environment());
-    Ok(())
+#[cfg(test)]
+fn test_env_mutex() -> &'static std::sync::Mutex<()> {
+    static TEST_ENV_MUTEX: OnceLock<std::sync::Mutex<()>> = OnceLock::new();
+    TEST_ENV_MUTEX.get_or_init(|| std::sync::Mutex::new(()))
 }
 
 #[derive(Clone, Copy)]
@@ -199,6 +196,29 @@ pub fn is_build() -> bool {
 
 pub fn is_check() -> bool {
     with_environment(|env| matches!(env.build_mode, BuildMode::Check))
+}
+
+#[cfg(test)]
+fn lock_test_env_mutex() -> std::sync::MutexGuard<'static, ()> {
+    match test_env_mutex().lock() {
+        Ok(guard) => guard,
+        Err(poisoned) => {
+            color_print::ceprintln!(
+                "<y>Warning: test environment mutex is poisoned; continuing with recovered state.</>"
+            );
+            poisoned.into_inner()
+        }
+    }
+}
+
+/// Mock environment for testing purposes.
+#[allow(dead_code)]
+pub fn mock_environment() -> eyre::Result<()> {
+    #[cfg(test)]
+    let _guard = lock_test_env_mutex();
+
+    update_environment(default_environment());
+    Ok(())
 }
 
 #[cfg(test)]

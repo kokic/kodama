@@ -166,8 +166,6 @@ fn all_trees_source_with_mode(
 
 #[cfg(test)]
 mod tests {
-    use camino::Utf8PathBuf;
-
     use super::*;
 
     #[test]
@@ -189,9 +187,7 @@ mod tests {
 
     #[test]
     fn test_all_trees_source_readonly_returns_empty_workspace_when_trees_missing() {
-        let missing =
-            std::env::temp_dir().join(format!("kodama-missing-trees-{}", fastrand::u64(..)));
-        let missing = Utf8PathBuf::from_path_buf(missing).expect("temp path should be valid utf8");
+        let missing = crate::test_io::case_dir("missing-trees");
 
         let workspace = all_trees_source_readonly(missing.as_path()).expect("scan should succeed");
         assert!(workspace.slug_exts.is_empty());

@@ -72,19 +72,11 @@ pub fn ensure_cache_version() -> eyre::Result<()> {
 mod tests {
     use std::fs;
 
-    use camino::Utf8PathBuf;
-
     use super::*;
-
-    fn case_dir(name: &str) -> Utf8PathBuf {
-        let mut path = std::env::temp_dir();
-        path.push(format!("kodama-env-cache-{name}-{}", fastrand::u64(..)));
-        Utf8PathBuf::from_path_buf(path).expect("temp path should be valid utf8")
-    }
 
     #[test]
     fn test_ensure_cache_version_keeps_existing_cache_when_version_matches() {
-        let root = case_dir("keep");
+        let root = crate::test_io::case_dir("env-cache-keep");
         fs::create_dir_all(root.as_std_path()).unwrap();
 
         super::super::with_test_environment(root.clone(), super::super::BuildMode::Build, || {
@@ -105,7 +97,7 @@ mod tests {
 
     #[test]
     fn test_ensure_cache_version_clears_entry_and_hash_on_mismatch() {
-        let root = case_dir("mismatch");
+        let root = crate::test_io::case_dir("env-cache-mismatch");
         fs::create_dir_all(root.as_std_path()).unwrap();
 
         super::super::with_test_environment(root.clone(), super::super::BuildMode::Build, || {
@@ -115,6 +107,7 @@ mod tests {
             fs::write(entry_file.as_std_path(), "{}").unwrap();
 
             let version_path = cache_version_path();
+            super::super::create_parent_dirs(version_path.as_path());
             fs::write(version_path.as_std_path(), "legacy-version").unwrap();
 
             ensure_cache_version().unwrap();

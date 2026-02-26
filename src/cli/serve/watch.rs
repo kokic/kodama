@@ -467,9 +467,7 @@ mod tests {
     use super::*;
 
     fn case_dir(name: &str) -> Utf8PathBuf {
-        let mut path = std::env::temp_dir();
-        path.push(format!("kodama-serve-{name}-{}", fastrand::u64(..)));
-        Utf8PathBuf::from_path_buf(path).expect("temp path should be valid utf8")
+        crate::test_io::case_dir(&format!("serve-{name}"))
     }
 
     #[test]

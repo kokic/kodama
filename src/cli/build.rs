@@ -295,7 +295,6 @@ fn write_reload_marker_atomically(marker_path: &Utf8Path, stamp: &str) -> eyre::
 #[cfg(test)]
 mod tests {
     use super::*;
-    use camino::Utf8PathBuf;
 
     #[test]
     fn test_next_reload_marker_stamp_is_unique() {
@@ -306,8 +305,7 @@ mod tests {
 
     #[test]
     fn test_write_reload_marker_atomically_overwrites() {
-        let base = std::env::temp_dir().join(format!("kodama-reload-marker-{}", fastrand::u64(..)));
-        let base = Utf8PathBuf::from_path_buf(base).unwrap();
+        let base = crate::test_io::case_dir("reload-marker");
         let marker = base.join("serve/kodama.reload");
 
         write_reload_marker_atomically(marker.as_path(), "v1").unwrap();
@@ -323,8 +321,7 @@ mod tests {
 
     #[test]
     fn test_sync_css_file_overwrites_when_content_changes() {
-        let base = std::env::temp_dir().join(format!("kodama-css-sync-{}", fastrand::u64(..)));
-        let base = Utf8PathBuf::from_path_buf(base).unwrap();
+        let base = crate::test_io::case_dir("css-sync");
         let css_path = base.join("build/main.css");
 
         sync_text_output(css_path.as_path(), "body{color:black;}", "CSS file").unwrap();

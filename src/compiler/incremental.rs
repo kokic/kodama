@@ -91,7 +91,23 @@ pub(super) fn affected_slugs_from_dirty(
     dirty_source_slugs: &HashSet<Slug>,
 ) -> HashSet<Slug> {
     let mut affected = dirty_source_slugs.clone();
-    let mut queue: VecDeque<Slug> = dirty_source_slugs.iter().copied().collect();
+
+    // Descendant sections (embedded children) share source ownership with their parent
+    // in subtree mode, so source-dirty must include the whole descendant chain.
+    let mut changed = true;
+    while changed {
+        changed = false;
+        for (&slug, callback) in &state.callback().0 {
+            if callback.parent != slug
+                && affected.contains(&callback.parent)
+                && affected.insert(slug)
+            {
+                changed = true;
+            }
+        }
+    }
+
+    let mut queue: VecDeque<Slug> = affected.iter().copied().collect();
 
     // If a linker page changes, the target's backlink list changes too.
     for (&target_slug, callback) in &state.callback().0 {
@@ -126,11 +142,13 @@ pub(super) fn affected_slugs_from_dirty(
 
 #[cfg(test)]
 mod tests {
-    use std::collections::HashMap;
+    use std::collections::{HashMap, HashSet};
 
     use super::*;
     use crate::{
-        compiler::section::{HTMLContent, LazyContent, LocalLink, UnresolvedSection},
+        compiler::section::{
+            EmbedContent, HTMLContent, LazyContent, LocalLink, SectionOption, UnresolvedSection,
+        },
         entry::{HTMLMetaData, KEY_EXT, KEY_PAGE_TITLE, KEY_SLUG, KEY_TITLE},
         ordered_map::OrderedMap,
     };
@@ -223,5 +241,44 @@ mod tests {
 
         assert!(affected.contains(&Slug::new("a")));
         assert!(affected.contains(&Slug::new("b")));
+    }
+
+    #[test]
+    fn test_affected_slugs_include_embedded_descendants_when_parent_source_changes() {
+        let mut shallows = HashMap::new();
+        shallows.insert(
+            Slug::new("root"),
+            shallow(
+                "root",
+                HTMLContent::Lazy(vec![LazyContent::Embed(EmbedContent {
+                    url: "/child.md".to_string(),
+                    title: None,
+                    option: SectionOption::default(),
+                })]),
+            ),
+        );
+        shallows.insert(
+            Slug::new("child"),
+            shallow(
+                "child",
+                HTMLContent::Lazy(vec![LazyContent::Embed(EmbedContent {
+                    url: "/leaf.md".to_string(),
+                    title: None,
+                    option: SectionOption::default(),
+                })]),
+            ),
+        );
+        shallows.insert(
+            Slug::new("leaf"),
+            shallow("leaf", HTMLContent::Plain("<p>leaf</p>".to_string())),
+        );
+
+        let state = state::compile_all(&shallows).unwrap();
+        let dirty_slugs = HashSet::from([Slug::new("root")]);
+        let affected = affected_slugs_from_dirty(&state, &dirty_slugs);
+
+        assert!(affected.contains(&Slug::new("root")));
+        assert!(affected.contains(&Slug::new("child")));
+        assert!(affected.contains(&Slug::new("leaf")));
     }
 }

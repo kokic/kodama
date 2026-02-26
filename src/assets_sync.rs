@@ -112,15 +112,9 @@ mod tests {
     use super::*;
     use std::fs;
 
-    fn case_dir(name: &str) -> Utf8PathBuf {
-        let mut path = std::env::temp_dir();
-        path.push(format!("kodama-{name}-{}", fastrand::u64(..)));
-        Utf8PathBuf::from_path_buf(path).expect("temp path should be valid utf8")
-    }
-
     #[test]
     fn test_sync_assets_removes_stale_files() {
-        let root = case_dir("assets-sync");
+        let root = crate::test_io::case_dir("assets-sync");
         let source = root.join("source");
         let target = root.join("target");
         fs::create_dir_all(&source).unwrap();
@@ -142,7 +136,7 @@ mod tests {
 
     #[test]
     fn test_sync_assets_removes_target_when_source_missing() {
-        let root = case_dir("assets-missing-source");
+        let root = crate::test_io::case_dir("assets-missing-source");
         let source = root.join("source");
         let target = root.join("target");
         fs::create_dir_all(&target).unwrap();

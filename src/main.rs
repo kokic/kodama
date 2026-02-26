@@ -15,6 +15,8 @@ mod path_utils;
 mod process;
 mod recorder;
 mod slug;
+#[cfg(test)]
+mod test_io;
 mod typst_cli;
 
 use clap::{

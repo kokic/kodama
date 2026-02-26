@@ -25,8 +25,9 @@ use std::{
 
 use camino::{Utf8Path, Utf8PathBuf};
 use eyre::{eyre, WrapErr};
-use parser::parse_markdown;
+use parser::parse_markdown_sections;
 use section::{HTMLContent, UnresolvedSection};
+use serde::{Deserialize, Serialize};
 use typst::parse_typst;
 use writer::Writer;
 
@@ -49,6 +50,9 @@ pub use serve_session::ServeCompileSession;
 pub use source_scan::{all_trees_source, all_trees_source_readonly, Workspace};
 
 pub type DirtySet = HashSet<Utf8PathBuf>;
+pub type UnresolvedSections = HashMap<Slug, UnresolvedSection>;
+pub type SourceSectionsIndex = HashMap<Slug, Vec<Slug>>;
+pub type ParsedSections = Vec<(Slug, UnresolvedSection)>;
 
 #[derive(Debug, Clone, Copy)]
 pub struct CompileOutputs {
@@ -63,6 +67,17 @@ impl Default for CompileOutputs {
             graph: true,
         }
     }
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub(super) struct CachedSourceEntry {
+    pub sections: Vec<CachedSection>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub(super) struct CachedSection {
+    pub slug: Slug,
+    pub section: UnresolvedSection,
 }
 
 pub fn compile(
@@ -86,12 +101,13 @@ pub fn refresh_indexes(
 
 pub(super) fn compile_from_shallows(
     workspace: &Workspace,
-    shallows: &HashMap<Slug, UnresolvedSection>,
+    shallows: &UnresolvedSections,
     dirty_paths: Option<&DirtySet>,
     outputs: CompileOutputs,
     stale_slugs: HashSet<Slug>,
 ) -> eyre::Result<()> {
-    let all_slugs: Vec<Slug> = workspace.slug_exts.keys().copied().collect();
+    let mut all_slugs: Vec<Slug> = shallows.keys().copied().collect();
+    all_slugs.sort();
 
     let indexes = outputs.indexes.then(|| indexes_from_shallows(shallows));
 
@@ -148,7 +164,7 @@ pub(super) fn compile_from_shallows(
 }
 
 fn indexes_from_shallows(
-    shallows: &HashMap<Slug, UnresolvedSection>,
+    shallows: &UnresolvedSections,
 ) -> HashMap<Slug, OrderedMap<String, HTMLContent>> {
     shallows
         .iter()
@@ -159,61 +175,125 @@ fn indexes_from_shallows(
 pub(super) fn collect_shallows(
     workspace: &Workspace,
     dirty_paths: Option<&DirtySet>,
-) -> eyre::Result<HashMap<Slug, UnresolvedSection>> {
-    let mut shallows = HashMap::new();
-
-    for (&slug, &ext) in &workspace.slug_exts {
-        let shallow = load_shallow(slug, ext, dirty_paths)?;
-        shallows.insert(slug, shallow);
-    }
-
-    Ok(shallows)
+) -> eyre::Result<UnresolvedSections> {
+    Ok(collect_shallows_with_sources(workspace, dirty_paths)?.0)
 }
 
-pub(crate) fn parse_source(slug: Slug, ext: Ext) -> eyre::Result<UnresolvedSection> {
-    let mut shallow = match ext {
-        Ext::Markdown => parse_markdown(slug)
-            .wrap_err_with(|| eyre!("failed to parse markdown file `{slug}.{ext}`"))?,
-        Ext::Typst => parse_typst(slug, environment::typst_root_dir())
-            .wrap_err_with(|| eyre!("failed to parse typst file `{slug}.{ext}`"))?,
+pub(super) fn collect_shallows_with_sources(
+    workspace: &Workspace,
+    dirty_paths: Option<&DirtySet>,
+) -> eyre::Result<(UnresolvedSections, SourceSectionsIndex)> {
+    let mut shallows = HashMap::new();
+    let mut source_sections = HashMap::new();
+
+    for (&source_slug, &ext) in &workspace.slug_exts {
+        let sections = load_shallow_sections(source_slug, ext, dirty_paths)?;
+        let produced_slugs: Vec<Slug> = sections.iter().map(|(slug, _)| *slug).collect();
+
+        for (slug, shallow) in sections {
+            if shallows.insert(slug, shallow).is_some() {
+                return Err(eyre!(
+                    "section slug collision: `{}` is generated multiple times (latest from `{}`)",
+                    slug,
+                    source_slug
+                ));
+            }
+        }
+
+        source_sections.insert(source_slug, produced_slugs);
+    }
+
+    Ok((shallows, source_sections))
+}
+
+pub(crate) fn parse_source_sections(source_slug: Slug, ext: Ext) -> eyre::Result<ParsedSections> {
+    let mut sections = match ext {
+        Ext::Markdown => parse_markdown_sections(source_slug)
+            .wrap_err_with(|| eyre!("failed to parse markdown file `{source_slug}.{ext}`"))?,
+        Ext::Typst => vec![(
+            source_slug,
+            parse_typst(source_slug, environment::typst_root_dir())
+                .wrap_err_with(|| eyre!("failed to parse typst file `{source_slug}.{ext}`"))?,
+        )],
     };
-    shallow.metadata.compute_textual_attrs();
-    Ok(shallow)
+
+    for (_, section) in &mut sections {
+        section.metadata.compute_textual_attrs();
+    }
+    Ok(sections)
 }
 
 pub(super) fn write_entry_cache(
     entry_path: &Utf8Path,
-    shallow: &UnresolvedSection,
+    sections: &[(Slug, UnresolvedSection)],
 ) -> eyre::Result<()> {
-    let serialized = serde_json::to_string(shallow)
-        .wrap_err_with(|| eyre!("failed to serialize entry for `{}`", entry_path))?;
+    let serialized = serde_json::to_string(&CachedSourceEntry {
+        sections: sections
+            .iter()
+            .map(|(slug, section)| CachedSection {
+                slug: *slug,
+                section: section.clone(),
+            })
+            .collect(),
+    })
+    .wrap_err_with(|| eyre!("failed to serialize entry for `{}`", entry_path))?;
     std::fs::write(entry_path, serialized)
         .wrap_err_with(|| eyre!("failed to write entry to `{}`", entry_path))?;
     Ok(())
 }
 
-fn load_shallow(
-    slug: Slug,
+fn read_entry_cache(entry_path: &Utf8Path, source_slug: Slug) -> eyre::Result<ParsedSections> {
+    let entry_file = BufReader::new(
+        File::open(entry_path)
+            .wrap_err_with(|| eyre!("failed to open entry file at `{}`", entry_path))?,
+    );
+
+    if let Ok(cached) = serde_json::from_reader::<_, CachedSourceEntry>(entry_file) {
+        return Ok(cached
+            .sections
+            .into_iter()
+            .map(|cached| (cached.slug, cached.section))
+            .collect());
+    }
+
+    // Backward compatibility: older versions cached a single section value.
+    let entry_file = BufReader::new(
+        File::open(entry_path)
+            .wrap_err_with(|| eyre!("failed to reopen entry file at `{}`", entry_path))?,
+    );
+    let section: UnresolvedSection = serde_json::from_reader(entry_file)
+        .wrap_err_with(|| eyre!("failed to deserialize entry file at `{}`", entry_path))?;
+    Ok(vec![(source_slug, section)])
+}
+
+fn load_shallow_sections(
+    source_slug: Slug,
     ext: Ext,
     dirty_paths: Option<&DirtySet>,
-) -> eyre::Result<UnresolvedSection> {
-    let relative_path = source_relative_path(slug, ext);
+) -> eyre::Result<ParsedSections> {
+    let relative_path = source_relative_path(source_slug, ext);
     let is_modified = is_source_modified(relative_path.as_path(), dirty_paths)
         .wrap_err_with(|| eyre!("failed to verify hash of `{relative_path}`"))?;
     let entry_path = environment::entry_file_path(&relative_path);
 
     if !is_modified && entry_path.exists() {
-        let entry_file = BufReader::new(
-            File::open(&entry_path)
-                .wrap_err_with(|| eyre!("failed to open entry file at `{}`", entry_path))?,
-        );
-        let mut shallow: UnresolvedSection = serde_json::from_reader(entry_file)
-            .wrap_err_with(|| eyre!("failed to deserialize entry file at `{}`", entry_path))?;
-        shallow.metadata.compute_textual_attrs();
-        return Ok(shallow);
+        let mut sections = read_entry_cache(entry_path.as_path(), source_slug)?;
+        for (_, section) in &mut sections {
+            section.metadata.compute_textual_attrs();
+        }
+        return Ok(sections);
     }
 
-    let shallow = parse_source(slug, ext)?;
-    write_entry_cache(entry_path.as_path(), &shallow)?;
-    Ok(shallow)
+    let sections = parse_source_sections(source_slug, ext)?;
+    if entry_path.exists() {
+        let old_sections = read_entry_cache(entry_path.as_path(), source_slug).unwrap_or_default();
+        let old_slugs: HashSet<Slug> = old_sections.into_iter().map(|(slug, _)| slug).collect();
+        let new_slugs: HashSet<Slug> = sections.iter().map(|(slug, _)| *slug).collect();
+        for removed_slug in old_slugs.difference(&new_slugs) {
+            let output_html = environment::output_dir().join(format!("{}.html", removed_slug));
+            let _ = stale::remove_file_if_exists(output_html.as_path())?;
+        }
+    }
+    write_entry_cache(entry_path.as_path(), &sections)?;
+    Ok(sections)
 }

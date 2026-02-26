@@ -98,7 +98,7 @@ pub fn check(command: &CheckCommand) -> eyre::Result<()> {
             "Include file read errors were detected while elaborating markdown content.",
         ));
     }
-    collect_dangling_local_links(&shallows, &workspace, &mut diagnostics);
+    collect_dangling_local_links(&shallows, &mut diagnostics);
     let has_parse_errors = diagnostics.iter().any(|d| d.severity == Severity::Error);
     if !has_parse_errors {
         validate_compile_graph(&shallows, &mut diagnostics);
@@ -149,9 +149,15 @@ fn parse_shallows_no_cache(
     entries.sort_by_key(|(slug, _)| slug.as_str());
 
     for (slug, ext) in entries {
-        match compiler::parse_source(slug, ext) {
-            Ok(section) => {
-                shallows.insert(slug, section);
+        match compiler::parse_source_sections(slug, ext) {
+            Ok(sections) => {
+                for (section_slug, section) in sections {
+                    if shallows.insert(section_slug, section).is_some() {
+                        diagnostics.push(Diagnostic::error(format!(
+                            "Duplicate section slug `{section_slug}` generated while parsing `{slug}.{ext}`."
+                        )));
+                    }
+                }
             }
             Err(err) => diagnostics.push(Diagnostic::error(format!(
                 "Failed to parse `{slug}.{ext}`: {err:#}"
@@ -164,7 +170,6 @@ fn parse_shallows_no_cache(
 
 fn collect_dangling_local_links(
     shallows: &HashMap<Slug, UnresolvedSection>,
-    workspace: &compiler::Workspace,
     diagnostics: &mut Vec<Diagnostic>,
 ) {
     let mut seen = HashSet::new();
@@ -177,7 +182,7 @@ fn collect_dangling_local_links(
                 continue;
             };
             let target_slug = resolve_subsection_slug(from_slug, &local.url);
-            if workspace.slug_exts.contains_key(&target_slug) {
+            if shallows.contains_key(&target_slug) {
                 continue;
             }
             if seen.insert((from_slug, target_slug, local.url.clone())) {
