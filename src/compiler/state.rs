@@ -170,11 +170,16 @@ impl CompileState {
                             let link_slug = subsection_slug(slug, &local_link.url);
 
                             let metadata = get_metadata(shallows, link_slug);
-                            let article_title = get_metadata(shallows, link_slug).map_or("", |s| {
-                                s.title().and_then(|c| c.as_string()).map_or("", |s| s)
-                            });
-                            let page_title = metadata
-                                .map_or("", |s| s.page_title().map_or(article_title, |s| s));
+                            let article_title_html = metadata
+                                .and_then(|s| s.title())
+                                .map_or_else(String::new, html_content_to_html_string);
+                            let article_title_plain = metadata
+                                .and_then(|s| s.title())
+                                .map_or_else(String::new, HTMLContent::remove_all_tags);
+                            let page_title_plain = metadata
+                                .and_then(|s| s.page_title())
+                                .map(|s| strip_html_tags(s))
+                                .unwrap_or_else(|| article_title_plain.clone());
 
                             if link_slug != slug && is_reference(shallows, link_slug)? {
                                 references.insert(link_slug);
@@ -190,12 +195,11 @@ impl CompileState {
                                 callback.insert_backlinks(link_slug, vec![slug]);
                             }
 
-                            let local_link = local_link.text.clone();
-                            let text = local_link.unwrap_or(article_title.to_string());
+                            let text = local_link.text.clone().unwrap_or(article_title_html);
 
                             let html = crate::html_flake::html_link(
                                 &environment::full_html_url(link_slug),
-                                &format!("{} [{}]", page_title, link_slug),
+                                &format!("{} [{}]", page_title_plain, link_slug),
                                 &text,
                                 crate::recorder::State::LocalLink.strify(),
                             );
@@ -295,6 +299,17 @@ fn get_metadata(shallows: &UnresolvedSections, slug: Slug) -> Option<&HTMLMetaDa
     shallows.get(&slug).map(|s| &s.metadata)
 }
 
+fn html_content_to_html_string(content: &HTMLContent) -> String {
+    content
+        .as_string()
+        .cloned()
+        .unwrap_or_else(|| content.remove_all_tags())
+}
+
+fn strip_html_tags(text: &str) -> String {
+    HTMLContent::Plain(text.to_string()).remove_all_tags()
+}
+
 fn backlinks_enabled(shallows: &UnresolvedSections, slug: Slug) -> eyre::Result<bool> {
     match shallows.get(&slug) {
         Some(section) => section.metadata.backlinks_enabled(),
@@ -325,7 +340,7 @@ fn is_backlink(shallows: &UnresolvedSections, slug: Slug) -> eyre::Result<bool> 
 
 #[cfg(test)]
 mod tests {
-    use super::super::section::{EmbedContent, SectionOption};
+    use super::super::section::{EmbedContent, LocalLink, SectionOption};
     use super::*;
     use crate::ordered_map::OrderedMap;
 
@@ -374,5 +389,58 @@ mod tests {
 
         let err = compile_all(&shallows).unwrap_err();
         assert!(err.to_string().contains("cyclic embed"));
+    }
+
+    #[test]
+    fn test_local_link_title_attribute_uses_plain_text() {
+        let mut shallows = HashMap::new();
+
+        shallows.insert(
+            Slug::new("index"),
+            shallow_with_content(
+                "index",
+                HTMLContent::Lazy(vec![LazyContent::Local(LocalLink {
+                    url: "/target".to_string(),
+                    text: None,
+                })]),
+            ),
+        );
+
+        let mut target_metadata = OrderedMap::new();
+        target_metadata.insert(
+            KEY_SLUG.to_string(),
+            HTMLContent::Plain("target".to_string()),
+        );
+        target_metadata.insert(KEY_EXT.to_string(), HTMLContent::Plain("md".to_string()));
+        target_metadata.insert(
+            KEY_TITLE.to_string(),
+            HTMLContent::Plain(r#"<span lang="zh">abc</span>"#.to_string()),
+        );
+        target_metadata.insert(
+            crate::entry::KEY_PAGE_TITLE.to_string(),
+            HTMLContent::Plain(r#"<span lang="zh">abc</span>"#.to_string()),
+        );
+        shallows.insert(
+            Slug::new("target"),
+            UnresolvedSection {
+                metadata: HTMLMetaData(target_metadata),
+                content: HTMLContent::Plain(String::new()),
+            },
+        );
+
+        let state = compile_all_without_missing_index_warning(&shallows).unwrap();
+        let html = state
+            .compiled()
+            .get(&Slug::new("index"))
+            .and_then(|section| section.children.first())
+            .and_then(|child| match child {
+                SectionContent::Plain(html) => Some(html.as_str()),
+                _ => None,
+            })
+            .expect("compiled index html");
+
+        assert!(html.contains(r#"title="abc [target]""#));
+        assert!(!html.contains("&lt;span"));
+        assert!(html.contains(r#"><span lang="zh">abc</span></a>"#));
     }
 }
