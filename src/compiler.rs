@@ -32,6 +32,7 @@ use typst::parse_typst;
 use writer::Writer;
 
 use crate::{
+    entry::{MetaData, KEY_INTERNAL_ANON_SUBTREE},
     environment,
     ordered_map::OrderedMap,
     slug::{Ext, Slug},
@@ -106,8 +107,12 @@ pub(super) fn compile_from_shallows(
     outputs: CompileOutputs,
     stale_slugs: HashSet<Slug>,
 ) -> eyre::Result<()> {
-    let mut all_slugs: Vec<Slug> = shallows.keys().copied().collect();
+    let mut all_slugs: Vec<Slug> = shallows
+        .iter()
+        .filter_map(|(slug, section)| (!is_internal_anonymous_subtree(section)).then_some(*slug))
+        .collect();
     all_slugs.sort();
+    cleanup_internal_anonymous_outputs(shallows)?;
 
     let indexes = outputs.indexes.then(|| indexes_from_shallows(shallows));
 
@@ -122,6 +127,11 @@ pub(super) fn compile_from_shallows(
             } else {
                 affected_slugs_from_dirty(&state, &dirty_slugs)
                     .into_iter()
+                    .filter(|slug| {
+                        shallows
+                            .get(slug)
+                            .is_some_and(|section| !is_internal_anonymous_subtree(section))
+                    })
                     .collect()
             }
         }
@@ -168,8 +178,28 @@ fn indexes_from_shallows(
 ) -> HashMap<Slug, OrderedMap<String, HTMLContent>> {
     shallows
         .iter()
+        .filter(|(_, section)| !is_internal_anonymous_subtree(section))
         .map(|(slug, section)| (*slug, section.metadata.0.clone()))
         .collect()
+}
+
+fn is_internal_anonymous_subtree(section: &UnresolvedSection) -> bool {
+    section
+        .metadata
+        .get_str(KEY_INTERNAL_ANON_SUBTREE)
+        .is_some_and(|value| value == "true")
+}
+
+fn cleanup_internal_anonymous_outputs(shallows: &UnresolvedSections) -> eyre::Result<()> {
+    let output_dir = environment::output_dir();
+    for (slug, section) in shallows {
+        if !is_internal_anonymous_subtree(section) {
+            continue;
+        }
+        let output_html = output_dir.join(format!("{}.html", slug));
+        let _ = stale::remove_file_if_exists(output_html.as_path())?;
+    }
+    Ok(())
 }
 
 pub(super) fn collect_shallows(

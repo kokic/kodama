@@ -73,6 +73,7 @@ pub fn html_header(
     taxon: &str,
     slug: &Slug,
     ext: &str,
+    show_slug: bool,
     source_slug: Option<&str>,
     source_pos: Option<&str>,
     span_class: String,
@@ -86,6 +87,11 @@ pub fn html_header(
 
     let slug_text = EntryMetaData::to_slug_text(slug_str);
     let slug_url = environment::full_html_url(*slug);
+    let slug_link = if show_slug {
+        html!(a class="slug" href={slug_url} { "["(slug_text)"]" })
+    } else {
+        String::new()
+    };
 
     let edit_text = environment::get_edit_text();
     let edit_class = "edit";
@@ -125,7 +131,7 @@ pub fn html_header(
         h1 {
             span class={span_class} { (taxon) }
             (title) " "
-            a class="slug" href={slug_url} { "["(slug_text)"]" }
+            (slug_link)
             (edit_url)
         }
         (html_header_metadata(etc))
@@ -266,6 +272,7 @@ pub fn html_header_nav(title: &str, page_title: &str, href: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::{append_editor_position, html_link, parse_source_pos};
+    use crate::slug::Slug;
 
     #[test]
     fn test_html_link_escapes_title_attribute() {
@@ -316,6 +323,22 @@ mod tests {
         assert_eq!(parse_source_pos("12:3"), Some((12, 3)));
         assert_eq!(parse_source_pos("0:3"), None);
         assert_eq!(parse_source_pos("abc"), None);
+    }
+
+    #[test]
+    fn test_html_header_can_hide_slug_link() {
+        let html = super::html_header(
+            "Title",
+            "Taxon. ",
+            &Slug::new("book/child"),
+            "md",
+            false,
+            None,
+            None,
+            "taxon".to_string(),
+            Vec::new(),
+        );
+        assert!(!html.contains("class=\"slug\""));
     }
 }
 

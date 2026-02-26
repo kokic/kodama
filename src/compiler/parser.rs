@@ -10,8 +10,8 @@ use pulldown_cmark::Options;
 
 use crate::{
     entry::{
-        HTMLMetaData, MetaData, KEY_EXT, KEY_SLUG, KEY_SOURCE_POS, KEY_SOURCE_SLUG, KEY_TAXON,
-        KEY_TITLE,
+        HTMLMetaData, MetaData, KEY_EXT, KEY_INTERNAL_ANON_SUBTREE, KEY_SLUG, KEY_SOURCE_POS,
+        KEY_SOURCE_SLUG, KEY_TAXON, KEY_TITLE,
     },
     environment::input_path,
     ordered_map::OrderedMap,
@@ -102,6 +102,7 @@ fn parse_markdown_source(source: &str, slug: Slug) -> eyre::Result<UnresolvedSec
 }
 
 const SUBTREE_PLACEHOLDER_PREFIX: &str = "/__kodama_subtree_internal__/";
+const ANON_SUBTREE_SLUG_PREFIX: &str = "__kodama_anon_subtree_internal__";
 
 #[derive(Debug, Clone)]
 struct SubtreeSpec {
@@ -112,6 +113,7 @@ struct SubtreeSpec {
     option: SectionOption,
     title: Option<String>,
     taxon: Option<String>,
+    anonymous: bool,
     source_slug: Slug,
     source_pos: String,
 }
@@ -164,28 +166,6 @@ fn extract_subtrees(source: &str, current_slug: Slug) -> eyre::Result<ExtractedS
         }
 
         let attrs = parse_attrs(&open_tag.attrs)?;
-        let Some(raw_slug) = attrs.get("slug") else {
-            // Anonymous subtree mode: keep the whole block unchanged and do not
-            // scan nested tags for subtree extraction.
-            if let Some(close_range) =
-                find_matching_close_tag(source, open_tag.end + 1, &open_tag.name)
-            {
-                root_source.push_str(&source[lt..=close_range.end]);
-                cursor = close_range.end + 1;
-            } else {
-                // Fallback for malformed/unclosed anonymous tags: keep open tag unchanged.
-                root_source.push_str(&source[lt..=open_tag.end]);
-                cursor = open_tag.end + 1;
-            }
-            continue;
-        };
-        if raw_slug.trim().is_empty() {
-            return Err(eyre!(
-                "invalid subtree tag `<{}>` in `{}`: `slug` cannot be empty",
-                open_tag.name,
-                current_slug
-            ));
-        }
 
         let Some(close_range) = find_matching_close_tag(source, open_tag.end + 1, &open_tag.name)
         else {
@@ -197,14 +177,31 @@ fn extract_subtrees(source: &str, current_slug: Slug) -> eyre::Result<ExtractedS
         };
 
         let option = parse_subtree_option(&attrs);
-        let slug = resolve_subtree_slug(current_slug, raw_slug).wrap_err_with(|| {
-            eyre!(
-                "invalid subtree tag `<{} slug=\"{}\">` in `{}`",
-                open_tag.name,
-                raw_slug,
-                current_slug
+        let (slug, anonymous) = if let Some(raw_slug) = attrs.get("slug") {
+            if raw_slug.trim().is_empty() {
+                return Err(eyre!(
+                    "invalid subtree tag `<{}>` in `{}`: `slug` cannot be empty",
+                    open_tag.name,
+                    current_slug
+                ));
+            }
+            (
+                resolve_subtree_slug(current_slug, raw_slug).wrap_err_with(|| {
+                    eyre!(
+                        "invalid subtree tag `<{} slug=\"{}\">` in `{}`",
+                        open_tag.name,
+                        raw_slug,
+                        current_slug
+                    )
+                })?,
+                false,
             )
-        })?;
+        } else {
+            (
+                resolve_anonymous_subtree_slug(current_slug, subtrees.len()),
+                true,
+            )
+        };
         let (line, col) = byte_index_to_line_col(source, lt);
         let placeholder_url = format!("{SUBTREE_PLACEHOLDER_PREFIX}{}", subtrees.len());
 
@@ -222,6 +219,7 @@ fn extract_subtrees(source: &str, current_slug: Slug) -> eyre::Result<ExtractedS
             option,
             title,
             taxon,
+            anonymous,
             source_slug: current_slug,
             source_pos: format!("{line}:{col}"),
         });
@@ -505,6 +503,13 @@ fn resolve_subtree_slug(current_slug: Slug, raw_slug: &str) -> eyre::Result<Slug
     Ok(slug::to_slug(relative))
 }
 
+fn resolve_anonymous_subtree_slug(current_slug: Slug, ordinal: usize) -> Slug {
+    let disambiguator = slug::to_hash_id(current_slug.as_str());
+    let component = format!("{ANON_SUBTREE_SLUG_PREFIX}-{disambiguator}-{ordinal}");
+    let relative = path_utils::relative_to_current(current_slug.as_str(), component);
+    slug::to_slug(relative)
+}
+
 fn is_subtree_tag(tag: &str) -> bool {
     matches!(
         tag,
@@ -608,6 +613,12 @@ fn apply_subtree_defaults(section: &mut UnresolvedSection, spec: &SubtreeSpec) {
         KEY_SOURCE_POS.to_string(),
         HTMLContent::Plain(spec.source_pos.clone()),
     );
+    if spec.anonymous {
+        section.metadata.0.insert(
+            KEY_INTERNAL_ANON_SUBTREE.to_string(),
+            HTMLContent::Plain("true".to_string()),
+        );
+    }
 
     if section.metadata.title().is_none() {
         if let Some(title) = &spec.title {
@@ -737,43 +748,68 @@ pub mod tests {
     }
 
     #[test]
-    fn test_extract_subtrees_ignores_tags_without_slug_attribute() {
+    fn test_extract_subtrees_extracts_anonymous_tags_without_slug_attribute() {
         let source = "<remark>plain</remark>";
         let extracted = extract_subtrees(source, Slug::new("index")).unwrap();
-        assert_eq!(extracted.subtrees.len(), 0);
-        assert_eq!(extracted.root_source, source);
+        assert_eq!(extracted.subtrees.len(), 1);
+        assert!(extracted
+            .root_source
+            .contains("[](/__kodama_subtree_internal__/0#:embed)"));
+        assert!(extracted.subtrees[0].anonymous);
+        assert!(extracted.subtrees[0]
+            .slug
+            .as_str()
+            .contains(ANON_SUBTREE_SLUG_PREFIX));
     }
 
     #[test]
-    fn test_extract_subtrees_keeps_anonymous_wrapper_without_extracting_nested_slug_blocks() {
+    fn test_extract_subtrees_treats_anonymous_wrapper_as_single_extracted_subtree() {
         let source = r#"<remark>
 <proof slug="child">inner</proof>
 </remark>"#;
         let extracted = extract_subtrees(source, Slug::new("index")).unwrap();
-        assert_eq!(extracted.subtrees.len(), 0);
-        assert_eq!(extracted.root_source, source);
+        assert_eq!(extracted.subtrees.len(), 1);
+        assert!(extracted.subtrees[0].anonymous);
+        assert!(extracted
+            .subtrees
+            .first()
+            .map(|spec| spec.body.contains("<proof slug=\"child\">inner</proof>"))
+            .unwrap_or(false));
     }
 
     #[test]
-    fn test_parse_markdown_sections_anonymous_subtree_emits_no_independent_child_section() {
+    fn test_parse_markdown_sections_anonymous_subtree_has_internal_section_structure() {
         let source = r#"
 <remark>
 anonymous body
 </remark>
 "#;
         let extracted = extract_subtrees(source, Slug::new("index")).unwrap();
-        let mut sections = Vec::new();
         let mut root = parse_markdown_source(&extracted.root_source, Slug::new("index")).unwrap();
         patch_root_subtree_embeds(&mut root, &extracted.subtrees).unwrap();
-        sections.push((Slug::new("index"), root));
+        let mut anonymous =
+            parse_markdown_source(&extracted.subtrees[0].body, extracted.subtrees[0].slug).unwrap();
+        apply_subtree_defaults(&mut anonymous, &extracted.subtrees[0]);
 
-        assert_eq!(sections.len(), 1);
-        assert_eq!(sections[0].0, Slug::new("index"));
-        assert!(sections[0]
-            .1
+        assert_eq!(extracted.subtrees.len(), 1);
+        assert!(extracted.subtrees[0].anonymous);
+        let HTMLContent::Lazy(contents) = &root.content else {
+            panic!("expected lazy root content");
+        };
+        let embed_urls: Vec<_> = contents
+            .iter()
+            .filter_map(|content| match content {
+                LazyContent::Embed(embed) => Some(embed.url.clone()),
+                _ => None,
+            })
+            .collect();
+        assert_eq!(embed_urls.len(), 1);
+        assert!(embed_urls[0].contains(ANON_SUBTREE_SLUG_PREFIX));
+        assert!(anonymous
             .metadata
-            .slug()
-            .is_some_and(|slug| slug == Slug::new("index")));
+            .get(KEY_INTERNAL_ANON_SUBTREE)
+            .and_then(HTMLContent::as_string)
+            .is_some_and(|v| v == "true"));
     }
 
     #[test]

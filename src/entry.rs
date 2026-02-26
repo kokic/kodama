@@ -36,6 +36,7 @@ pub const KEY_PARENT: &str = "parent";
 pub const KEY_PAGE_TITLE: &str = "page-title";
 pub const KEY_SOURCE_SLUG: &str = "source-slug";
 pub const KEY_SOURCE_POS: &str = "source-pos";
+pub const KEY_INTERNAL_ANON_SUBTREE: &str = "internal-anon-subtree";
 
 /// `backlinks: bool`:
 /// Controls whether the current page displays backlinks.
@@ -71,7 +72,7 @@ pub const KEY_FOOTER_MODE: &str = "footer-mode";
 
 const FANCY_METADATA: [&str; 2] = [KEY_TITLE, KEY_TAXON];
 
-const PLAIN_METADATA: [&str; 14] = [
+const PLAIN_METADATA: [&str; 15] = [
     KEY_SLUG,
     KEY_EXT,
     KEY_DATA_TAXON,
@@ -79,6 +80,7 @@ const PLAIN_METADATA: [&str; 14] = [
     KEY_PAGE_TITLE,
     KEY_SOURCE_SLUG,
     KEY_SOURCE_POS,
+    KEY_INTERNAL_ANON_SUBTREE,
     KEY_BACKLINKS,
     KEY_TRANSPARENT_BACKLINKS,
     KEY_REFERENCES,
@@ -277,6 +279,7 @@ impl EntryMetaData {
                 slug
             )
         })?;
+        let show_slug = !self.get_bool(KEY_INTERNAL_ANON_SUBTREE)?.unwrap_or(false);
         let span_class: Vec<String> = vec!["taxon".to_string()];
 
         Ok(html_flake::html_header(
@@ -284,6 +287,7 @@ impl EntryMetaData {
             taxon,
             &slug,
             ext,
+            show_slug,
             self.get_str(KEY_SOURCE_SLUG).map(String::as_str),
             self.get_str(KEY_SOURCE_POS).map(String::as_str),
             span_class.join(" "),
