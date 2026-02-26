@@ -347,7 +347,6 @@ pub fn html_live_reload() -> String {
 
 pub fn html_scripts() -> &'static str {
     concat!(
-        include_str!("include/inline-section.html"),
         include_str!("include/mobile-toc.html"),
         include_str!("include/theme.html"),
     )

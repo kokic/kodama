@@ -160,9 +160,18 @@ fn extract_subtrees(source: &str, current_slug: Slug) -> eyre::Result<ExtractedS
 
         let attrs = parse_attrs(&open_tag.attrs)?;
         let Some(raw_slug) = attrs.get("slug") else {
-            // Keep tags without `slug` unchanged.
-            root_source.push('<');
-            cursor = lt + 1;
+            // Anonymous subtree mode: keep the whole block unchanged and do not
+            // scan nested tags for subtree extraction.
+            if let Some(close_range) =
+                find_matching_close_tag(source, open_tag.end + 1, &open_tag.name)
+            {
+                root_source.push_str(&source[lt..=close_range.end]);
+                cursor = close_range.end + 1;
+            } else {
+                // Fallback for malformed/unclosed anonymous tags: keep open tag unchanged.
+                root_source.push_str(&source[lt..=open_tag.end]);
+                cursor = open_tag.end + 1;
+            }
             continue;
         };
         if raw_slug.trim().is_empty() {
@@ -682,6 +691,38 @@ pub mod tests {
         let extracted = extract_subtrees(source, Slug::new("index")).unwrap();
         assert_eq!(extracted.subtrees.len(), 0);
         assert_eq!(extracted.root_source, source);
+    }
+
+    #[test]
+    fn test_extract_subtrees_keeps_anonymous_wrapper_without_extracting_nested_slug_blocks() {
+        let source = r#"<remark>
+<proof slug="./child">inner</proof>
+</remark>"#;
+        let extracted = extract_subtrees(source, Slug::new("index")).unwrap();
+        assert_eq!(extracted.subtrees.len(), 0);
+        assert_eq!(extracted.root_source, source);
+    }
+
+    #[test]
+    fn test_parse_markdown_sections_anonymous_subtree_emits_no_independent_child_section() {
+        let source = r#"
+<remark>
+anonymous body
+</remark>
+"#;
+        let extracted = extract_subtrees(source, Slug::new("index")).unwrap();
+        let mut sections = Vec::new();
+        let mut root = parse_markdown_source(&extracted.root_source, Slug::new("index")).unwrap();
+        patch_root_subtree_embeds(&mut root, &extracted.subtrees).unwrap();
+        sections.push((Slug::new("index"), root));
+
+        assert_eq!(sections.len(), 1);
+        assert_eq!(sections[0].0, Slug::new("index"));
+        assert!(sections[0]
+            .1
+            .metadata
+            .slug()
+            .is_some_and(|slug| slug == Slug::new("index")));
     }
 
     #[test]
