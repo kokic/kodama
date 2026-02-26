@@ -62,6 +62,8 @@ struct HtmlWriter<'e, I> {
     table_alignments: Vec<Alignment>,
     table_cell_index: usize,
     numbers: HashMap<CowStr<'e>, usize>,
+    in_paragraph: bool,
+    paragraph_started: bool,
 }
 
 impl<'e, I> HtmlWriter<'e, I>
@@ -78,6 +80,8 @@ where
             table_alignments: vec![],
             table_cell_index: 0,
             numbers: HashMap::new(),
+            in_paragraph: false,
+            paragraph_started: false,
         }
     }
 
@@ -116,22 +120,51 @@ where
         }
     }
 
+    #[inline]
+    fn ensure_paragraph_started(&mut self) {
+        if !self.in_paragraph || self.paragraph_started {
+            return;
+        }
+        if self.end_newline {
+            self.write("<p>");
+        } else {
+            self.write("\n<p>");
+        }
+        self.paragraph_started = true;
+    }
+
+    #[inline]
+    fn close_paragraph_if_started(&mut self) {
+        if !self.in_paragraph || !self.paragraph_started {
+            return;
+        }
+        self.write("</p>\n");
+        self.paragraph_started = false;
+    }
+
     fn run(mut self) -> LazyContents {
         use Event::*;
         while let Some(event_ext) = self.iter.next() {
             let event = match event_ext {
                 EventExtended::CMark(event) => event,
                 EventExtended::Embed(embed_content) => {
+                    // Embed expands to block-level section content in later stages.
+                    // Do not leave an empty paragraph wrapper around it.
+                    self.close_paragraph_if_started();
                     self.contents.push(LazyContent::Embed(embed_content));
                     continue;
                 }
                 EventExtended::Local(local_link) => {
+                    self.ensure_paragraph_started();
                     self.contents.push(LazyContent::Local(local_link));
                     continue;
                 }
             };
             match event {
                 Start(tag) => {
+                    if !matches!(tag, Tag::Paragraph) {
+                        self.ensure_paragraph_started();
+                    }
                     self.start_tag(tag);
                 }
                 End(tag) => {
@@ -139,35 +172,45 @@ where
                 }
                 Text(text) => {
                     if !self.in_non_writing_block {
+                        self.ensure_paragraph_started();
                         escape_html_body_text(self.writer(), &text).unwrap();
                         self.end_newline = text.ends_with('\n');
                     }
                 }
                 Code(text) => {
+                    self.ensure_paragraph_started();
                     self.write("<code>");
                     escape_html_body_text(self.writer(), &text).unwrap();
                     self.write("</code>");
                 }
                 InlineMath(text) => {
+                    self.ensure_paragraph_started();
                     self.write(r#"<span class="math math-inline">"#);
                     escape_html(self.writer(), &text).unwrap();
                     self.write("</span>");
                 }
                 DisplayMath(text) => {
+                    self.ensure_paragraph_started();
                     self.write(r#"<span class="math math-display">"#);
                     escape_html(self.writer(), &text).unwrap();
                     self.write("</span>");
                 }
                 Html(html) | InlineHtml(html) => {
+                    self.ensure_paragraph_started();
                     self.write(&html);
                 }
                 SoftBreak => {
+                    if !self.paragraph_started {
+                        continue;
+                    }
                     self.write_newline();
                 }
                 HardBreak => {
+                    self.ensure_paragraph_started();
                     self.write("<br />\n");
                 }
                 Rule => {
+                    self.ensure_paragraph_started();
                     if self.end_newline {
                         self.write("<hr />\n");
                     } else {
@@ -175,6 +218,7 @@ where
                     }
                 }
                 FootnoteReference(name) => {
+                    self.ensure_paragraph_started();
                     let len = self.numbers.len() + 1;
                     self.write("<sup class=\"footnote-reference\"><a href=\"#");
                     escape_html(self.writer(), &name).unwrap();
@@ -184,9 +228,11 @@ where
                     self.write("</a></sup>");
                 }
                 TaskListMarker(true) => {
+                    self.ensure_paragraph_started();
                     self.write("<input disabled=\"\" type=\"checkbox\" checked=\"\"/>\n");
                 }
                 TaskListMarker(false) => {
+                    self.ensure_paragraph_started();
                     self.write("<input disabled=\"\" type=\"checkbox\"/>\n");
                 }
             }
@@ -199,11 +245,8 @@ where
         match tag {
             Tag::HtmlBlock => (),
             Tag::Paragraph => {
-                if self.end_newline {
-                    self.write("<p>")
-                } else {
-                    self.write("\n<p>")
-                }
+                self.in_paragraph = true;
+                self.paragraph_started = false;
             }
             Tag::Heading {
                 level,
@@ -430,7 +473,9 @@ where
         match tag {
             TagEnd::HtmlBlock => {}
             TagEnd::Paragraph => {
-                self.write("</p>\n");
+                self.close_paragraph_if_started();
+                self.in_paragraph = false;
+                self.paragraph_started = false;
             }
             TagEnd::Heading(level) => {
                 self.write("</");
@@ -557,5 +602,90 @@ where
                 TaskListMarker(false) => self.write("[ ]"),
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use pulldown_cmark::{Event, Tag, TagEnd};
+
+    use super::{to_contents, EventExtended};
+    use crate::compiler::section::{EmbedContent, LazyContent, LocalLink, SectionOption};
+
+    #[test]
+    fn test_embed_only_paragraph_emits_no_empty_wrapper() {
+        let events = vec![
+            EventExtended::from(Event::Start(Tag::Paragraph)),
+            EventExtended::Embed(EmbedContent {
+                url: "/child".to_string(),
+                title: None,
+                option: SectionOption::default(),
+            }),
+            EventExtended::from(Event::End(TagEnd::Paragraph)),
+        ];
+
+        let contents = to_contents(events.into_iter());
+        assert_eq!(contents.len(), 1);
+        assert!(matches!(contents.first(), Some(LazyContent::Embed(_))));
+    }
+
+    #[test]
+    fn test_empty_paragraph_is_dropped() {
+        let events = vec![
+            EventExtended::from(Event::Start(Tag::Paragraph)),
+            EventExtended::from(Event::End(TagEnd::Paragraph)),
+        ];
+        let contents = to_contents(events.into_iter());
+        assert!(contents.is_empty());
+    }
+
+    #[test]
+    fn test_local_link_stays_wrapped_in_paragraph() {
+        let events = vec![
+            EventExtended::from(Event::Start(Tag::Paragraph)),
+            EventExtended::Local(LocalLink {
+                url: "/child".to_string(),
+                text: Some("child".to_string()),
+            }),
+            EventExtended::from(Event::End(TagEnd::Paragraph)),
+        ];
+        let contents = to_contents(events.into_iter());
+        assert_eq!(contents.len(), 3);
+        assert!(matches!(
+            contents.first(),
+            Some(LazyContent::Plain(s)) if s == "<p>"
+        ));
+        assert!(matches!(contents.get(1), Some(LazyContent::Local(_))));
+        assert!(matches!(
+            contents.get(2),
+            Some(LazyContent::Plain(s)) if s == "</p>\n"
+        ));
+    }
+
+    #[test]
+    fn test_embed_splits_paragraph_without_empty_segments() {
+        let events = vec![
+            EventExtended::from(Event::Start(Tag::Paragraph)),
+            EventExtended::from(Event::Text("before ".into())),
+            EventExtended::Embed(EmbedContent {
+                url: "/child".to_string(),
+                title: None,
+                option: SectionOption::default(),
+            }),
+            EventExtended::from(Event::Text("after".into())),
+            EventExtended::from(Event::End(TagEnd::Paragraph)),
+        ];
+
+        let contents = to_contents(events.into_iter());
+        assert_eq!(contents.len(), 3);
+        assert!(matches!(
+            contents.first(),
+            Some(LazyContent::Plain(s)) if s == "<p>before </p>\n"
+        ));
+        assert!(matches!(contents.get(1), Some(LazyContent::Embed(_))));
+        assert!(matches!(
+            contents.get(2),
+            Some(LazyContent::Plain(s)) if s == "<p>after</p>\n"
+        ));
     }
 }
