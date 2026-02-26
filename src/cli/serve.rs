@@ -39,6 +39,10 @@ pub struct ServeCommand {
     #[arg(short, long, default_value_t = false)]
     disable_reload: bool,
 
+    /// Print watch dirty-path stats for each debounce batch.
+    #[arg(visible_alias = "ws", long, default_value_t = false)]
+    watch_stats: bool,
+
     #[command(flatten)]
     output: OutputControlArgs,
 }
@@ -60,6 +64,7 @@ fn compile_outputs(command: &ServeCommand) -> CompileOutputs {
 pub fn serve(command: &ServeCommand) -> eyre::Result<()> {
     _ = LIVE_RELOAD.set(!command.disable_reload);
     let outputs = compile_outputs(command);
+    let watch_stats = command.watch_stats;
 
     let serve_build = |dirty_paths: Option<&DirtySet>| -> eyre::Result<()> {
         build_with_dirty(
@@ -111,7 +116,9 @@ pub fn serve(command: &ServeCommand) -> eyre::Result<()> {
             assets_dir.as_path(),
             assets_dir_canonical.as_path(),
         );
-        color_print::ceprintln!("<dim>{}</>", format_watch_change_stats(analysis.stats));
+        if watch_stats {
+            color_print::ceprintln!("<dim>{}</>", format_watch_change_stats(analysis.stats));
+        }
 
         let should_restart = changed_paths.iter().any(|changed_path| {
             should_restart_for_config_change(
@@ -159,6 +166,7 @@ mod tests {
             verbose: false,
             verbose_skip: false,
             disable_reload: false,
+            watch_stats: false,
             output: OutputControlArgs::default(),
         };
         let outputs = compile_outputs(&command);
@@ -173,6 +181,7 @@ mod tests {
             verbose: false,
             verbose_skip: false,
             disable_reload: false,
+            watch_stats: false,
             output: OutputControlArgs {
                 indexes: true,
                 no_indexes: false,
@@ -192,6 +201,7 @@ mod tests {
             verbose: false,
             verbose_skip: false,
             disable_reload: false,
+            watch_stats: false,
             output: OutputControlArgs {
                 indexes: false,
                 no_indexes: true,
