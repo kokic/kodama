@@ -14,6 +14,7 @@ use std::sync::LazyLock;
 pub enum HTMLTagKind {
     Meta,
     Embed,
+    Subtree,
     Local { span: bool },
 }
 
@@ -22,6 +23,7 @@ impl HTMLTagKind {
         match name {
             "meta" => Some(HTMLTagKind::Meta),
             "embed" => Some(HTMLTagKind::Embed),
+            "subtree" => Some(HTMLTagKind::Subtree),
             "local" => Some(HTMLTagKind::Local { span }),
             _ => None,
         }
@@ -29,9 +31,9 @@ impl HTMLTagKind {
 
     fn tri_equal(&self, k: &HTMLTagKind) -> Option<bool> {
         match (self, k) {
-            (HTMLTagKind::Meta, HTMLTagKind::Meta) | (HTMLTagKind::Embed, HTMLTagKind::Embed) => {
-                Some(true)
-            }
+            (HTMLTagKind::Meta, HTMLTagKind::Meta)
+            | (HTMLTagKind::Embed, HTMLTagKind::Embed)
+            | (HTMLTagKind::Subtree, HTMLTagKind::Subtree) => Some(true),
             (HTMLTagKind::Local { span: a }, HTMLTagKind::Local { span: b }) => {
                 if a == b {
                     Some(true)
@@ -71,7 +73,7 @@ impl<'a> HTMLParser<'a> {
                 format!(r#"?<real{}>"#, alt)
             }
             fn kodama(alt: u8) -> String {
-                format!(r#"kodama-(?<tag{}>meta|embed|local)"#, alt)
+                format!(r#"kodama-(?<tag{}>meta|embed|subtree|local)"#, alt)
             }
             fn local(alt: u8) -> String {
                 format!(r#"kodama-(?<tag{}>local)"#, alt)

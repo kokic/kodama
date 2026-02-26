@@ -28,7 +28,7 @@ use eyre::{eyre, WrapErr};
 use parser::parse_markdown_sections;
 use section::{HTMLContent, UnresolvedSection};
 use serde::{Deserialize, Serialize};
-use typst::parse_typst;
+use typst::parse_typst_sections;
 use writer::Writer;
 
 use crate::{
@@ -240,11 +240,8 @@ pub(crate) fn parse_source_sections(source_slug: Slug, ext: Ext) -> eyre::Result
     let mut sections = match ext {
         Ext::Markdown => parse_markdown_sections(source_slug)
             .wrap_err_with(|| eyre!("failed to parse markdown file `{source_slug}.{ext}`"))?,
-        Ext::Typst => vec![(
-            source_slug,
-            parse_typst(source_slug, environment::typst_root_dir())
-                .wrap_err_with(|| eyre!("failed to parse typst file `{source_slug}.{ext}`"))?,
-        )],
+        Ext::Typst => parse_typst_sections(source_slug, environment::typst_root_dir())
+            .wrap_err_with(|| eyre!("failed to parse typst file `{source_slug}.{ext}`"))?,
     };
 
     for (_, section) in &mut sections {
