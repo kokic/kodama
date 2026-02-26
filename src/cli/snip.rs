@@ -85,7 +85,7 @@ fn section_snippets() -> eyre::Result<()> {
             let trees_dir = environment::trees_dir_without_root();
             let url = format!("/{}/{}.{}", trees_dir, slug_str, ext);
 
-            // We assume that the markdown editor used by the user 
+            // We assume that the markdown editor used by the user
             // supports link label names that contain spaces
             let body = [format!("[{title}]: {url}")];
             let description = metadata
