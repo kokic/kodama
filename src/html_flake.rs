@@ -207,9 +207,13 @@ pub fn html_figure_code(image_src: &str, caption: String, code: String) -> Strin
 }
 
 pub fn html_link(href: &str, title: &str, text: &str, class_name: &str) -> String {
-    html!(span class={format!("link {}", class_name)} {
-        a href={href} title={title} { (text) }
-    })
+    let escaped_href = htmlize::escape_attribute(href);
+    let escaped_title = htmlize::escape_attribute(title);
+    let escaped_class = htmlize::escape_attribute(class_name);
+    format!(
+        r#"<span class="link {}"><a href="{}" title="{}">{}</a></span>"#,
+        escaped_class, escaped_href, escaped_title, text
+    )
 }
 
 /// Also see [`crate::compiler::parser::tests::test_code_block`]
@@ -228,6 +232,27 @@ pub fn html_header_nav(title: &str, page_title: &str, href: &str) -> String {
             }
         }
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::html_link;
+
+    #[test]
+    fn test_html_link_escapes_title_attribute() {
+        let html = html_link(
+            "/AC2C",
+            r#"<span lang="zh">abc</span> [AC2C]""#,
+            r#"<span lang="zh">abc</span>"#,
+            "local",
+        );
+        assert!(html.contains(r#"href="/AC2C""#));
+        assert!(html.contains("title=\""));
+        assert!(html.contains("&lt;span"));
+        assert!(html.contains("&lt;/span&gt;"));
+        assert!(!html.contains(r#"title="<span lang="zh">"#));
+        assert!(html.contains(r#"><span lang="zh">abc</span></a>"#));
+    }
 }
 
 pub fn html_doc(
