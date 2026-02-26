@@ -1,7 +1,7 @@
 
 # Kodama
 
-<img src="https://kodama-community.github.io/docs/assets/kodama.svg" title="kodama" width=150 /> 
+<img src="https://kodama-community.github.io/assets/kodama.svg" title="kodama" width=150 /> 
 
 A [Typst](https://github.com/typst/typst)-friendly static Zettelkästen site generator.
 
