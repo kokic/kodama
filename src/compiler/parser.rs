@@ -9,7 +9,10 @@ use itertools::Itertools;
 use pulldown_cmark::Options;
 
 use crate::{
-    entry::{HTMLMetaData, MetaData, KEY_EXT, KEY_SLUG, KEY_TAXON, KEY_TITLE},
+    entry::{
+        HTMLMetaData, MetaData, KEY_EXT, KEY_SLUG, KEY_SOURCE_POS, KEY_SOURCE_SLUG, KEY_TAXON,
+        KEY_TITLE,
+    },
     environment::input_path,
     ordered_map::OrderedMap,
     path_utils,
@@ -109,6 +112,8 @@ struct SubtreeSpec {
     option: SectionOption,
     title: Option<String>,
     taxon: Option<String>,
+    source_slug: Slug,
+    source_pos: String,
 }
 
 #[derive(Debug)]
@@ -200,6 +205,7 @@ fn extract_subtrees(source: &str, current_slug: Slug) -> eyre::Result<ExtractedS
                 current_slug
             )
         })?;
+        let (line, col) = byte_index_to_line_col(source, lt);
         let placeholder_url = format!("{SUBTREE_PLACEHOLDER_PREFIX}{}", subtrees.len());
 
         root_source.push_str(&format!("\n[]({placeholder_url}#:embed)\n"));
@@ -216,6 +222,8 @@ fn extract_subtrees(source: &str, current_slug: Slug) -> eyre::Result<ExtractedS
             option,
             title,
             taxon,
+            source_slug: current_slug,
+            source_pos: format!("{line}:{col}"),
         });
 
         cursor = close_range.end + 1;
@@ -226,6 +234,22 @@ fn extract_subtrees(source: &str, current_slug: Slug) -> eyre::Result<ExtractedS
         root_source,
         subtrees,
     })
+}
+
+fn byte_index_to_line_col(source: &str, idx: usize) -> (usize, usize) {
+    let idx = idx.min(source.len());
+    let mut line = 1usize;
+    let mut col = 1usize;
+
+    for ch in source[..idx].chars() {
+        if ch == '\n' {
+            line += 1;
+            col = 1;
+        } else {
+            col += 1;
+        }
+    }
+    (line, col)
 }
 
 fn find_matching_close_tag(
@@ -576,6 +600,14 @@ fn apply_subtree_defaults(section: &mut UnresolvedSection, spec: &SubtreeSpec) {
         .metadata
         .0
         .insert(KEY_EXT.to_string(), HTMLContent::Plain("md".to_string()));
+    section.metadata.0.insert(
+        KEY_SOURCE_SLUG.to_string(),
+        HTMLContent::Plain(spec.source_slug.to_string()),
+    );
+    section.metadata.0.insert(
+        KEY_SOURCE_POS.to_string(),
+        HTMLContent::Plain(spec.source_pos.clone()),
+    );
 
     if section.metadata.title().is_none() {
         if let Some(title) = &spec.title {
@@ -700,6 +732,8 @@ pub mod tests {
         assert_eq!(extracted.subtrees[0].slug, Slug::new("doc/child"));
         assert_eq!(extracted.subtrees[0].title.as_deref(), Some("Child"));
         assert_eq!(extracted.subtrees[0].tag, "remark");
+        assert_eq!(extracted.subtrees[0].source_slug, Slug::new("doc/index"));
+        assert_eq!(extracted.subtrees[0].source_pos, "2:1");
     }
 
     #[test]
@@ -783,6 +817,22 @@ child body
                 .and_then(|v| v.as_string())
                 .map(String::as_str),
             Some("Child")
+        );
+        assert_eq!(
+            child
+                .metadata
+                .get(KEY_SOURCE_SLUG)
+                .and_then(HTMLContent::as_string)
+                .map(String::as_str),
+            Some("book/index")
+        );
+        assert_eq!(
+            child
+                .metadata
+                .get(KEY_SOURCE_POS)
+                .and_then(HTMLContent::as_string)
+                .map(String::as_str),
+            Some("5:1")
         );
     }
 
