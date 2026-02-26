@@ -4,7 +4,7 @@
 
 use crate::{
     compiler::{parser::parse_spanned_markdown, section::HTMLContent},
-    entry::KEY_SLUG,
+    entry::{is_plain_metadata, KEY_SLUG, KEY_TAXON},
     ordered_map::OrderedMap,
     slug::Slug,
 };
@@ -79,18 +79,25 @@ fn parse_metadata(s: &str, metadata: &mut OrderedMap<String, HTMLContent>) -> ey
             let key = s[0..pos].trim();
             let val = s[pos + 1..].trim();
 
-            let res = parse_spanned_markdown(val, current_slug);
-            let mut val = res;
-
-            if key == "taxon" {
-                if let HTMLContent::Plain(v) = val {
-                    val = HTMLContent::Plain(display_taxon(&v));
-                }
-            }
-            metadata.insert(key.to_string(), val);
+            let parsed = parse_metadata_value(key, val, current_slug);
+            metadata.insert(key.to_string(), parsed);
         }
     }
     Ok(())
+}
+
+fn parse_metadata_value(key: &str, value: &str, current_slug: Slug) -> HTMLContent {
+    if is_plain_metadata(key) {
+        return HTMLContent::Plain(value.to_string());
+    }
+
+    let mut parsed = parse_spanned_markdown(value, current_slug);
+    if key == KEY_TAXON {
+        if let HTMLContent::Plain(v) = parsed {
+            parsed = HTMLContent::Plain(display_taxon(&v));
+        }
+    }
+    parsed
 }
 
 /// Format the taxon string for display.
@@ -99,5 +106,63 @@ pub fn display_taxon(s: &str) -> String {
     match s.split_at_checked(1) {
         Some((first, rest)) => format!("{}. ", first.to_uppercase() + rest),
         _ => format!("{}. ", s),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::entry::{KEY_PAGE_TITLE, KEY_TITLE};
+
+    fn metadata_with_slug(slug: &str) -> OrderedMap<String, HTMLContent> {
+        let mut metadata = OrderedMap::new();
+        metadata.insert(KEY_SLUG.to_string(), HTMLContent::Plain(slug.to_string()));
+        metadata
+    }
+
+    #[test]
+    fn test_page_title_is_plain_text_and_not_elaborated() {
+        crate::environment::mock_environment().unwrap();
+
+        let mut metadata = metadata_with_slug("index");
+        parse_metadata("page-title: 中文", &mut metadata).unwrap();
+
+        let parsed = metadata
+            .get(KEY_PAGE_TITLE)
+            .and_then(HTMLContent::as_str)
+            .unwrap_or_default()
+            .to_string();
+        assert_eq!(parsed, "中文");
+        assert!(!parsed.contains("<span"));
+    }
+
+    #[test]
+    fn test_title_stays_rich_and_allows_text_elaboration() {
+        crate::environment::mock_environment().unwrap();
+
+        let mut metadata = metadata_with_slug("index");
+        parse_metadata("title: 中文", &mut metadata).unwrap();
+
+        let parsed = metadata
+            .get(KEY_TITLE)
+            .and_then(HTMLContent::as_str)
+            .unwrap_or_default()
+            .to_string();
+        assert!(parsed.contains("<span lang=\"zh\">"));
+    }
+
+    #[test]
+    fn test_taxon_keeps_display_formatting() {
+        crate::environment::mock_environment().unwrap();
+
+        let mut metadata = metadata_with_slug("index");
+        parse_metadata("taxon: remark", &mut metadata).unwrap();
+
+        let parsed = metadata
+            .get(KEY_TAXON)
+            .and_then(HTMLContent::as_str)
+            .unwrap_or_default()
+            .to_string();
+        assert_eq!(parsed, "Remark. ");
     }
 }
