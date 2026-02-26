@@ -56,6 +56,7 @@ pub fn initialize(slug: Slug) -> eyre::Result<String> {
 pub fn parse_markdown_sections(source_slug: Slug) -> eyre::Result<Vec<(Slug, UnresolvedSection)>> {
     let source = initialize(source_slug)?;
     let extracted = extract_subtrees(&source, source_slug)?;
+    let shared_reference_definitions = extract_shared_reference_definitions(&extracted.root_source);
 
     let mut root = parse_markdown_source(&extracted.root_source, source_slug)
         .wrap_err_with(|| eyre!("failed to parse root markdown section `{source_slug}`"))?;
@@ -63,8 +64,9 @@ pub fn parse_markdown_sections(source_slug: Slug) -> eyre::Result<Vec<(Slug, Unr
 
     let mut sections = vec![(source_slug, root)];
     for subtree in extracted.subtrees {
+        let subtree_source = compose_subtree_source(&subtree.body, &shared_reference_definitions);
         let mut section =
-            parse_markdown_source(&subtree.body, subtree.slug).wrap_err_with(|| {
+            parse_markdown_source(&subtree_source, subtree.slug).wrap_err_with(|| {
                 eyre!(
                     "failed to parse subtree section `{}` (from `{}`)",
                     subtree.slug,
@@ -99,6 +101,110 @@ fn parse_markdown_source(source: &str, slug: Slug) -> eyre::Result<UnresolvedSec
 
     let metadata = HTMLMetaData(metadata);
     Ok(UnresolvedSection { metadata, content })
+}
+
+fn compose_subtree_source(body: &str, shared_reference_definitions: &str) -> String {
+    if shared_reference_definitions.trim().is_empty() {
+        return body.to_string();
+    }
+    let mut composed = String::with_capacity(body.len() + shared_reference_definitions.len() + 3);
+    composed.push_str(body.trim_end());
+    composed.push_str("\n\n");
+    composed.push_str(shared_reference_definitions.trim());
+    composed.push('\n');
+    composed
+}
+
+fn extract_shared_reference_definitions(root_source: &str) -> String {
+    let mut seen_labels = HashSet::new();
+    let mut definitions = Vec::new();
+    for (label, block) in collect_reference_definition_blocks(root_source) {
+        if seen_labels.insert(label) {
+            definitions.push(block);
+        }
+    }
+
+    if definitions.is_empty() {
+        String::new()
+    } else {
+        let mut shared = definitions.join("\n");
+        shared.push('\n');
+        shared
+    }
+}
+
+fn collect_reference_definition_blocks(source: &str) -> Vec<(String, String)> {
+    let mut blocks = Vec::new();
+    let mut lines = source.lines().peekable();
+    let mut in_fence: Option<char> = None;
+
+    while let Some(line) = lines.next() {
+        let trimmed = line.trim_start();
+        if let Some(marker) = fenced_code_marker(trimmed) {
+            if in_fence == Some(marker) {
+                in_fence = None;
+            } else if in_fence.is_none() {
+                in_fence = Some(marker);
+            }
+            continue;
+        }
+        if in_fence.is_some() {
+            continue;
+        }
+
+        let Some(label) = parse_reference_definition_label(line) else {
+            continue;
+        };
+
+        let mut block = line.to_string();
+        while let Some(next) = lines.peek().copied() {
+            if !is_reference_definition_continuation(next) {
+                break;
+            }
+            block.push('\n');
+            block.push_str(next);
+            lines.next();
+        }
+
+        blocks.push((label, block));
+    }
+
+    blocks
+}
+
+fn parse_reference_definition_label(line: &str) -> Option<String> {
+    let leading_spaces = line.chars().take_while(|c| *c == ' ').count();
+    if leading_spaces > 3 {
+        return None;
+    }
+    let trimmed = &line[leading_spaces..];
+    if !trimmed.starts_with('[') {
+        return None;
+    }
+    let close = trimmed.find("]:")?;
+    let raw_label = trimmed.get(1..close)?.trim();
+    if raw_label.is_empty() {
+        return None;
+    }
+    Some(normalize_reference_label(raw_label))
+}
+
+fn normalize_reference_label(label: &str) -> String {
+    label.split_whitespace().join(" ").to_ascii_lowercase()
+}
+
+fn is_reference_definition_continuation(line: &str) -> bool {
+    !line.trim().is_empty() && (line.starts_with(' ') || line.starts_with('\t'))
+}
+
+fn fenced_code_marker(line: &str) -> Option<char> {
+    let mut chars = line.chars();
+    let marker = chars.next()?;
+    if marker != '`' && marker != '~' {
+        return None;
+    }
+    let count = 1 + chars.take_while(|ch| *ch == marker).count();
+    (count >= 3).then_some(marker)
 }
 
 const SUBTREE_PLACEHOLDER_PREFIX: &str = "/__kodama_subtree_internal__/";
@@ -729,6 +835,65 @@ pub mod tests {
             content.as_str().unwrap(),
             "hello <span lang=\"zh\">\u{4e2d}\u{6587}</span> world"
         );
+    }
+
+    #[test]
+    fn test_extract_shared_reference_definitions_skips_fenced_code() {
+        let source = r#"
+[outside]: https://outside.example
+```md
+[inside-fence]: https://inside.example
+```
+[outside]: https://outside-duplicate.example
+"#;
+
+        let extracted = extract_subtrees(source, Slug::new("index")).unwrap();
+        let shared = extract_shared_reference_definitions(&extracted.root_source);
+
+        assert!(shared.contains("[outside]: https://outside.example"));
+        assert!(!shared.contains("inside-fence"));
+        assert!(!shared.contains("outside-duplicate"));
+    }
+
+    #[test]
+    fn test_subtree_can_use_shared_reference_definitions_from_root() {
+        let source = r#"
+<remark slug="child">
+[Subtree][shared-ref]
+</remark>
+
+[shared-ref]: https://example.com/shared
+"#;
+
+        let extracted = extract_subtrees(source, Slug::new("book/index")).unwrap();
+        let shared = extract_shared_reference_definitions(&extracted.root_source);
+        let subtree_source = compose_subtree_source(&extracted.subtrees[0].body, &shared);
+
+        let child = parse_markdown_source(&subtree_source, extracted.subtrees[0].slug).unwrap();
+        let html = child.content.as_str().unwrap_or_default();
+        assert!(html.contains(r#"href="https://example.com/shared""#));
+    }
+
+    #[test]
+    fn test_subtree_reference_definition_overrides_shared_root_definition() {
+        let source = r#"
+<remark slug="child">
+[Subtree][same]
+
+[same]: https://example.com/inner
+</remark>
+
+[same]: https://example.com/outer
+"#;
+
+        let extracted = extract_subtrees(source, Slug::new("book/index")).unwrap();
+        let shared = extract_shared_reference_definitions(&extracted.root_source);
+        let subtree_source = compose_subtree_source(&extracted.subtrees[0].body, &shared);
+
+        let child = parse_markdown_source(&subtree_source, extracted.subtrees[0].slug).unwrap();
+        let html = child.content.as_str().unwrap_or_default();
+        assert!(html.contains(r#"href="https://example.com/inner""#));
+        assert!(!html.contains(r#"href="https://example.com/outer""#));
     }
 
     #[test]
