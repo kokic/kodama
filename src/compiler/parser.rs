@@ -192,7 +192,14 @@ fn extract_subtrees(source: &str, current_slug: Slug) -> eyre::Result<ExtractedS
         };
 
         let option = parse_subtree_option(&attrs);
-        let slug = resolve_subtree_slug(current_slug, raw_slug);
+        let slug = resolve_subtree_slug(current_slug, raw_slug).wrap_err_with(|| {
+            eyre!(
+                "invalid subtree tag `<{} slug=\"{}\">` in `{}`",
+                open_tag.name,
+                raw_slug,
+                current_slug
+            )
+        })?;
         let placeholder_url = format!("{SUBTREE_PLACEHOLDER_PREFIX}{}", subtrees.len());
 
         root_source.push_str(&format!("\n[]({placeholder_url}#:embed)\n"));
@@ -455,13 +462,23 @@ fn parse_bool_attr(value: Option<&String>, default: bool) -> bool {
     }
 }
 
-fn resolve_subtree_slug(current_slug: Slug, raw_slug: &str) -> Slug {
-    let relative = if raw_slug.starts_with('/') {
-        raw_slug.trim_start_matches('/').into()
-    } else {
-        path_utils::relative_to_current(current_slug.as_str(), raw_slug)
-    };
-    slug::to_slug(relative)
+fn resolve_subtree_slug(current_slug: Slug, raw_slug: &str) -> eyre::Result<Slug> {
+    let component = raw_slug.trim();
+    if component.is_empty() {
+        return Err(eyre!("slug cannot be empty"));
+    }
+    if component == "." || component == ".." {
+        return Err(eyre!("slug must be a concrete path component name"));
+    }
+    if component.contains('/') || component.contains('\\') {
+        return Err(eyre!(
+            "slug must be a single path component name without separators"
+        ));
+    }
+
+    // Subtree slugs are always relative to the current section prefix.
+    let relative = path_utils::relative_to_current(current_slug.as_str(), component);
+    Ok(slug::to_slug(relative))
 }
 
 fn is_subtree_tag(tag: &str) -> bool {
@@ -673,7 +690,7 @@ pub mod tests {
 
     #[test]
     fn test_extract_subtrees_rewrites_root_to_embed_placeholders() {
-        let source = "before\n<remark slug=\"./child\" title=\"Child\">\nhello\n</remark>\nafter";
+        let source = "before\n<remark slug=\"child\" title=\"Child\">\nhello\n</remark>\nafter";
         let extracted = extract_subtrees(source, Slug::new("doc/index")).unwrap();
 
         assert!(extracted
@@ -696,7 +713,7 @@ pub mod tests {
     #[test]
     fn test_extract_subtrees_keeps_anonymous_wrapper_without_extracting_nested_slug_blocks() {
         let source = r#"<remark>
-<proof slug="./child">inner</proof>
+<proof slug="child">inner</proof>
 </remark>"#;
         let extracted = extract_subtrees(source, Slug::new("index")).unwrap();
         assert_eq!(extracted.subtrees.len(), 0);
@@ -731,7 +748,7 @@ anonymous body
 ---
 title: Root
 ---
-<remark slug="./child">
+<remark slug="child">
 ---
 title: Child
 ---
@@ -767,5 +784,25 @@ child body
                 .map(String::as_str),
             Some("Child")
         );
+    }
+
+    #[test]
+    fn test_extract_subtrees_rejects_relative_prefix_slug() {
+        let source = r#"<remark slug="./child">x</remark>"#;
+        let err = extract_subtrees(source, Slug::new("doc/index")).unwrap_err();
+        let msg = err.to_string();
+        assert!(msg.contains("invalid subtree tag"));
+        assert!(msg.contains(r#"slug="./child""#));
+    }
+
+    #[test]
+    fn test_extract_subtrees_rejects_absolute_or_nested_slug() {
+        let absolute = r#"<remark slug="/child">x</remark>"#;
+        let nested = r#"<remark slug="a/b">x</remark>"#;
+
+        let absolute_err = extract_subtrees(absolute, Slug::new("doc/index")).unwrap_err();
+        let nested_err = extract_subtrees(nested, Slug::new("doc/index")).unwrap_err();
+        assert!(absolute_err.to_string().contains(r#"slug="/child""#));
+        assert!(nested_err.to_string().contains(r#"slug="a/b""#));
     }
 }
