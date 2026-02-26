@@ -171,6 +171,7 @@ impl<'e, E: Iterator<Item = Event<'e>>> Iterator for Embed<'e, E> {
                     _ => return Some(e.into()),
                 },
                 Event::Text(_) if is_inline_allowed(&self.state) => self.content.push(e),
+                Event::InlineHtml(_) if is_inline_allowed(&self.state) => self.content.push(e),
                 Event::InlineMath(ref math) => {
                     let replaced = Event::Text(format!("${math}$").into());
                     if is_inline_allowed(&self.state) {
@@ -322,6 +323,8 @@ fn is_local_link(url: &str) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::process::{content::EventExtended, text_elaborator::TextElaborator};
+    use pulldown_cmark::{Event, Parser};
 
     #[test]
     fn test_is_assets_file() {
@@ -400,6 +403,40 @@ mod tests {
         assert_eq!(
             resolve_local_link_url("/trees/root.md", Slug::new("guide/index")),
             "/root"
+        );
+    }
+
+    #[test]
+    fn test_local_link_keeps_text_elaborator_inline_html_in_link_text() {
+        crate::environment::mock_environment().unwrap();
+
+        let source = "[中文](./target)";
+        let events = Parser::new_ext(source, crate::compiler::parser::OPTIONS);
+        let events = TextElaborator::process(events);
+        let actual = Embed::process(events, Slug::new("index")).collect::<Vec<_>>();
+
+        assert_eq!(
+            actual
+                .iter()
+                .filter(|event| matches!(event, EventExtended::Local(_)))
+                .count(),
+            1
+        );
+        assert!(!actual
+            .iter()
+            .any(|event| matches!(event, EventExtended::CMark(Event::InlineHtml(_)))));
+
+        let local_link = actual
+            .iter()
+            .find_map(|event| match event {
+                EventExtended::Local(local_link) => Some(local_link),
+                _ => None,
+            })
+            .expect("expected a local link event");
+        assert_eq!(local_link.url, "/target");
+        assert_eq!(
+            local_link.text.as_deref(),
+            Some(r#"<span lang="zh">中文</span>"#)
         );
     }
 }
