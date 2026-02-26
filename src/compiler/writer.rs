@@ -8,7 +8,7 @@ use std::{collections::HashSet, ops::Not};
 use crate::{
     compiler::counter::Counter,
     config::build::FooterMode,
-    entry::MetaData,
+    entry::{MetaData, KEY_INTERNAL_ANON_SUBTREE},
     environment::{self, verify_update_hash},
     html_flake::{self, html_footer_section},
     slug::Slug,
@@ -285,14 +285,19 @@ impl Writer {
             .then(|| format!(r#"<ul class="block">{}</ul>"#, &items))
             .unwrap_or_default();
 
-        let catalog_item = match toplevel {
-            true => child_html,
-            false => section
+        let catalog_item = if toplevel {
+            child_html
+        } else if Writer::is_internal_anonymous_subtree(section)? {
+            // Anonymous subtree sections are structural only and have no standalone page.
+            // Keep descendants in TOC, but do not emit a dead link for the anonymous node itself.
+            items
+        } else {
+            section
                 .option
                 .catalog
                 .then(|| Writer::catalog_item(section, &adhoc_taxon, &child_html))
                 .transpose()?
-                .unwrap_or(String::new()),
+                .unwrap_or(String::new())
         };
 
         let article_inner = html_flake::html_article_inner(
@@ -331,6 +336,13 @@ impl Writer {
         }
         section.metadata.taxon().map_or("", |s| s).to_string()
     }
+
+    fn is_internal_anonymous_subtree(section: &Section) -> eyre::Result<bool> {
+        Ok(section
+            .metadata
+            .get_bool(KEY_INTERNAL_ANON_SUBTREE)?
+            .unwrap_or(false))
+    }
 }
 
 #[cfg(test)]
@@ -339,10 +351,13 @@ mod tests {
 
     use crate::{
         compiler::{
-            section::{HTMLContent, UnresolvedSection},
+            section::{EmbedContent, HTMLContent, LazyContent, SectionOption, UnresolvedSection},
             state::compile_all,
         },
-        entry::{HTMLMetaData, KEY_EXT, KEY_PAGE_TITLE, KEY_REFERENCES, KEY_SLUG, KEY_TITLE},
+        entry::{
+            HTMLMetaData, KEY_EXT, KEY_INTERNAL_ANON_SUBTREE, KEY_PAGE_TITLE, KEY_REFERENCES,
+            KEY_SLUG, KEY_TITLE,
+        },
         ordered_map::OrderedMap,
     };
 
@@ -360,6 +375,10 @@ mod tests {
     }
 
     fn shallow_section(slug: &str, title: &str) -> UnresolvedSection {
+        shallow_section_with_content(slug, title, HTMLContent::Plain("<p>hello</p>".to_string()))
+    }
+
+    fn shallow_section_with_content(slug: &str, title: &str, content: HTMLContent) -> UnresolvedSection {
         let mut metadata = OrderedMap::new();
         metadata.insert(KEY_SLUG.to_string(), HTMLContent::Plain(slug.to_string()));
         metadata.insert(KEY_EXT.to_string(), HTMLContent::Plain("md".to_string()));
@@ -371,7 +390,7 @@ mod tests {
 
         UnresolvedSection {
             metadata: HTMLMetaData(metadata),
-            content: HTMLContent::Plain("<p>hello</p>".to_string()),
+            content,
         }
     }
 
@@ -405,6 +424,50 @@ mod tests {
             let err = Writer::html_doc(section, &state).unwrap_err();
 
             assert!(err.to_string().contains("invalid bool metadata"));
+        });
+    }
+
+    #[test]
+    fn test_html_doc_toc_skips_internal_anonymous_subtree_link_but_keeps_descendants() {
+        with_test_env(|| {
+            let mut shallows = HashMap::new();
+            shallows.insert(
+                Slug::new("index"),
+                shallow_section_with_content(
+                    "index",
+                    "Root",
+                    HTMLContent::Lazy(vec![LazyContent::Embed(EmbedContent {
+                        url: "/anon".to_string(),
+                        title: None,
+                        option: SectionOption::default(),
+                    })]),
+                ),
+            );
+
+            let mut anonymous = shallow_section_with_content(
+                "anon",
+                "Anonymous",
+                HTMLContent::Lazy(vec![LazyContent::Embed(EmbedContent {
+                    url: "/leaf".to_string(),
+                    title: None,
+                    option: SectionOption::default(),
+                })]),
+            );
+            anonymous.metadata.0.insert(
+                KEY_INTERNAL_ANON_SUBTREE.to_string(),
+                HTMLContent::Plain("true".to_string()),
+            );
+            shallows.insert(Slug::new("anon"), anonymous);
+            shallows.insert(Slug::new("leaf"), shallow_section("leaf", "Leaf"));
+
+            let state = compile_all(&shallows).unwrap();
+            let root = state.compiled().get(&Slug::new("index")).unwrap();
+            let (html, _) = Writer::html_doc(root, &state).unwrap();
+
+            let leaf_href = environment::full_html_url(Slug::new("leaf"));
+            let anon_href = environment::full_html_url(Slug::new("anon"));
+            assert!(html.contains(&format!(r#"href="{}""#, leaf_href)));
+            assert!(!html.contains(&format!(r#"href="{}""#, anon_href)));
         });
     }
 }
