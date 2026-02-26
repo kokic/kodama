@@ -49,6 +49,32 @@
   }
 }
 
+#let subtree(
+  slug, 
+  title: none,
+  taxon: none,
+  numbering: false,
+  open: true,
+  catalog: true,
+  body: none,
+) = context if compatibled-target() != "paged" {
+  let attrs = (
+    slug: repri(slug),
+    numbering: repri(numbering),
+    open: repri(open),
+    catalog: repri(catalog),
+  )
+
+  if title != none {
+    attrs.insert("title", repri(title))
+  }
+  if taxon != none {
+    attrs.insert("taxon", repri(taxon))
+  }
+
+  html.elem("kodama-subtree", body, attrs: attrs)
+}
+
 #let local(slug, text) = context if compatibled-target() != "paged" {
   html.elem(
     "span", // Make it an inline element. This is automatically removed by kodama.
