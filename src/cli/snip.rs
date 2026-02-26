@@ -17,15 +17,15 @@ pub struct SnipCommand {
     config: String,
 
     /// Generate `.vscode/katex.code-snippets`.
-    #[arg(long)]
+    #[arg(short, long)]
     katex: bool,
 
     /// Generate `.vscode/section.code-snippets`.
-    #[arg(long)]
+    #[arg(short, long)]
     section: bool,
 
     /// Generate `.vscode/inline-section.code-snippets`.
-    #[arg(long)]
+    #[arg(short, long)]
     inline_section: bool,
 }
 

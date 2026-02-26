@@ -566,7 +566,9 @@ mod tests {
             assets.as_path(),
             assets.as_path(),
         );
-        assert!(analysis.dirty_paths.contains(&Utf8PathBuf::from("index.md")));
+        assert!(analysis
+            .dirty_paths
+            .contains(&Utf8PathBuf::from("index.md")));
         assert!(!analysis
             .dirty_paths
             .contains(&Utf8PathBuf::from(".index.md.swp")));

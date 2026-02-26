@@ -40,7 +40,7 @@ pub struct ServeCommand {
     disable_reload: bool,
 
     /// Print watch dirty-path stats for each debounce batch.
-    #[arg(visible_alias = "ws", long, default_value_t = false)]
+    #[arg(short, long, default_value_t = false)]
     watch_stats: bool,
 
     #[command(flatten)]
@@ -213,5 +213,4 @@ mod tests {
         assert!(!outputs.indexes);
         assert!(!outputs.graph);
     }
-
 }
