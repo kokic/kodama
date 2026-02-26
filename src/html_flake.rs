@@ -139,7 +139,7 @@ pub fn html_header(
 }
 
 fn append_editor_position(url: String, prefix: &str, source_pos: Option<&str>) -> String {
-    if !prefix.starts_with("vscode://file") {
+    if !is_vscode_family_file_url(prefix) {
         return url;
     }
     let Some(pos) = source_pos else {
@@ -149,6 +149,17 @@ fn append_editor_position(url: String, prefix: &str, source_pos: Option<&str>) -
         return url;
     }
     format!("{url}:{pos}")
+}
+
+fn is_vscode_family_file_url(prefix: &str) -> bool {
+    [
+        "vscode://file",
+        "vscode-insiders://file",
+        "vsc://file",
+        "vscodium://file",
+    ]
+    .iter()
+    .any(|candidate| prefix.starts_with(candidate))
 }
 
 fn parse_source_pos(pos: &str) -> Option<(usize, usize)> {
@@ -301,7 +312,27 @@ mod tests {
     }
 
     #[test]
-    fn test_append_editor_position_ignores_non_vscode_or_invalid_pos() {
+    fn test_append_editor_position_for_vscode_family() {
+        let cases = [
+            (
+                "vscode-insiders://file/c:/repo/docs/trees/book/index.md",
+                "vscode-insiders://file/",
+            ),
+            ("vsc://file/c:/repo/docs/trees/book/index.md", "vsc://file/"),
+            (
+                "vscodium://file/c:/repo/docs/trees/book/index.md",
+                "vscodium://file/",
+            ),
+        ];
+
+        for (url, prefix) in cases {
+            let with_pos = append_editor_position(url.to_string(), prefix, Some("12:3"));
+            assert_eq!(with_pos, format!("{url}:12:3"));
+        }
+    }
+
+    #[test]
+    fn test_append_editor_position_ignores_non_vscode_family_or_invalid_pos() {
         let web = append_editor_position(
             "https://example.com/edit/path".to_string(),
             "https://example.com/edit/",
