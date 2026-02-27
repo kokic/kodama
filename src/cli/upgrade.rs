@@ -9,22 +9,9 @@ use crate::config;
 
 #[derive(clap::Args)]
 pub struct UpgradeCommand {
-    /// Optional subcommand.
-    ///
-    /// If omitted, behaves like `upgrade all` using top-level `--config/--output`.
+    /// Optional subcommand. If omitted, behaves like `upgrade all`.
     #[command(subcommand)]
     pub command: Option<UpgradeSubcommand>,
-
-    /// Path to the source configuration file (e.g., "Kodama.toml").
-    /// Used when no subcommand is provided.
-    #[arg(short, long, default_value_t = config::DEFAULT_CONFIG_PATH.into())]
-    pub config: String,
-
-    /// Output path of the upgraded configuration file.
-    /// Defaults to overwriting the source file.
-    /// Used when no subcommand is provided.
-    #[arg(short, long)]
-    pub output: Option<String>,
 }
 
 #[derive(clap::Subcommand)]
@@ -79,8 +66,8 @@ pub fn upgrade(command: &UpgradeCommand) -> eyre::Result<()> {
         Some(UpgradeSubcommand::Config(args)) => run_upgrade_config(args),
         Some(UpgradeSubcommand::TypstLib(args)) => run_upgrade_typst_lib(args),
         None => run_upgrade_all(&UpgradeAllCommand {
-            config: command.config.clone(),
-            output: command.output.clone(),
+            config: config::DEFAULT_CONFIG_PATH.to_string(),
+            output: None,
         }),
     }
 }
@@ -291,9 +278,10 @@ trees = "content"
         .unwrap();
 
         upgrade(&UpgradeCommand {
-            command: None,
-            config: source_config.to_string(),
-            output: None,
+            command: Some(UpgradeSubcommand::All(UpgradeAllCommand {
+                config: source_config.to_string(),
+                output: None,
+            })),
         })
         .unwrap();
 
@@ -326,8 +314,6 @@ trees = "content"
                 config: source_config.to_string(),
                 output: None,
             })),
-            config: config::DEFAULT_CONFIG_PATH.to_string(),
-            output: None,
         })
         .unwrap();
 
@@ -354,8 +340,6 @@ trees = "content"
             command: Some(UpgradeSubcommand::TypstLib(UpgradeTypstLibCommand {
                 config: source_config.to_string(),
             })),
-            config: config::DEFAULT_CONFIG_PATH.to_string(),
-            output: None,
         })
         .unwrap();
 
