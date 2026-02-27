@@ -9,15 +9,20 @@ use crate::config;
 
 #[derive(clap::Args)]
 pub struct UpgradeCommand {
+    /// Optional subcommand.
+    ///
+    /// If omitted, behaves like `upgrade all` using top-level `--config/--output`.
     #[command(subcommand)]
     pub command: Option<UpgradeSubcommand>,
 
     /// Path to the source configuration file (e.g., "Kodama.toml").
+    /// Used when no subcommand is provided.
     #[arg(short, long, default_value_t = config::DEFAULT_CONFIG_PATH.into())]
     pub config: String,
 
     /// Output path of the upgraded configuration file.
     /// Defaults to overwriting the source file.
+    /// Used when no subcommand is provided.
     #[arg(short, long)]
     pub output: Option<String>,
 }
