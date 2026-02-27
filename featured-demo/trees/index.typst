@@ -4,9 +4,15 @@
 #show: kodama
 
 #meta("title", "Kodama project without markdown")
-#meta("author", "Anonymous")
 #meta("date", "October 12, 2025")
+#meta("author", "Anonymous")
 
-#lorem(32)
+#lorem(32) #local("./0AFF")[*Bob during link*]. 
 
-#embed("./0AFE.typst", "Title (Locally)", numbering: true)
+#embed("./0AFE.typst", "Alice during embedded", numbering: true)
+
+#lorem(48)
+
+#subtree("0AFF", title: "Bob, subtree with slugs", taxon: "exegesis")[
+  - #lorem(64) #local("0AFE", "Alice when being linked").
+]

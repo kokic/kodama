@@ -21,58 +21,43 @@
   repr(r)
 }
 
+#let paged-metadata-text-color = gray
+
 #let meta(key, value) = {
-  let v = value
-  let attrs = (key: key)
-
-  if type(value) != content {
-    v = none
-    attrs.insert("value", repri(value))
-  }
-
   context if compatibled-target() != "paged" {
+    let v = value
+    let attrs = (key: key)
+
+    if type(value) != content {
+      v = none
+      attrs.insert("value", repri(value))
+    }
+
     html.elem("kodama-meta", v, attrs: attrs)
+  } else {
+    if key == "title" {
+      block(text(size: 1.5em, weight: "black", value))
+    } else {
+      [#value #text(" · ")]
+    }
   }
 }
 
 #let embed(url, title, numbering: false, open: true, catalog: true) = {
-  let v = title
-  let attrs = (url: url, numbering: repri(numbering), open: repri(open), catalog: repri(catalog))
-
-  if type(title) != content {
-    v = none
-    attrs.insert("value", repri(title))
-  }
-
   context if compatibled-target() != "paged" {
+    let v = title
+    let attrs = (url: url, numbering: repri(numbering), open: repri(open), catalog: repri(catalog))
+
+    if type(title) != content {
+      v = none
+      attrs.insert("value", repri(title))
+    }
+
     html.elem("kodama-embed", v, attrs: attrs)
+  } else {
+    block(below: 0.5em, text(size: 1.083em, weight: "black", title))
+    block(text(fill: paged-metadata-text-color)[`numbering:` #numbering ~ `open:` #open ~ `toc:` #catalog])
   }
-}
-
-#let subtree(
-  slug, 
-  title: none,
-  taxon: none,
-  numbering: false,
-  open: true,
-  catalog: true,
-  body: none,
-) = context if compatibled-target() != "paged" {
-  let attrs = (
-    slug: repri(slug),
-    numbering: repri(numbering),
-    open: repri(open),
-    catalog: repri(catalog),
-  )
-
-  if title != none {
-    attrs.insert("title", repri(title))
-  }
-  if taxon != none {
-    attrs.insert("taxon", repri(taxon))
-  }
-
-  html.elem("kodama-subtree", body, attrs: attrs)
 }
 
 #let local(slug, text) = context if compatibled-target() != "paged" {
@@ -90,6 +75,52 @@
       html.elem("kodama-local", v, attrs: attrs)
     },
   )
+} else { underline(text) }
+
+#let external(dest, content) = link(dest, underline(content))
+
+#let tex(raw-tex) = "$" + raw-tex.text + "$"
+
+#let subtree(slug, title: none, taxon: none, numbering: false, open: true, catalog: true, content) = context if compatibled-target() != "paged" {
+  let attrs = (slug: repri(slug), numbering: repri(numbering), open: repri(open), catalog: repri(catalog))
+
+  if title != none {
+    attrs.insert("title", repri(title))
+  }
+  if taxon != none {
+    attrs.insert("taxon", repri(taxon))
+  }
+
+  html.elem("kodama-subtree", content, attrs: attrs)
+} else {
+  block(below: 0.5em)[
+    #if taxon != none {
+      let taxon = upper(taxon.at(0)) + taxon.slice(1) + "."
+      text(size: 1.083em, weight: "black", fill: rgb("735057"), taxon)
+    }
+    #text(size: 1.083em, weight: "black", title)
+    #underline(stroke: (thickness: 0.1em, dash: "dotted"), text(size: 1.083em, fill: rgb("636363"), raw("[" + slug + "]")))
+  ]
+  content
+}
+
+#let local(slug, text) = context if compatibled-target() != "paged" {
+  html.elem(
+    "span", // Make it an inline element. This is automatically removed by kodama.
+    {
+      let v = text
+      let attrs = (slug: slug)
+
+      if type(text) != content {
+        v = none
+        attrs.insert("value", repri(text))
+      }
+
+      html.elem("kodama-local", v, attrs: attrs)
+    },
+  )
+} else {
+  text
 }
 
 /**
@@ -121,8 +152,8 @@
 
 #let kodama(doc) = {
   context if compatibled-target() == "paged" {
-    // set page(width: auto, height: auto)
     set page(margin: 2em, paper: "iso-b6", height: auto)
+    set par(spacing: 1.5em)
     doc
   } else {
     show math.equation: eq => {
