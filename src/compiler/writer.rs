@@ -378,7 +378,11 @@ mod tests {
         shallow_section_with_content(slug, title, HTMLContent::Plain("<p>hello</p>".to_string()))
     }
 
-    fn shallow_section_with_content(slug: &str, title: &str, content: HTMLContent) -> UnresolvedSection {
+    fn shallow_section_with_content(
+        slug: &str,
+        title: &str,
+        content: HTMLContent,
+    ) -> UnresolvedSection {
         let mut metadata = OrderedMap::new();
         metadata.insert(KEY_SLUG.to_string(), HTMLContent::Plain(slug.to_string()));
         metadata.insert(KEY_EXT.to_string(), HTMLContent::Plain("md".to_string()));

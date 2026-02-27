@@ -343,10 +343,7 @@ mod tests {
         );
         assert_eq!(child.metadata.ext().map(String::as_str), Some("typst"));
         assert_eq!(
-            child
-                .metadata
-                .get_str(KEY_SOURCE_SLUG)
-                .map(String::as_str),
+            child.metadata.get_str(KEY_SOURCE_SLUG).map(String::as_str),
             Some("book/index")
         );
     }
