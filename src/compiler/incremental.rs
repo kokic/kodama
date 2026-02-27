@@ -39,15 +39,19 @@ pub(super) fn is_source_modified(
 
 pub fn expand_dirty_paths(workspace: &Workspace, dirty_paths: &DirtySet) -> DirtySet {
     let mut expanded = dirty_paths.clone();
+    let source_paths: HashSet<Utf8PathBuf> = workspace
+        .slug_exts
+        .iter()
+        .map(|(&slug, &ext)| source_relative_path(slug, ext))
+        .collect();
 
     let mut dirty_all_sources = false;
     let mut dirty_all_typst_sources = false;
     for path in dirty_paths {
+        let is_known_source = source_paths.contains(path);
         match path.extension() {
-            Some("md") => {}
-            Some("typst") | Some("typ") => {
-                dirty_all_typst_sources = true;
-            }
+            Some("md") | Some("typst") if is_known_source => {}
+            Some("typst") | Some("typ") => dirty_all_typst_sources = true,
             _ => {
                 // Unknown tree-side dependency (e.g. include file): conservatively reparse all.
                 dirty_all_sources = true;
@@ -184,6 +188,38 @@ mod tests {
         assert!(expanded.contains(&Utf8PathBuf::from("b.typst")));
         assert!(expanded.contains(&Utf8PathBuf::from("c.typst")));
         assert!(!expanded.contains(&Utf8PathBuf::from("a.md")));
+    }
+
+    #[test]
+    fn test_expand_dirty_paths_typst_source_change_keeps_scope_local() {
+        let mut slug_exts = HashMap::new();
+        slug_exts.insert(Slug::new("a"), Ext::Markdown);
+        slug_exts.insert(Slug::new("b"), Ext::Typst);
+        slug_exts.insert(Slug::new("c"), Ext::Typst);
+        let workspace = Workspace { slug_exts };
+
+        let mut dirty = DirtySet::new();
+        dirty.insert(Utf8PathBuf::from("b.typst"));
+
+        let expanded = expand_dirty_paths(&workspace, &dirty);
+        assert!(expanded.contains(&Utf8PathBuf::from("b.typst")));
+        assert!(!expanded.contains(&Utf8PathBuf::from("c.typst")));
+        assert!(!expanded.contains(&Utf8PathBuf::from("a.md")));
+    }
+
+    #[test]
+    fn test_expand_dirty_paths_unknown_markdown_dependency_marks_all_sources() {
+        let mut slug_exts = HashMap::new();
+        slug_exts.insert(Slug::new("a"), Ext::Markdown);
+        slug_exts.insert(Slug::new("b"), Ext::Typst);
+        let workspace = Workspace { slug_exts };
+
+        let mut dirty = DirtySet::new();
+        dirty.insert(Utf8PathBuf::from("_includes/shared.md"));
+
+        let expanded = expand_dirty_paths(&workspace, &dirty);
+        assert!(expanded.contains(&Utf8PathBuf::from("a.md")));
+        assert!(expanded.contains(&Utf8PathBuf::from("b.typst")));
     }
 
     #[test]

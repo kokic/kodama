@@ -4,6 +4,7 @@
 
 use std::{
     io::Write,
+    sync::mpsc::RecvTimeoutError,
     time::{Duration, Instant},
 };
 
@@ -37,7 +38,7 @@ fn default_watch_strategy() -> WatchStrategy {
 
 struct WatchBatcher {
     debounce: Duration,
-    last_run: Instant,
+    last_event_at: Option<Instant>,
     pending_changes: Vec<Utf8PathBuf>,
 }
 
@@ -81,39 +82,57 @@ struct WatchChangeFoldState {
 
 impl WatchBatcher {
     fn new(debounce: Duration) -> Self {
-        let now = Instant::now();
         Self {
             debounce,
-            last_run: now.checked_sub(debounce).unwrap_or(now),
+            last_event_at: None,
             pending_changes: Vec::new(),
         }
     }
 
     #[cfg(test)]
-    fn with_last_run(debounce: Duration, last_run: Instant) -> Self {
+    fn with_last_event(debounce: Duration, last_event_at: Instant) -> Self {
         Self {
             debounce,
-            last_run,
+            last_event_at: Some(last_event_at),
             pending_changes: Vec::new(),
         }
     }
 
-    fn push_paths<I>(&mut self, paths: I)
+    fn push_paths<I>(&mut self, paths: I, now: Instant)
     where
         I: IntoIterator<Item = Utf8PathBuf>,
     {
+        let before = self.pending_changes.len();
         self.pending_changes.extend(paths);
+        if self.pending_changes.len() > before {
+            self.last_event_at = Some(now);
+        }
+    }
+
+    fn time_until_ready(&self, now: Instant) -> Option<Duration> {
+        if self.pending_changes.is_empty() {
+            return None;
+        }
+        let last_event_at = self.last_event_at?;
+        let elapsed = now.saturating_duration_since(last_event_at);
+        if elapsed >= self.debounce {
+            Some(Duration::ZERO)
+        } else {
+            Some(self.debounce - elapsed)
+        }
     }
 
     fn take_ready(&mut self, now: Instant) -> Option<Vec<Utf8PathBuf>> {
         if self.pending_changes.is_empty() {
             return None;
         }
-        if now.saturating_duration_since(self.last_run) < self.debounce {
+        if self
+            .time_until_ready(now)
+            .is_some_and(|wait| !wait.is_zero())
+        {
             return None;
         }
-
-        self.last_run = now;
+        self.last_event_at = None;
         Some(std::mem::take(&mut self.pending_changes))
     }
 }
@@ -263,7 +282,7 @@ fn relative_tree_path(
 }
 
 fn is_source_extension(ext: Option<&str>) -> bool {
-    matches!(ext, Some("md") | Some("typst") | Some("typ"))
+    matches!(ext, Some("md") | Some("typst"))
 }
 
 fn is_temp_like_path(path: &Utf8Path) -> bool {
@@ -377,6 +396,42 @@ fn watch_paths_with_strategy<P: AsRef<Utf8Path>, F>(
 where
     F: FnMut(&[Utf8PathBuf]) -> eyre::Result<()>,
 {
+    fn process_batch<F>(
+        changed_paths: &[Utf8PathBuf],
+        fold_state: &mut WatchChangeFoldState,
+        strategy: WatchStrategy,
+        action: &mut F,
+    ) -> eyre::Result<()>
+    where
+        F: FnMut(&[Utf8PathBuf]) -> eyre::Result<()>,
+    {
+        for line in (strategy.format_change_lines)(fold_state, changed_paths) {
+            println!("{line}");
+        }
+        std::io::stdout().flush()?;
+        if let Err(err) = action(changed_paths) {
+            // A warning color should be used here, as rebuild failures during user editing are acceptable.
+            color_print::ceprintln!("<y>[watch] Rebuild failed: {}</>", err);
+        }
+        Ok(())
+    }
+
+    fn collect_event_paths(
+        event: notify::Event,
+        strategy: WatchStrategy,
+    ) -> Option<Vec<Utf8PathBuf>> {
+        if !(strategy.should_handle_event)(&event.kind) {
+            return None;
+        }
+        Some(
+            event
+                .paths
+                .iter()
+                .filter_map(|path| Utf8PathBuf::from_path_buf(path.clone()).ok())
+                .collect::<Vec<_>>(),
+        )
+    }
+
     let (tx, rx) = std::sync::mpsc::channel();
     let mut batcher = WatchBatcher::new(strategy.debounce);
     let mut fold_state = WatchChangeFoldState::default();
@@ -416,37 +471,41 @@ where
     }
     println!("\n\nPress Ctrl+C to stop watching.\n");
 
-    for res in rx {
+    loop {
+        let now = Instant::now();
+        let res = match batcher.time_until_ready(now) {
+            Some(wait) => rx.recv_timeout(wait),
+            None => rx.recv().map_err(|_| RecvTimeoutError::Disconnected),
+        };
+
         match res {
-            Ok(event) => {
+            Ok(Ok(event)) => {
                 // Generally, we only need to listen for changes in file content `ModifyKind::Data(_)`,
                 // but since notify-rs always only gets `Modify(Any)` on Windows,
                 // we expand the listening scope here.
-                if (strategy.should_handle_event)(&event.kind) {
-                    let event_paths = event
-                        .paths
-                        .iter()
-                        .filter_map(|path| Utf8PathBuf::from_path_buf(path.clone()).ok())
-                        .collect::<Vec<_>>();
-                    batcher.push_paths(event_paths);
+                if let Some(paths) = collect_event_paths(event, strategy) {
+                    batcher.push_paths(paths, Instant::now());
+                }
 
-                    let Some(changed_paths) = batcher.take_ready(Instant::now()) else {
-                        continue;
-                    };
-
-                    for line in (strategy.format_change_lines)(&mut fold_state, &changed_paths) {
-                        println!("{line}");
-                    }
-                    std::io::stdout().flush()?;
-                    if let Err(err) = action(&changed_paths) {
-                        // A warning color should be used here, as rebuild failures during user editing are acceptable.
-                        color_print::ceprintln!("<y>[watch] Rebuild failed: {}</>", err);
+                while let Ok(Ok(event)) = rx.try_recv() {
+                    if let Some(paths) = collect_event_paths(event, strategy) {
+                        batcher.push_paths(paths, Instant::now());
                     }
                 }
+                while let Ok(Err(error)) = rx.try_recv() {
+                    color_print::ceprintln!("<r>[watch] Error: {error:?}</>");
+                }
             }
-            Err(error) => {
+            Ok(Err(error)) => {
                 color_print::ceprintln!("<r>[watch] Error: {error:?}</>");
             }
+            Err(RecvTimeoutError::Timeout) => {
+                let Some(changed_paths) = batcher.take_ready(Instant::now()) else {
+                    continue;
+                };
+                process_batch(&changed_paths, &mut fold_state, strategy, action)?;
+            }
+            Err(RecvTimeoutError::Disconnected) => break,
         }
     }
 
@@ -853,9 +912,9 @@ mod tests {
     fn test_watch_batcher_respects_debounce_duration() {
         let debounce = Duration::from_millis(500);
         let anchor = Instant::now();
-        let mut batcher = WatchBatcher::with_last_run(debounce, anchor);
+        let mut batcher = WatchBatcher::with_last_event(debounce, anchor);
 
-        batcher.push_paths(vec![Utf8PathBuf::from("a.md")]);
+        batcher.push_paths(vec![Utf8PathBuf::from("a.md")], anchor);
         assert!(batcher
             .take_ready(anchor + Duration::from_millis(100))
             .is_none());
@@ -864,13 +923,37 @@ mod tests {
             Some(vec![Utf8PathBuf::from("a.md")])
         );
 
-        batcher.push_paths(vec![Utf8PathBuf::from("b.md")]);
+        batcher.push_paths(
+            vec![Utf8PathBuf::from("b.md")],
+            anchor + Duration::from_millis(600),
+        );
         assert!(batcher
-            .take_ready(anchor + Duration::from_millis(800))
+            .take_ready(anchor + Duration::from_millis(900))
             .is_none());
         assert_eq!(
-            batcher.take_ready(anchor + Duration::from_millis(1000)),
+            batcher.take_ready(anchor + Duration::from_millis(1100)),
             Some(vec![Utf8PathBuf::from("b.md")])
+        );
+    }
+
+    #[test]
+    fn test_watch_batcher_uses_trailing_debounce_window() {
+        let debounce = Duration::from_millis(500);
+        let anchor = Instant::now();
+        let mut batcher = WatchBatcher::new(debounce);
+
+        batcher.push_paths(vec![Utf8PathBuf::from("a.md")], anchor);
+        batcher.push_paths(
+            vec![Utf8PathBuf::from("b.md")],
+            anchor + Duration::from_millis(300),
+        );
+
+        assert!(batcher
+            .take_ready(anchor + Duration::from_millis(700))
+            .is_none());
+        assert_eq!(
+            batcher.take_ready(anchor + Duration::from_millis(800)),
+            Some(vec![Utf8PathBuf::from("a.md"), Utf8PathBuf::from("b.md")])
         );
     }
 }
