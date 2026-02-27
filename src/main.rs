@@ -90,7 +90,7 @@ enum Command {
     #[command()]
     Snip(SnipCommand),
 
-    /// Upgrade config and/or Typst library files.
+    /// Upgrade config & Typst library files.
     #[command(visible_alias = "u")]
     Upgrade(UpgradeCommand),
 }
