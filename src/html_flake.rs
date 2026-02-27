@@ -57,28 +57,37 @@ pub fn html_section(
     html!(section class={class_name.join(" ")} data_taxon={data_taxon} { (html_details) })
 }
 
-pub fn html_header_metadata(mut etc: Vec<String>) -> String {
-    let mut meta_items: Vec<String> = vec![];
-    meta_items.append(&mut etc);
+pub fn html_header_metadata(etc: &[String]) -> String {
     let mut items = String::new();
-    for item in &meta_items {
+    for item in etc {
         items.push_str(&html!(li class="meta-item" { (item) }));
     }
 
     html!(div class="metadata" { ul { (items) } })
 }
 
-pub fn html_header(
-    title: &str,
-    taxon: &str,
-    slug: &Slug,
-    ext: &str,
-    show_slug: bool,
-    source_slug: Option<&str>,
-    source_pos: Option<&str>,
-    span_class: String,
-    etc: Vec<String>,
-) -> String {
+pub struct HtmlHeaderArgs<'a> {
+    pub title: &'a str,
+    pub taxon: &'a str,
+    pub slug: &'a Slug,
+    pub ext: &'a str,
+    pub show_slug: bool,
+    pub source_slug: Option<&'a str>,
+    pub source_pos: Option<&'a str>,
+    pub etc: &'a [String],
+}
+
+pub fn html_header(args: HtmlHeaderArgs<'_>) -> String {
+    let HtmlHeaderArgs {
+        title,
+        taxon,
+        slug,
+        ext,
+        show_slug,
+        source_slug,
+        source_pos,
+        etc,
+    } = args;
     let slug_str = slug.as_str();
     let source_slug = source_slug.unwrap_or(slug_str);
     let is_serve = environment::is_serve();
@@ -129,7 +138,7 @@ pub fn html_header(
 
     html!(header {
         h1 {
-            span class={span_class} { (taxon) }
+            span class="taxon" { (taxon) }
             (title) " "
             (slug_link)
             (edit_url)
@@ -358,17 +367,17 @@ mod tests {
 
     #[test]
     fn test_html_header_can_hide_slug_link() {
-        let html = super::html_header(
-            "Title",
-            "Taxon. ",
-            &Slug::new("book/child"),
-            "md",
-            false,
-            None,
-            None,
-            "taxon".to_string(),
-            Vec::new(),
-        );
+        let etc = Vec::new();
+        let html = super::html_header(super::HtmlHeaderArgs {
+            title: "Title",
+            taxon: "Taxon. ",
+            slug: &Slug::new("book/child"),
+            ext: "md",
+            show_slug: false,
+            source_slug: None,
+            source_pos: None,
+            etc: &etc,
+        });
         assert!(!html.contains("class=\"slug\""));
     }
 }

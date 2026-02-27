@@ -280,19 +280,18 @@ impl EntryMetaData {
             )
         })?;
         let show_slug = !self.get_bool(KEY_INTERNAL_ANON_SUBTREE)?.unwrap_or(false);
-        let span_class: Vec<String> = vec!["taxon".to_string()];
+        let etc = self.etc();
 
-        Ok(html_flake::html_header(
+        Ok(html_flake::html_header(html_flake::HtmlHeaderArgs {
             title,
             taxon,
-            &slug,
+            slug: &slug,
             ext,
             show_slug,
-            self.get_str(KEY_SOURCE_SLUG).map(String::as_str),
-            self.get_str(KEY_SOURCE_POS).map(String::as_str),
-            span_class.join(" "),
-            self.etc(),
-        ))
+            source_slug: self.get_str(KEY_SOURCE_SLUG).map(String::as_str),
+            source_pos: self.get_str(KEY_SOURCE_POS).map(String::as_str),
+            etc: &etc,
+        }))
     }
 
     /// hidden suffix `/index` in slug text.
