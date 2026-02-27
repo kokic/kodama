@@ -1,13 +1,7 @@
 // Copyright (c) 2025 Kodama Project. All rights reserved.
 // Released under the GPL-3.0 license as described in the file LICENSE.
 // Authors: Alias Qli (@AliasQli), Kokic (@kokic)
-
-// To be compatible with the current tinymist
-#let compatibled-target() = {
-  if "target" in dictionary(std) { context std.target() } else { "paged" }
-}
-
-#let html-font-size = 15.525pt;
+// Last modified time: 2026/02/28
 
 /**
  * There are some external inputs:
@@ -15,50 +9,80 @@
  *   sys.inputs.random: a random number in 0..INT64_MAX (note, it's a string)
  */
 
-#let repri(r) = if type(r) == str {
-  r
-} else {
+#let repri(r) = if type(r) == str { r } else {
   repr(r)
 }
 
+// To be compatible with the current tinymist
+#let compatibled-target() = {
+  if "target" in dictionary(std) { context std.target() } else { "paged" }
+}
+
+#let html-font-size = 15.525pt
+
+// paged
 #let paged-metadata-text-color = gray
+#let small-block-below = 0.65em
+#let heading-font-weight = "black"
+#let slug-color = gray
+#let taxon-color = gray
 
-#let meta(key, value) = {
+#let is_preset_key(key) = {
+  (
+    "title",
+    "taxon",
+    "parent",
+    "page-title",
+    "backlinks",
+    "transparent-backlinks",
+    "references",
+    "asref",
+    "asback",
+    "footer-mode",
+  ).contains(key)
+}
+
+#let dotted-stroke = (thickness: 0.1em, dash: ("dot", "dot")/* = thickness */)
+
+#let span-slug(slug) = underline(stroke: dotted-stroke, text(size: 1.083em, fill: slug-color, raw("[" + slug + "]")))
+
+#let taxon-upper(taxon) = upper(taxon.at(0)) + taxon.slice(1) + "."
+
+#let metadata(table) = {
+  let title = table.at("title", default: "")
+  let taxon = table.at("taxon", default: none)
+
+  let table-pairs = table.pairs()
+  let custom-pairs = table-pairs.filter(e => not is_preset_key(e.at(0)))
+
   context if compatibled-target() != "paged" {
-    let v = value
-    let attrs = (key: key)
+    table-pairs.map(e => {
+      let value = e.at(1)
+      let v = value
+      let attrs = (key: e.at(0))
 
-    if type(value) != content {
-      v = none
-      attrs.insert("value", repri(value))
-    }
-
-    html.elem("kodama-meta", v, attrs: attrs)
+      if type(value) != content {
+        v = none
+        attrs.insert("value", repri(value))
+      }
+      html.elem("kodama-meta", v, attrs: attrs)
+    }).join()
   } else {
-    if key == "title" {
-      block(text(size: 1.5em, weight: "black", value))
-    } else {
-      [#value #text(" · ")]
+    if taxon != none {
+      text(weight: heading-font-weight, fill: taxon-color, size: 1.35em, taxon-upper(taxon))
     }
+    block(above: small-block-below, below: small-block-below, text(size: 1.5em, weight: heading-font-weight, title))
+    block(custom-pairs.map(e =>
+    e.at(1)).join(text(" · ")))
   }
 }
 
-#let embed(url, title, numbering: false, open: true, catalog: true) = {
-  context if compatibled-target() != "paged" {
-    let v = title
-    let attrs = (url: url, numbering: repri(numbering), open: repri(open), catalog: repri(catalog))
+#let external(dest, content) = link(dest, underline(content))
 
-    if type(title) != content {
-      v = none
-      attrs.insert("value", repri(title))
-    }
-
-    html.elem("kodama-embed", v, attrs: attrs)
-  } else {
-    block(below: 0.5em, text(size: 1.083em, weight: "black", title))
-    block(text(fill: paged-metadata-text-color)[`numbering:` #numbering ~ `open:` #open ~ `toc:` #catalog])
-  }
-}
+/// 
+/// - raw-tex (string): raw TeX math source code without delimiters
+/// -> string
+#let tex(raw-tex) = "$" + raw-tex.text + "$"
 
 #let local(slug, text) = context if compatibled-target() != "paged" {
   html.elem(
@@ -75,11 +99,26 @@
       html.elem("kodama-local", v, attrs: attrs)
     },
   )
-} else { underline(text) }
+} else { underline(stroke: dotted-stroke, text) }
 
-#let external(dest, content) = link(dest, underline(content))
+#let embed(url, title, numbering: false, open: true, catalog: true, display-options: false) = {
+  context if compatibled-target() != "paged" {
+    let v = title
+    let attrs = (url: url, numbering: repri(numbering), open: repri(open), catalog: repri(catalog))
 
-#let tex(raw-tex) = "$" + raw-tex.text + "$"
+    if type(title) != content {
+      v = none
+      attrs.insert("value", repri(title))
+    }
+
+    html.elem("kodama-embed", v, attrs: attrs)
+  } else {
+    block(below: small-block-below, text(size: 1.083em, weight: heading-font-weight, title))
+    if display-options {
+      block(text(fill: paged-metadata-text-color)[`numbering:` #numbering ~ `open:` #open ~ `toc:` #catalog])
+    }
+  }
+}
 
 #let subtree(slug, title: none, taxon: none, numbering: false, open: true, catalog: true, content) = context if compatibled-target() != "paged" {
   let attrs = (slug: repri(slug), numbering: repri(numbering), open: repri(open), catalog: repri(catalog))
@@ -93,34 +132,14 @@
 
   html.elem("kodama-subtree", content, attrs: attrs)
 } else {
-  block(below: 0.5em)[
+  block(below: small-block-below)[
     #if taxon != none {
-      let taxon = upper(taxon.at(0)) + taxon.slice(1) + "."
-      text(size: 1.083em, weight: "black", fill: rgb("735057"), taxon)
+      text(size: 1.083em, weight: heading-font-weight, fill: taxon-color, taxon-upper(taxon))
     }
-    #text(size: 1.083em, weight: "black", title)
-    #underline(stroke: (thickness: 0.1em, dash: "dotted"), text(size: 1.083em, fill: rgb("636363"), raw("[" + slug + "]")))
+    #text(size: 1.083em, weight: heading-font-weight, title)
+    #span-slug(slug)
   ]
   content
-}
-
-#let local(slug, text) = context if compatibled-target() != "paged" {
-  html.elem(
-    "span", // Make it an inline element. This is automatically removed by kodama.
-    {
-      let v = text
-      let attrs = (slug: slug)
-
-      if type(text) != content {
-        v = none
-        attrs.insert("value", repri(text))
-      }
-
-      html.elem("kodama-local", v, attrs: attrs)
-    },
-  )
-} else {
-  text
 }
 
 /**

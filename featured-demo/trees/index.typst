@@ -3,13 +3,19 @@
 
 #show: kodama
 
-#meta("title", "Kodama project without markdown")
-#meta("date", "October 12, 2025")
-#meta("author", "Anonymous")
+// Recommended font
+#set text(font: "Inria Sans")
 
-#lorem(32) #local("./0AFF")[*Bob during link*]. 
+#metadata((
+  "title": "Kodama project without markdown", //
+  "taxon": "example", //
+  "date": "October 12, 2025", //
+  "author": "Anonymous",
+))
 
-#embed("./0AFE.typst", "Alice during embedded", numbering: true)
+#lorem(32) #local("./0AFF")[*Bob being linked*]. 
+
+#embed("./0AFE.typst", "Alice when embedded", numbering: true)
 
 #lorem(48)
 

@@ -3,10 +3,15 @@
 
 #show: kodama
 
-#meta("title", "Alice")
-#meta("date", "October 12, 2025")
-#meta("author", "Anonymous")
-#meta("taxon", "remark")
+// Recommended font
+// #set text(font: "Inria Sans")
+
+#metadata((
+  "title": "Alice, from the Old French name Aalis", //
+  "taxon": "remark", //
+  "date": "October 13, 2025", //
+  "author": "Anonymous",
+))
 
 #set text(size: html-font-size, top-edge: "bounds", bottom-edge: "bounds");
 
