@@ -90,7 +90,7 @@ enum Command {
     #[command()]
     Snip(SnipCommand),
 
-    /// Upgrade "Kodama.toml" to the latest configuration structure.
+    /// Upgrade config and/or Typst library files.
     #[command(visible_alias = "u")]
     Upgrade(UpgradeCommand),
 }
