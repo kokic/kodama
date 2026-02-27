@@ -10,7 +10,7 @@ use super::section::{EmbedContent, LocalLink, SectionOption};
 use super::section::{HTMLContent, HTMLContentBuilder, LazyContent};
 use super::UnresolvedSection;
 use crate::{
-    entry::{HTMLMetaData, KEY_EXT, KEY_SLUG, KEY_TAXON, KEY_TITLE},
+    entry::{HTMLMetaData, KEY_EXT, KEY_SLUG, KEY_SOURCE_SLUG, KEY_TAXON, KEY_TITLE},
     ordered_map::OrderedMap,
     path_utils,
     process::metadata,
@@ -152,6 +152,10 @@ fn parse_typst_html(
                 );
                 subtree_metadata
                     .insert(KEY_EXT.to_string(), HTMLContent::Plain("typst".to_string()));
+                subtree_metadata.insert(
+                    KEY_SOURCE_SLUG.to_string(),
+                    HTMLContent::Plain(source_slug.to_string()),
+                );
                 let subtree_content = parse_typst_html(
                     span.body,
                     source_slug,
@@ -248,6 +252,10 @@ fn parse_typst_sections_from_html(
         HTMLContent::Plain(source_slug.to_string()),
     );
     metadata.insert(KEY_EXT.to_string(), HTMLContent::Plain("typst".to_string()));
+    metadata.insert(
+        KEY_SOURCE_SLUG.to_string(),
+        HTMLContent::Plain(source_slug.to_string()),
+    );
 
     let mut subtree_sections = Vec::new();
     let content = parse_typst_html(
@@ -334,6 +342,13 @@ mod tests {
             Some("Child")
         );
         assert_eq!(child.metadata.ext().map(String::as_str), Some("typst"));
+        assert_eq!(
+            child
+                .metadata
+                .get_str(KEY_SOURCE_SLUG)
+                .map(String::as_str),
+            Some("book/index")
+        );
     }
 
     #[test]
