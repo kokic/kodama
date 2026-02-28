@@ -131,6 +131,15 @@ impl ServeCompileSession {
         )
     }
 
+    pub fn rewrite_all_from_memory(&mut self, outputs: CompileOutputs) -> eyre::Result<()> {
+        // Global/template/theme changes can require re-emitting all pages,
+        // but they don't require reparsing source trees.
+        let workspace = Workspace {
+            slug_exts: HashMap::new(),
+        };
+        compile_from_shallows(&workspace, &self.shallows, None, outputs, HashSet::new())
+    }
+
     fn needs_refresh(&self, slug: Slug, ext: Ext) -> bool {
         if !self.source_sections.contains_key(&slug) {
             return true;
@@ -196,5 +205,19 @@ mod tests {
             .insert(Slug::new("a"), vec![Slug::new("a")]);
         session.shallows.insert(Slug::new("a"), shallow("a", "md"));
         assert!(session.needs_refresh(Slug::new("a"), Ext::Typst));
+    }
+
+    #[test]
+    fn test_rewrite_all_from_memory_without_shallows_is_noop() {
+        let mut session = ServeCompileSession {
+            initialized: true,
+            ..ServeCompileSession::default()
+        };
+        session
+            .rewrite_all_from_memory(CompileOutputs {
+                indexes: false,
+                graph: false,
+            })
+            .unwrap();
     }
 }

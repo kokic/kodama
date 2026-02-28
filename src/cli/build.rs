@@ -127,6 +127,23 @@ pub fn build_with_dirty(
     Ok(())
 }
 
+pub fn serve_rewrite_from_memory(config: &str, options: BuildOptions) -> eyre::Result<()> {
+    environment::init_environment(config.into(), BuildMode::Serve)?;
+    environment::ensure_cache_version()?;
+    _ = VERBOSE.set(options.verbose);
+    _ = VERBOSE_SKIP.set(options.verbose_skip);
+    _ = NO_CACHE.set(options.no_cache);
+
+    if !environment::inline_css() {
+        export_css_files().wrap_err("failed to export CSS")?;
+    }
+
+    rewrite_serve_with_session(options.outputs)?;
+    sync_assets_dir()?;
+    write_reload_marker(BuildMode::Serve)?;
+    Ok(())
+}
+
 fn compile_with_mode(
     mode: BuildMode,
     workspace: compiler::Workspace,
@@ -174,6 +191,21 @@ fn compile_serve_with_session(
             }
             _ => session.compile_full(workspace, outputs),
         }
+    })
+}
+
+fn rewrite_serve_with_session(outputs: compiler::CompileOutputs) -> eyre::Result<()> {
+    with_serve_session(|slot| {
+        if let Some(session) = slot.as_mut() {
+            return session.rewrite_all_from_memory(outputs);
+        }
+
+        // Fallback for edge cases where serve-session state was not initialized.
+        let trees_dir = environment::trees_dir();
+        let workspace = all_trees_source(&trees_dir)?;
+        compiler::sync_typst_svg_assets(trees_dir.as_path(), None)?;
+        let session = slot.get_or_insert_with(compiler::ServeCompileSession::default);
+        session.compile_full(workspace, outputs)
     })
 }
 

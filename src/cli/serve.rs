@@ -5,7 +5,7 @@
 use std::{io::Write, sync::OnceLock};
 
 use crate::{
-    cli::build::{build_with_dirty, BuildOptions},
+    cli::build::{build_with_dirty, serve_rewrite_from_memory, BuildOptions},
     cli::output::OutputControlArgs,
     compiler::{CompileOutputs, DirtySet},
     config,
@@ -65,19 +65,25 @@ pub fn serve(command: &ServeCommand) -> eyre::Result<()> {
     _ = LIVE_RELOAD.set(!command.disable_reload);
     let outputs = compile_outputs(command);
     let watch_stats = command.watch_stats;
+    let build_options = BuildOptions {
+        verbose: command.verbose,
+        verbose_skip: command.verbose_skip,
+        no_cache: false,
+        outputs,
+    };
 
     let serve_build = |dirty_paths: Option<&DirtySet>| -> eyre::Result<()> {
         build_with_dirty(
             &command.config,
             BuildMode::Serve,
-            BuildOptions {
-                verbose: command.verbose,
-                verbose_skip: command.verbose_skip,
-                no_cache: false,
-                outputs,
-            },
+            build_options,
             dirty_paths,
         )?;
+        Ok(())
+    };
+
+    let serve_rewrite = || -> eyre::Result<()> {
+        serve_rewrite_from_memory(&command.config, build_options)?;
         Ok(())
     };
 
@@ -135,13 +141,18 @@ pub fn serve(command: &ServeCommand) -> eyre::Result<()> {
             let _ = serve.kill();
             let _ = serve.wait();
             serve = spawn_serve_process()?;
-        } else if analysis.stats.global_paths > 0 {
-            // Non-tree changes (theme/import/html snippets) may affect all pages globally.
-            serve_build(None)?;
         } else if !analysis.stats.has_effective_changes() {
             color_print::ceprintln!(
                 "<dim>[watch] Skip rebuild: no effective changes after filtering.</>"
             );
+        } else if analysis.stats.global_paths > 0 {
+            // Non-tree changes (theme/import/html snippets) may affect all pages globally.
+            // For tree changes in the same batch, update in-memory shallows first.
+            if !analysis.dirty_paths.is_empty() {
+                serve_build(Some(&analysis.dirty_paths))?;
+            }
+            // Then rewrite all pages from in-memory compile session state.
+            serve_rewrite()?;
         } else {
             // Serve mode uses watcher-driven dirty set to avoid full hash scans on every rebuild.
             serve_build(Some(&analysis.dirty_paths))?;
