@@ -70,11 +70,11 @@ impl Writer {
 
         let (article_inner, items) =
             Writer::section_to_html(section, &mut counter, true, false, state)?;
-        let catalog_html = items
-            .is_empty()
-            .not()
-            .then(|| html_flake::html_catalog_block(&items))
-            .unwrap_or_default();
+        let catalog_html = if items.is_empty().not() {
+            html_flake::html_catalog_block(&items)
+        } else {
+            Default::default()
+        };
 
         let slug = section.slug()?;
         let html_header = Writer::header(state, slug);
@@ -279,11 +279,11 @@ impl Writer {
             contents += &backlinks_html;
         }
 
-        let child_html = items
-            .is_empty()
-            .not()
-            .then(|| format!(r#"<ul class="block">{}</ul>"#, &items))
-            .unwrap_or_default();
+        let child_html = if !items.is_empty() {
+            format!(r#"<ul class="block">{}</ul>"#, &items)
+        } else {
+            String::default()
+        };
 
         let catalog_item = if toplevel {
             child_html
