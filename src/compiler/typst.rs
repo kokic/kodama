@@ -297,10 +297,7 @@ mod tests {
     use super::*;
     use crate::{compiler::section::LazyContent, entry::MetaData};
 
-    fn find_section<'a>(
-        sections: &'a [(Slug, UnresolvedSection)],
-        slug: Slug,
-    ) -> &'a UnresolvedSection {
+    fn find_section(sections: &[(Slug, UnresolvedSection)], slug: Slug) -> &UnresolvedSection {
         sections
             .iter()
             .find_map(|(s, section)| (*s == slug).then_some(section))

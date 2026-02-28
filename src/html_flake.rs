@@ -289,99 +289,6 @@ pub fn html_header_nav(title: &str, page_title: &str, href: &str) -> String {
     })
 }
 
-#[cfg(test)]
-mod tests {
-    use super::{append_editor_position, html_link, parse_source_pos};
-    use crate::slug::Slug;
-
-    #[test]
-    fn test_html_link_escapes_title_attribute() {
-        let html = html_link(
-            "/AC2C",
-            r#"<span lang="zh">abc</span> [AC2C]""#,
-            r#"<span lang="zh">abc</span>"#,
-            "local",
-        );
-        assert!(html.contains(r#"href="/AC2C""#));
-        assert!(html.contains("title=\""));
-        assert!(html.contains("&lt;span"));
-        assert!(html.contains("&lt;/span&gt;"));
-        assert!(!html.contains(r#"title="<span lang="zh">"#));
-        assert!(html.contains(r#"><span lang="zh">abc</span></a>"#));
-    }
-
-    #[test]
-    fn test_append_editor_position_for_vscode() {
-        let url = append_editor_position(
-            "vscode://file/c:/repo/docs/trees/book/index.md".to_string(),
-            "vscode://file/",
-            Some("12:3"),
-        );
-        assert_eq!(url, "vscode://file/c:/repo/docs/trees/book/index.md:12:3");
-    }
-
-    #[test]
-    fn test_append_editor_position_for_vscode_family() {
-        let cases = [
-            (
-                "vscode-insiders://file/c:/repo/docs/trees/book/index.md",
-                "vscode-insiders://file/",
-            ),
-            ("vsc://file/c:/repo/docs/trees/book/index.md", "vsc://file/"),
-            (
-                "vscodium://file/c:/repo/docs/trees/book/index.md",
-                "vscodium://file/",
-            ),
-        ];
-
-        for (url, prefix) in cases {
-            let with_pos = append_editor_position(url.to_string(), prefix, Some("12:3"));
-            assert_eq!(with_pos, format!("{url}:12:3"));
-        }
-    }
-
-    #[test]
-    fn test_append_editor_position_ignores_non_vscode_family_or_invalid_pos() {
-        let web = append_editor_position(
-            "https://example.com/edit/path".to_string(),
-            "https://example.com/edit/",
-            Some("12:3"),
-        );
-        assert_eq!(web, "https://example.com/edit/path");
-
-        let invalid = append_editor_position(
-            "vscode://file/c:/repo/docs/trees/book/index.md".to_string(),
-            "vscode://file/",
-            Some("0:3"),
-        );
-        assert_eq!(invalid, "vscode://file/c:/repo/docs/trees/book/index.md");
-    }
-
-    #[test]
-    fn test_parse_source_pos() {
-        assert_eq!(parse_source_pos("1:1"), Some((1, 1)));
-        assert_eq!(parse_source_pos("12:3"), Some((12, 3)));
-        assert_eq!(parse_source_pos("0:3"), None);
-        assert_eq!(parse_source_pos("abc"), None);
-    }
-
-    #[test]
-    fn test_html_header_can_hide_slug_link() {
-        let etc = Vec::new();
-        let html = super::html_header(super::HtmlHeaderArgs {
-            title: "Title",
-            taxon: "Taxon. ",
-            slug: &Slug::new("book/child"),
-            ext: "md",
-            show_slug: false,
-            source_slug: None,
-            source_pos: None,
-            etc: &etc,
-        });
-        assert!(!html.contains("class=\"slug\""));
-    }
-}
-
 pub fn html_doc(
     page_title: &str,
     header_html: &str,
@@ -534,4 +441,97 @@ pub fn html_nav(toc_class: Vec<&str>, catalog_html: &str) -> String {
 
 pub fn html_main_style() -> &'static str {
     include_str!("include/main.css")
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{append_editor_position, html_link, parse_source_pos};
+    use crate::slug::Slug;
+
+    #[test]
+    fn test_html_link_escapes_title_attribute() {
+        let html = html_link(
+            "/AC2C",
+            r#"<span lang="zh">abc</span> [AC2C]""#,
+            r#"<span lang="zh">abc</span>"#,
+            "local",
+        );
+        assert!(html.contains(r#"href="/AC2C""#));
+        assert!(html.contains("title=\""));
+        assert!(html.contains("&lt;span"));
+        assert!(html.contains("&lt;/span&gt;"));
+        assert!(!html.contains(r#"title="<span lang="zh">"#));
+        assert!(html.contains(r#"><span lang="zh">abc</span></a>"#));
+    }
+
+    #[test]
+    fn test_append_editor_position_for_vscode() {
+        let url = append_editor_position(
+            "vscode://file/c:/repo/docs/trees/book/index.md".to_string(),
+            "vscode://file/",
+            Some("12:3"),
+        );
+        assert_eq!(url, "vscode://file/c:/repo/docs/trees/book/index.md:12:3");
+    }
+
+    #[test]
+    fn test_append_editor_position_for_vscode_family() {
+        let cases = [
+            (
+                "vscode-insiders://file/c:/repo/docs/trees/book/index.md",
+                "vscode-insiders://file/",
+            ),
+            ("vsc://file/c:/repo/docs/trees/book/index.md", "vsc://file/"),
+            (
+                "vscodium://file/c:/repo/docs/trees/book/index.md",
+                "vscodium://file/",
+            ),
+        ];
+
+        for (url, prefix) in cases {
+            let with_pos = append_editor_position(url.to_string(), prefix, Some("12:3"));
+            assert_eq!(with_pos, format!("{url}:12:3"));
+        }
+    }
+
+    #[test]
+    fn test_append_editor_position_ignores_non_vscode_family_or_invalid_pos() {
+        let web = append_editor_position(
+            "https://example.com/edit/path".to_string(),
+            "https://example.com/edit/",
+            Some("12:3"),
+        );
+        assert_eq!(web, "https://example.com/edit/path");
+
+        let invalid = append_editor_position(
+            "vscode://file/c:/repo/docs/trees/book/index.md".to_string(),
+            "vscode://file/",
+            Some("0:3"),
+        );
+        assert_eq!(invalid, "vscode://file/c:/repo/docs/trees/book/index.md");
+    }
+
+    #[test]
+    fn test_parse_source_pos() {
+        assert_eq!(parse_source_pos("1:1"), Some((1, 1)));
+        assert_eq!(parse_source_pos("12:3"), Some((12, 3)));
+        assert_eq!(parse_source_pos("0:3"), None);
+        assert_eq!(parse_source_pos("abc"), None);
+    }
+
+    #[test]
+    fn test_html_header_can_hide_slug_link() {
+        let etc = Vec::new();
+        let html = super::html_header(super::HtmlHeaderArgs {
+            title: "Title",
+            taxon: "Taxon. ",
+            slug: &Slug::new("book/child"),
+            ext: "md",
+            show_slug: false,
+            source_slug: None,
+            source_pos: None,
+            etc: &etc,
+        });
+        assert!(!html.contains("class=\"slug\""));
+    }
 }
