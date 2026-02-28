@@ -114,7 +114,7 @@ fn section_snippets() -> eyre::Result<()> {
 fn refresh_section_indexes() -> eyre::Result<HashMap<Slug, OrderedMap<String, HTMLContent>>> {
     environment::ensure_cache_version()?;
     let trees_dir = environment::trees_dir();
-    let workspace = compiler::all_trees_source(trees_dir.as_path(), None)
+    let workspace = compiler::all_trees_source(trees_dir.as_path())
         .wrap_err_with(|| eyre!("failed to scan trees dir `{}` for snippets", trees_dir))?;
     compiler::refresh_indexes(&workspace, None)
         .wrap_err("failed to refresh in-memory section indexes")

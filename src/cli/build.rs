@@ -107,7 +107,9 @@ pub fn build_with_dirty(
     }
 
     let root = environment::root_dir();
-    let workspace = all_trees_source(&environment::trees_dir(), dirty_paths)?;
+    let trees_dir = environment::trees_dir();
+    let workspace = all_trees_source(&trees_dir)?;
+    compiler::sync_typst_svg_assets(trees_dir.as_path(), dirty_paths)?;
     let expanded_dirty = dirty_paths.map(|paths| compiler::expand_dirty_paths(&workspace, paths));
     compile_with_mode(mode, workspace, expanded_dirty.as_ref(), options.outputs).wrap_err_with(
         || {

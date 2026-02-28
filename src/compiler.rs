@@ -48,7 +48,9 @@ use self::{
 
 pub use incremental::expand_dirty_paths;
 pub use serve_session::ServeCompileSession;
-pub use source_scan::{all_trees_source, all_trees_source_readonly, Workspace};
+pub use source_scan::{
+    all_trees_source, all_trees_source_readonly, sync_typst_svg_assets, Workspace,
+};
 
 pub type DirtySet = HashSet<Utf8PathBuf>;
 pub type UnresolvedSections = HashMap<Slug, UnresolvedSection>;
