@@ -13,11 +13,7 @@ use camino::Utf8Path;
 use eyre::{eyre, WrapErr};
 use serde::Serialize;
 
-use crate::{
-    entry::{MetaData, KEY_INTERNAL_ANON_SUBTREE},
-    environment,
-    slug::Slug,
-};
+use crate::{environment, slug::Slug};
 
 use super::{stale::remove_file_if_exists, state};
 
@@ -41,50 +37,20 @@ pub(super) fn graph_snapshot(state: &state::CompileState) -> GraphSnapshot {
     let mut slugs: Vec<Slug> = state.compiled().keys().copied().collect();
     slugs.sort();
 
-    let is_internal = |slug: Slug| {
-        state
-            .compiled()
-            .get(&slug)
-            .and_then(|section| section.metadata.get_str(KEY_INTERNAL_ANON_SUBTREE))
-            .is_some_and(|value| value == "true")
-    };
-
     for slug in slugs {
         let section = state
             .compiled()
             .get(&slug)
             .expect("slug collected from compiled map must exist");
-        if is_internal(slug) {
-            continue;
-        }
         let callback = state.callback().0.get(&slug);
-        let mut parent = callback.map_or(Slug::new("index"), |value| value.parent);
-        while is_internal(parent) {
-            parent = state
-                .callback()
-                .0
-                .get(&parent)
-                .map_or(Slug::new("index"), |value| value.parent);
-        }
+        let parent = callback.map_or(Slug::new("index"), |value| value.parent);
         let parent_specified = callback.is_some_and(|value| value.is_parent_specified);
 
-        let mut references: Vec<Slug> = section
-            .references
-            .iter()
-            .copied()
-            .filter(|reference| !is_internal(*reference))
-            .collect();
+        let mut references: Vec<Slug> = section.references.iter().copied().collect();
         references.sort();
 
         let mut backlinks: Vec<Slug> = callback
-            .map(|value| {
-                value
-                    .backlinks
-                    .iter()
-                    .copied()
-                    .filter(|backlink| !is_internal(*backlink))
-                    .collect()
-            })
+            .map(|value| value.backlinks.iter().copied().collect())
             .unwrap_or_default();
         backlinks.sort();
 

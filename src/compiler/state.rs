@@ -7,7 +7,8 @@ use std::collections::{BTreeSet, HashMap, HashSet};
 
 use crate::{
     entry::{
-        is_plain_metadata, EntryMetaData, HTMLMetaData, MetaData, KEY_EXT, KEY_SLUG, KEY_TITLE,
+        is_plain_metadata, EntryMetaData, HTMLMetaData, MetaData, KEY_EXT,
+        KEY_INTERNAL_ANON_SUBTREE, KEY_SLUG, KEY_TITLE,
     },
     environment,
     ordered_map::OrderedMap,
@@ -16,7 +17,7 @@ use crate::{
 };
 
 use super::{
-    callback::Callback,
+    callback::{Callback, CallbackValue},
     section::{
         HTMLContent, LazyContent, Section, SectionContent, SectionContents, UnresolvedSection,
     },
@@ -66,6 +67,7 @@ fn compile_all_with_missing_index_warning(
         state.compile(shallows, slug)?;
     }
 
+    state.normalize_internal_anonymous_graph();
     Ok(state)
 }
 
@@ -286,6 +288,80 @@ impl CompileState {
     pub fn callback(&self) -> &Callback {
         &self.callback
     }
+
+    fn normalize_internal_anonymous_graph(&mut self) {
+        let internal_slugs = self.collect_internal_anonymous_slugs();
+        if internal_slugs.is_empty() {
+            return;
+        }
+
+        for section in self.compiled.values_mut() {
+            section
+                .references
+                .retain(|reference| !internal_slugs.contains(reference));
+        }
+
+        let normalized_parents: HashMap<Slug, Slug> = self
+            .callback
+            .0
+            .iter()
+            .map(|(&slug, value)| {
+                (
+                    slug,
+                    Self::resolve_visible_parent(value.parent, &self.callback.0, &internal_slugs),
+                )
+            })
+            .collect();
+
+        for (&slug, value) in &mut self.callback.0 {
+            value
+                .backlinks
+                .retain(|backlink| !internal_slugs.contains(backlink));
+            if let Some(parent) = normalized_parents.get(&slug) {
+                value.parent = *parent;
+            }
+        }
+
+        self.callback
+            .0
+            .retain(|slug, _| !internal_slugs.contains(slug));
+        self.compiled
+            .retain(|slug, _| !internal_slugs.contains(slug));
+    }
+
+    fn collect_internal_anonymous_slugs(&self) -> HashSet<Slug> {
+        self.compiled
+            .iter()
+            .filter_map(|(&slug, section)| {
+                section
+                    .metadata
+                    .get_str(KEY_INTERNAL_ANON_SUBTREE)
+                    .is_some_and(|value| value == "true")
+                    .then_some(slug)
+            })
+            .collect()
+    }
+
+    fn resolve_visible_parent(
+        mut parent: Slug,
+        callbacks: &HashMap<Slug, CallbackValue>,
+        internal_slugs: &HashSet<Slug>,
+    ) -> Slug {
+        let mut visited = HashSet::new();
+        while internal_slugs.contains(&parent) {
+            if !visited.insert(parent) {
+                color_print::ceprintln!(
+                    "<y>Warning: cyclic internal parent chain detected at `{}`; falling back to `index`.</>",
+                    parent
+                );
+                return Slug::new("index");
+            }
+            parent = callbacks
+                .get(&parent)
+                .map_or(Slug::new("index"), |value| value.parent);
+        }
+        parent
+    }
 }
 
 /// Calculate the slug of a subsection referenced by the current file, from the `url` referencing
@@ -342,7 +418,10 @@ fn is_backlink(shallows: &UnresolvedSections, slug: Slug) -> eyre::Result<bool> 
 mod tests {
     use super::super::section::{EmbedContent, LocalLink, SectionOption};
     use super::*;
-    use crate::ordered_map::OrderedMap;
+    use crate::{
+        entry::{KEY_ASREF, KEY_INTERNAL_ANON_SUBTREE},
+        ordered_map::OrderedMap,
+    };
 
     fn shallow_with_content(slug: &str, content: HTMLContent) -> UnresolvedSection {
         let mut metadata = OrderedMap::new();
@@ -442,5 +521,118 @@ mod tests {
         assert!(html.contains(r#"title="abc [target]""#));
         assert!(!html.contains("&lt;span"));
         assert!(html.contains(r#"><span lang="zh">abc</span></a>"#));
+    }
+
+    #[test]
+    fn test_compile_filters_internal_anonymous_sections_from_compiled_graph() {
+        let mut shallows = HashMap::new();
+        shallows.insert(
+            Slug::new("index"),
+            shallow_with_content(
+                "index",
+                HTMLContent::Lazy(vec![LazyContent::Local(LocalLink {
+                    url: "/anon".to_string(),
+                    text: None,
+                })]),
+            ),
+        );
+
+        let mut anon = shallow_with_content("anon", HTMLContent::Plain("<p>anon</p>".to_string()));
+        anon.metadata.0.insert(
+            KEY_INTERNAL_ANON_SUBTREE.to_string(),
+            HTMLContent::Plain("true".to_string()),
+        );
+        anon.metadata.0.insert(
+            KEY_ASREF.to_string(),
+            HTMLContent::Plain("true".to_string()),
+        );
+        shallows.insert(Slug::new("anon"), anon);
+
+        let state = compile_all_without_missing_index_warning(&shallows).unwrap();
+        let index = state.compiled().get(&Slug::new("index")).unwrap();
+        assert!(!index.references.contains(&Slug::new("anon")));
+        assert!(!state.compiled().contains_key(&Slug::new("anon")));
+        assert!(!state.callback().0.contains_key(&Slug::new("anon")));
+    }
+
+    #[test]
+    fn test_compile_filters_internal_anonymous_backlinks_from_targets() {
+        let mut shallows = HashMap::new();
+        shallows.insert(
+            Slug::new("index"),
+            shallow_with_content(
+                "index",
+                HTMLContent::Lazy(vec![LazyContent::Embed(EmbedContent {
+                    url: "/anon".to_string(),
+                    title: None,
+                    option: SectionOption::default(),
+                })]),
+            ),
+        );
+
+        let mut anon = shallow_with_content(
+            "anon",
+            HTMLContent::Lazy(vec![LazyContent::Local(LocalLink {
+                url: "/target".to_string(),
+                text: None,
+            })]),
+        );
+        anon.metadata.0.insert(
+            KEY_INTERNAL_ANON_SUBTREE.to_string(),
+            HTMLContent::Plain("true".to_string()),
+        );
+        shallows.insert(Slug::new("anon"), anon);
+        shallows.insert(
+            Slug::new("target"),
+            shallow_with_content("target", HTMLContent::Plain("<p>target</p>".to_string())),
+        );
+
+        let state = compile_all_without_missing_index_warning(&shallows).unwrap();
+        let maybe_target_callback = state.callback().0.get(&Slug::new("target"));
+        assert!(maybe_target_callback
+            .map(|value| value.backlinks.is_empty())
+            .unwrap_or(true));
+    }
+
+    #[test]
+    fn test_compile_collapses_internal_parent_chain_to_visible_parent() {
+        let mut shallows = HashMap::new();
+        shallows.insert(
+            Slug::new("index"),
+            shallow_with_content(
+                "index",
+                HTMLContent::Lazy(vec![LazyContent::Embed(EmbedContent {
+                    url: "/anon".to_string(),
+                    title: None,
+                    option: SectionOption::default(),
+                })]),
+            ),
+        );
+        let mut anon = shallow_with_content(
+            "anon",
+            HTMLContent::Lazy(vec![LazyContent::Embed(EmbedContent {
+                url: "/child".to_string(),
+                title: None,
+                option: SectionOption::default(),
+            })]),
+        );
+        anon.metadata.0.insert(
+            KEY_INTERNAL_ANON_SUBTREE.to_string(),
+            HTMLContent::Plain("true".to_string()),
+        );
+        shallows.insert(Slug::new("anon"), anon);
+        shallows.insert(
+            Slug::new("child"),
+            shallow_with_content("child", HTMLContent::Plain("<p>child</p>".to_string())),
+        );
+
+        let state = compile_all_without_missing_index_warning(&shallows).unwrap();
+        let child_callback = state
+            .callback()
+            .0
+            .get(&Slug::new("child"))
+            .expect("child callback");
+        assert_eq!(child_callback.parent, Slug::new("index"));
+        assert!(!state.callback().0.contains_key(&Slug::new("anon")));
     }
 }
