@@ -2,7 +2,10 @@
 // Released under the GPL-3.0 license as described in the file LICENSE.
 // Authors: Kokic (@kokic), Spore (@s-cerevisiae)
 
-use std::{collections::VecDeque, mem};
+use std::{
+    collections::{HashMap, HashSet, VecDeque},
+    mem,
+};
 
 use eyre::{eyre, WrapErr};
 use itertools::Itertools;
@@ -12,12 +15,13 @@ use crate::{
     entry::{HTMLMetaData, KEY_EXT, KEY_SLUG},
     environment::input_path,
     ordered_map::OrderedMap,
+    path_utils,
     process::{
         content::to_contents, embed_markdown::Embed, figure::Figure, footnote::Footnote,
         ignore_paragraph, metadata::Metadata, text_elaborator::TextElaborator,
         typst_image::TypstImage,
     },
-    slug::Slug,
+    slug::{self, Slug},
 };
 
 use super::{section::LazyContent, HTMLContent, UnresolvedSection};
@@ -26,6 +30,7 @@ mod subtree;
 use subtree::{
     apply_subtree_defaults, compose_subtree_source, ensure_unique_section_slugs,
     extract_shared_reference_definitions, extract_subtrees, patch_root_subtree_embeds, SubtreeSpec,
+    ANON_SUBTREE_SLUG_PREFIX,
 };
 
 pub const OPTIONS: Options = Options::ENABLE_MATH
@@ -64,27 +69,35 @@ pub(super) fn parse_markdown_sections_from_source(
     patch_root_subtree_embeds(&mut root, &extracted.subtrees)?;
 
     let mut sections = vec![(source_slug, root)];
-    let mut pending: VecDeque<(SubtreeSpec, Slug)> = extracted
-        .subtrees
-        .into_iter()
-        .map(|subtree| {
-            let nested_base_slug = if subtree.anonymous {
-                source_slug
-            } else {
-                subtree.slug
-            };
-            (subtree, nested_base_slug)
-        })
-        .collect();
+    let mut used_slugs = HashSet::from([source_slug]);
+    let mut pending: VecDeque<(SubtreeSpec, Slug)> = VecDeque::new();
+    let mut anonymous_ordinals: HashMap<Slug, usize> = HashMap::new();
+
+    for subtree in extracted.subtrees {
+        used_slugs.insert(subtree.slug);
+        let nested_base_slug = if subtree.anonymous {
+            source_slug
+        } else {
+            subtree.slug
+        };
+        pending.push_back((subtree, nested_base_slug));
+    }
 
     while let Some((subtree, nested_base_slug)) = pending.pop_front() {
-        let mut extracted_nested = extract_subtrees(&subtree.body, nested_base_slug)?;
-        extracted_nested
-            .subtrees
-            .iter_mut()
-            .for_each(|nested| nested.source_slug = subtree.source_slug);
-
-        let nested_subtrees = extracted_nested.subtrees;
+        let extracted_nested = extract_subtrees(&subtree.body, nested_base_slug)?;
+        let mut nested_subtrees = extracted_nested.subtrees;
+        for nested in &mut nested_subtrees {
+            nested.source_slug = subtree.source_slug;
+            if nested.anonymous && used_slugs.contains(&nested.slug) {
+                nested.slug = allocate_anonymous_slug(
+                    nested_base_slug,
+                    &mut used_slugs,
+                    &mut anonymous_ordinals,
+                );
+            } else {
+                used_slugs.insert(nested.slug);
+            }
+        }
         let subtree_source =
             compose_subtree_source(&extracted_nested.root_source, &shared_reference_definitions);
         let mut section =
@@ -112,6 +125,28 @@ pub(super) fn parse_markdown_sections_from_source(
 
     ensure_unique_section_slugs(&sections, source_slug)?;
     Ok(sections)
+}
+
+fn allocate_anonymous_slug(
+    base_slug: Slug,
+    used_slugs: &mut HashSet<Slug>,
+    anonymous_ordinals: &mut HashMap<Slug, usize>,
+) -> Slug {
+    let ordinal = anonymous_ordinals.entry(base_slug).or_insert(0);
+    loop {
+        let candidate = anonymous_slug_for(base_slug, *ordinal);
+        *ordinal += 1;
+        if used_slugs.insert(candidate) {
+            return candidate;
+        }
+    }
+}
+
+fn anonymous_slug_for(base_slug: Slug, ordinal: usize) -> Slug {
+    let disambiguator = slug::to_hash_id(base_slug.as_str());
+    let component = format!("{ANON_SUBTREE_SLUG_PREFIX}-{disambiguator}-{ordinal}");
+    let relative = path_utils::relative_to_current(base_slug.as_str(), component);
+    slug::to_slug(relative)
 }
 
 pub(super) fn parse_markdown_source(source: &str, slug: Slug) -> eyre::Result<UnresolvedSection> {

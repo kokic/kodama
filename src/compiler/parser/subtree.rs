@@ -21,6 +21,29 @@ use crate::compiler::{
 const SUBTREE_PLACEHOLDER_PREFIX: &str = "/__kodama_subtree_internal__/";
 pub(super) const ANON_SUBTREE_SLUG_PREFIX: &str = "__kodama_anon_subtree_internal__";
 
+fn is_subtree_tag(tag: &str) -> bool {
+    matches!(
+        tag,
+        "block"
+            | "exegesis"
+            | "definition"
+            | "proposition"
+            | "remark"
+            | "conjecture"
+            | "postulate"
+            | "claim"
+            | "observation"
+            | "fact"
+            | "hypothesis"
+            | "axiom"
+            | "lemma"
+            | "theorem"
+            | "corollary"
+            | "example"
+            | "proof"
+    )
+}
+
 #[derive(Debug, Clone)]
 pub(super) struct SubtreeSpec {
     pub(super) tag: String,
@@ -534,29 +557,6 @@ fn resolve_anonymous_subtree_slug(current_slug: Slug, ordinal: usize) -> Slug {
     slug::to_slug(relative)
 }
 
-fn is_subtree_tag(tag: &str) -> bool {
-    matches!(
-        tag,
-        "block"
-            | "exegesis"
-            | "definition"
-            | "proposition"
-            | "remark"
-            | "conjecture"
-            | "postulate"
-            | "claim"
-            | "observation"
-            | "fact"
-            | "hypothesis"
-            | "axiom"
-            | "lemma"
-            | "theorem"
-            | "corollary"
-            | "example"
-            | "proof"
-    )
-}
-
 pub(super) fn ensure_unique_section_slugs(
     sections: &[(Slug, UnresolvedSection)],
     source_slug: Slug,
@@ -675,6 +675,8 @@ pub(super) fn apply_subtree_defaults(section: &mut UnresolvedSection, spec: &Sub
 
 #[cfg(test)]
 mod tests {
+    use std::collections::HashSet;
+
     use super::super::{parse_markdown_sections_from_source, parse_markdown_source};
     use super::*;
     use crate::{
@@ -705,7 +707,9 @@ mod tests {
     fn test_subtree_can_use_shared_reference_definitions_from_root() {
         let source = r#"
 <remark slug="child">
+
 [Subtree][shared-ref]
+
 </remark>
 
 [shared-ref]: https://example.com/shared
@@ -724,9 +728,11 @@ mod tests {
     fn test_subtree_reference_definition_overrides_shared_root_definition() {
         let source = r#"
 <remark slug="child">
+
 [Subtree][same]
 
 [same]: https://example.com/inner
+
 </remark>
 
 [same]: https://example.com/outer
@@ -775,8 +781,11 @@ mod tests {
 
     #[test]
     fn test_extract_subtrees_treats_anonymous_wrapper_as_single_extracted_subtree() {
-        let source = r#"<remark>
+        let source = r#"
+<remark>
+
 <proof slug="child">inner</proof>
+
 </remark>"#;
         let extracted = extract_subtrees(source, Slug::new("index")).unwrap();
         assert_eq!(extracted.subtrees.len(), 1);
@@ -917,9 +926,7 @@ outer
         assert!(sections
             .iter()
             .any(|(slug, _)| *slug == Slug::new("parent")));
-        assert!(sections
-            .iter()
-            .any(|(slug, _)| *slug == Slug::new("child")));
+        assert!(sections.iter().any(|(slug, _)| *slug == Slug::new("child")));
 
         let parent = sections
             .iter()
@@ -975,5 +982,34 @@ outer
             })
             .collect();
         assert_eq!(embeds, vec!["/book/child".to_string()]);
+    }
+
+    #[test]
+    fn test_parse_markdown_sections_nested_anonymous_subtrees_have_unique_internal_slugs() {
+        let source = r#"
+<remark>
+<proof>a</proof>
+</remark>
+<lemma>
+<proof>b</proof>
+</lemma>
+"#;
+
+        let sections = parse_markdown_sections_from_source(source, Slug::new("GALA")).unwrap();
+        let anonymous_slugs: Vec<Slug> = sections
+            .iter()
+            .filter_map(|(slug, section)| {
+                section
+                    .metadata
+                    .get(KEY_INTERNAL_ANON_SUBTREE)
+                    .and_then(HTMLContent::as_string)
+                    .is_some_and(|value| value == "true")
+                    .then_some(*slug)
+            })
+            .collect();
+
+        assert_eq!(anonymous_slugs.len(), 4);
+        let unique: HashSet<Slug> = anonymous_slugs.iter().copied().collect();
+        assert_eq!(unique.len(), 4);
     }
 }
