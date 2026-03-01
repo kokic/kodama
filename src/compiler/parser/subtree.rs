@@ -675,7 +675,7 @@ pub(super) fn apply_subtree_defaults(section: &mut UnresolvedSection, spec: &Sub
 
 #[cfg(test)]
 mod tests {
-    use super::super::parse_markdown_source;
+    use super::super::{parse_markdown_sections_from_source, parse_markdown_source};
     use super::*;
     use crate::{
         compiler::HTMLContent,
@@ -901,5 +901,79 @@ child body
         let nested_err = extract_subtrees(nested, Slug::new("doc/index")).unwrap_err();
         assert!(absolute_err.to_string().contains(r#"slug="/child""#));
         assert!(nested_err.to_string().contains(r#"slug="a/b""#));
+    }
+
+    #[test]
+    fn test_parse_markdown_sections_supports_nested_named_subtrees() {
+        let source = r#"
+<remark slug="parent" title="Parent">
+outer
+<lemma slug="child" title="Child">inner</lemma>
+</remark>
+"#;
+
+        let sections = parse_markdown_sections_from_source(source, Slug::new("index")).unwrap();
+        assert!(sections.iter().any(|(slug, _)| *slug == Slug::new("index")));
+        assert!(sections
+            .iter()
+            .any(|(slug, _)| *slug == Slug::new("parent")));
+        assert!(sections
+            .iter()
+            .any(|(slug, _)| *slug == Slug::new("child")));
+
+        let parent = sections
+            .iter()
+            .find_map(|(slug, section)| (*slug == Slug::new("parent")).then_some(section))
+            .expect("parent section should exist");
+        let HTMLContent::Lazy(contents) = &parent.content else {
+            panic!("expected lazy parent content with subtree embed");
+        };
+        let embeds: Vec<_> = contents
+            .iter()
+            .filter_map(|content| match content {
+                LazyContent::Embed(embed) => Some(embed.url.clone()),
+                _ => None,
+            })
+            .collect();
+        assert_eq!(embeds, vec!["/child".to_string()]);
+    }
+
+    #[test]
+    fn test_parse_markdown_sections_nested_named_subtree_under_anonymous_wrapper_uses_visible_prefix(
+    ) {
+        let source = r#"
+<remark>
+<lemma slug="child" title="Child">inner</lemma>
+</remark>
+"#;
+
+        let sections =
+            parse_markdown_sections_from_source(source, Slug::new("book/index")).unwrap();
+        assert!(sections
+            .iter()
+            .any(|(slug, _)| *slug == Slug::new("book/child")));
+
+        let anonymous = sections
+            .iter()
+            .find_map(|(_, section)| {
+                section
+                    .metadata
+                    .get(KEY_INTERNAL_ANON_SUBTREE)
+                    .and_then(HTMLContent::as_string)
+                    .is_some_and(|value| value == "true")
+                    .then_some(section)
+            })
+            .expect("anonymous wrapper section should exist");
+        let HTMLContent::Lazy(contents) = &anonymous.content else {
+            panic!("expected lazy anonymous content with nested subtree embed");
+        };
+        let embeds: Vec<_> = contents
+            .iter()
+            .filter_map(|content| match content {
+                LazyContent::Embed(embed) => Some(embed.url.clone()),
+                _ => None,
+            })
+            .collect();
+        assert_eq!(embeds, vec!["/book/child".to_string()]);
     }
 }

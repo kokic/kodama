@@ -2,7 +2,7 @@
 // Released under the GPL-3.0 license as described in the file LICENSE.
 // Authors: Kokic (@kokic), Spore (@s-cerevisiae)
 
-use std::mem;
+use std::{collections::VecDeque, mem};
 
 use eyre::{eyre, WrapErr};
 use itertools::Itertools;
@@ -25,7 +25,7 @@ use super::{section::LazyContent, HTMLContent, UnresolvedSection};
 mod subtree;
 use subtree::{
     apply_subtree_defaults, compose_subtree_source, ensure_unique_section_slugs,
-    extract_shared_reference_definitions, extract_subtrees, patch_root_subtree_embeds,
+    extract_shared_reference_definitions, extract_subtrees, patch_root_subtree_embeds, SubtreeSpec,
 };
 
 pub const OPTIONS: Options = Options::ENABLE_MATH
@@ -49,6 +49,13 @@ pub fn initialize(slug: Slug) -> eyre::Result<String> {
 
 pub fn parse_markdown_sections(source_slug: Slug) -> eyre::Result<Vec<(Slug, UnresolvedSection)>> {
     let source = initialize(source_slug)?;
+    parse_markdown_sections_from_source(&source, source_slug)
+}
+
+pub(super) fn parse_markdown_sections_from_source(
+    source: &str,
+    source_slug: Slug,
+) -> eyre::Result<Vec<(Slug, UnresolvedSection)>> {
     let extracted = extract_subtrees(&source, source_slug)?;
     let shared_reference_definitions = extract_shared_reference_definitions(&extracted.root_source);
 
@@ -57,8 +64,29 @@ pub fn parse_markdown_sections(source_slug: Slug) -> eyre::Result<Vec<(Slug, Unr
     patch_root_subtree_embeds(&mut root, &extracted.subtrees)?;
 
     let mut sections = vec![(source_slug, root)];
-    for subtree in extracted.subtrees {
-        let subtree_source = compose_subtree_source(&subtree.body, &shared_reference_definitions);
+    let mut pending: VecDeque<(SubtreeSpec, Slug)> = extracted
+        .subtrees
+        .into_iter()
+        .map(|subtree| {
+            let nested_base_slug = if subtree.anonymous {
+                source_slug
+            } else {
+                subtree.slug
+            };
+            (subtree, nested_base_slug)
+        })
+        .collect();
+
+    while let Some((subtree, nested_base_slug)) = pending.pop_front() {
+        let mut extracted_nested = extract_subtrees(&subtree.body, nested_base_slug)?;
+        extracted_nested
+            .subtrees
+            .iter_mut()
+            .for_each(|nested| nested.source_slug = subtree.source_slug);
+
+        let nested_subtrees = extracted_nested.subtrees;
+        let subtree_source =
+            compose_subtree_source(&extracted_nested.root_source, &shared_reference_definitions);
         let mut section =
             parse_markdown_source(&subtree_source, subtree.slug).wrap_err_with(|| {
                 eyre!(
@@ -67,7 +95,18 @@ pub fn parse_markdown_sections(source_slug: Slug) -> eyre::Result<Vec<(Slug, Unr
                     source_slug
                 )
             })?;
+        patch_root_subtree_embeds(&mut section, &nested_subtrees)?;
         apply_subtree_defaults(&mut section, &subtree);
+
+        for nested in nested_subtrees {
+            let next_base_slug = if nested.anonymous {
+                nested_base_slug
+            } else {
+                nested.slug
+            };
+            pending.push_back((nested, next_base_slug));
+        }
+
         sections.push((subtree.slug, section));
     }
 
