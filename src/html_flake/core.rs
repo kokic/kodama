@@ -3,6 +3,7 @@
 // Authors: Kokic (@kokic), Spore (@s-cerevisiae)
 
 use crate::{
+    compiler::section::HTMLContent,
     entry::{EntryMetaData, MetaData},
     environment,
     html_macro::html,
@@ -137,8 +138,9 @@ pub fn html_figure_code(image_src: &str, caption: String, code: String) -> Strin
 }
 
 pub fn html_link(href: &str, title: &str, text: &str, class_name: &str) -> String {
+    let plain_title = HTMLContent::Plain(title.to_string()).remove_all_tags();
     let escaped_href = htmlize::escape_attribute(href);
-    let escaped_title = htmlize::escape_attribute(title);
+    let escaped_title = htmlize::escape_attribute(&plain_title);
     let escaped_class = htmlize::escape_attribute(class_name);
     format!(
         r#"<span class="link {}"><a href="{}" title="{}">{}</a></span>"#,
@@ -177,9 +179,9 @@ mod tests {
             "local",
         );
         assert!(html.contains(r#"href="/AC2C""#));
-        assert!(html.contains("title=\""));
-        assert!(html.contains("&lt;span"));
-        assert!(html.contains("&lt;/span&gt;"));
+        assert!(html.contains(r#"title="abc [AC2C]&quot;""#));
+        assert!(!html.contains("&lt;span"));
+        assert!(!html.contains("&lt;/span&gt;"));
         assert!(!html.contains(r#"title="<span lang="zh">"#));
         assert!(html.contains(r#"><span lang="zh">abc</span></a>"#));
     }

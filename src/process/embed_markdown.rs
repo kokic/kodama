@@ -439,4 +439,29 @@ mod tests {
             Some(r#"<span lang="zh">中文</span>"#)
         );
     }
+
+    #[test]
+    fn test_asset_link_title_strips_text_elaborator_inline_html() {
+        crate::environment::mock_environment().unwrap();
+
+        let source = "[中文](/assets/image.png)";
+        let events = Parser::new_ext(source, crate::compiler::parser::OPTIONS);
+        let events = TextElaborator::process(events);
+        let actual = Embed::process(events, Slug::new("index")).collect::<Vec<_>>();
+
+        let html = actual
+            .iter()
+            .find_map(|event| match event {
+                EventExtended::CMark(Event::Html(html)) => Some(html.as_ref()),
+                _ => None,
+            })
+            .expect("expected an html link event");
+
+        assert!(html.contains(r#"class="link asset""#));
+        assert!(html.contains(r#"href="/assets/image.png""#));
+        assert!(html.contains(r#"title="中文""#));
+        assert!(!html.contains(r#"title="<span"#));
+        assert!(!html.contains("&lt;span"));
+        assert!(html.contains(r#"><span lang="zh">中文</span></a>"#));
+    }
 }
