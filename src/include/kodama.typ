@@ -27,8 +27,8 @@
 
 #let auto-frame(content) = compatibled-html(() => html.frame, () => content)
 #let auto-figure(content) = compatibled-html(
-  () => html.figure, 
-  () => align(center, content) // main.css: `figure { text-align: center; }`
+  () => html.figure,
+  () => align(center, content), // main.css: `figure { text-align: center; }`
 )
 
 #let html-font-size = 15.525pt
@@ -141,7 +141,15 @@
   })
 }
 
-#let subtree(slug, title: none, taxon: none, numbering: false, open: true, catalog: true, content) = with-target-check((export-target) => {
+#let subtree(
+  slug: none, // default: anonymous subtree
+  title: none,
+  taxon: none,
+  numbering: false,
+  open: true,
+  catalog: true,
+  content,
+) = with-target-check((export-target) => {
   if export-target == "html" {
     let attrs = (slug: repri(slug), numbering: repri(numbering), open: repri(open), catalog: repri(catalog))
 

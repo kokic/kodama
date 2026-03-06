@@ -27,8 +27,8 @@
 
 #let auto-frame(content) = compatibled-html(() => html.frame, () => content)
 #let auto-figure(content) = compatibled-html(
-  () => html.figure, 
-  () => align(center, content) // main.css: `figure { text-align: center; }`
+  () => html.figure,
+  () => align(center, content), // main.css: `figure { text-align: center; }`
 )
 
 #let html-font-size = 15.525pt
@@ -141,17 +141,20 @@
   })
 }
 
-#let subtree(slug, title: none, taxon: none, numbering: false, open: true, catalog: true, content) = with-target-check((export-target) => {
+#let subtree(
+  slug: none, // default: anonymous subtree
+  title: none,
+  taxon: none,
+  numbering: false,
+  open: true,
+  catalog: true,
+  content,
+) = with-target-check((export-target) => {
   if export-target == "html" {
-    let attrs = (slug: repri(slug), numbering: repri(numbering), open: repri(open), catalog: repri(catalog))
-
-    if title != none {
-      attrs.insert("title", repri(title))
-    }
-    if taxon != none {
-      attrs.insert("taxon", repri(taxon))
-    }
-
+    let attrs = (numbering: repri(numbering), open: repri(open), catalog: repri(catalog))
+    if slug != none { attrs.insert("slug", slug: repri(slug)) }
+    if title != none { attrs.insert("title", repri(title)) }
+    if taxon != none { attrs.insert("taxon", repri(taxon)) }
     html.elem("kodama-subtree", content, attrs: attrs)
   } else {
     block(below: small-block-below)[
@@ -159,12 +162,11 @@
         text(size: 1.083em, weight: heading-font-weight, fill: taxon-color, taxon-upper(taxon))
       }
       #text(size: 1.083em, weight: heading-font-weight, title)
-      #span-slug(slug)
+      #if slug != none { span-slug(slug) }
     ]
     content
   }
 })
-
 
 /**
  * HTML: SVG formula rendering vertical position adjustment
