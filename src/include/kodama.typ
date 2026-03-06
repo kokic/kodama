@@ -151,15 +151,10 @@
   content,
 ) = with-target-check((export-target) => {
   if export-target == "html" {
-    let attrs = (slug: repri(slug), numbering: repri(numbering), open: repri(open), catalog: repri(catalog))
-
-    if title != none {
-      attrs.insert("title", repri(title))
-    }
-    if taxon != none {
-      attrs.insert("taxon", repri(taxon))
-    }
-
+    let attrs = (numbering: repri(numbering), open: repri(open), catalog: repri(catalog))
+    if slug != none { attrs.insert("slug", repri(slug)) }
+    if title != none { attrs.insert("title", repri(title)) }
+    if taxon != none { attrs.insert("taxon", repri(taxon)) }
     html.elem("kodama-subtree", content, attrs: attrs)
   } else {
     block(below: small-block-below)[
@@ -167,7 +162,7 @@
         text(size: 1.083em, weight: heading-font-weight, fill: taxon-color, taxon-upper(taxon))
       }
       #text(size: 1.083em, weight: heading-font-weight, title)
-      #span-slug(slug)
+      #if slug != none { span-slug(slug) }
     ]
     content
   }

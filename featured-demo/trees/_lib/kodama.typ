@@ -152,7 +152,7 @@
 ) = with-target-check((export-target) => {
   if export-target == "html" {
     let attrs = (numbering: repri(numbering), open: repri(open), catalog: repri(catalog))
-    if slug != none { attrs.insert("slug", slug: repri(slug)) }
+    if slug != none { attrs.insert("slug", repri(slug)) }
     if title != none { attrs.insert("title", repri(title)) }
     if taxon != none { attrs.insert("taxon", repri(taxon)) }
     html.elem("kodama-subtree", content, attrs: attrs)

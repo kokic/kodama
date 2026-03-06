@@ -10,14 +10,54 @@ use super::section::{EmbedContent, LocalLink, SectionOption};
 use super::section::{HTMLContent, HTMLContentBuilder, LazyContent};
 use super::UnresolvedSection;
 use crate::{
-    entry::{HTMLMetaData, KEY_EXT, KEY_SLUG, KEY_SOURCE_SLUG, KEY_TAXON, KEY_TITLE},
+    entry::{
+        HTMLMetaData, KEY_EXT, KEY_INTERNAL_ANON_SUBTREE, KEY_SLUG, KEY_SOURCE_SLUG, KEY_TAXON,
+        KEY_TITLE,
+    },
     ordered_map::OrderedMap,
     path_utils,
     process::metadata,
     slug::{self, Slug},
     typst_cli,
 };
-use std::{borrow::Cow, collections::HashSet, str};
+use std::{
+    borrow::Cow,
+    collections::{HashMap, HashSet},
+    str,
+};
+
+const ANON_SUBTREE_SLUG_PREFIX: &str = "__kodama_anon_subtree_internal__";
+
+#[derive(Default)]
+struct AnonymousSubtreeSlugState {
+    used_slugs: HashSet<Slug>,
+    anonymous_ordinals: HashMap<Slug, usize>,
+}
+
+impl AnonymousSubtreeSlugState {
+    fn claim_slug(&mut self, slug: Slug, source_slug: Slug) -> eyre::Result<()> {
+        if self.used_slugs.insert(slug) {
+            Ok(())
+        } else {
+            Err(eyre!(
+                "duplicate typst subtree slug `{}` generated from `{}`",
+                slug,
+                source_slug
+            ))
+        }
+    }
+
+    fn allocate_anonymous_slug(&mut self, base_slug: Slug) -> Slug {
+        let ordinal = self.anonymous_ordinals.entry(base_slug).or_insert(0);
+        loop {
+            let candidate = anonymous_slug_for(base_slug, *ordinal);
+            *ordinal += 1;
+            if self.used_slugs.insert(candidate) {
+                return candidate;
+            }
+        }
+    }
+}
 
 fn parse_bool(m: Option<&Cow<'_, str>>, def: bool) -> bool {
     match m.map(|s| s.as_ref()) {
@@ -33,6 +73,7 @@ fn parse_typst_html(
     current_slug: Slug,
     metadata: &mut OrderedMap<String, HTMLContent>,
     subtree_sections: &mut Vec<(Slug, UnresolvedSection)>,
+    slug_state: &mut AnonymousSubtreeSlugState,
     allow_subtree: bool,
 ) -> eyre::Result<HTMLContent> {
     let mut builder = HTMLContentBuilder::new();
@@ -73,6 +114,7 @@ fn parse_typst_html(
                         current_slug,
                         &mut OrderedMap::new(),
                         subtree_sections,
+                        slug_state,
                         false,
                     )?
                 };
@@ -110,17 +152,21 @@ fn parse_typst_html(
                     ));
                 }
 
-                let raw_slug = attr("slug")
-                    .map(|s| s.as_ref())
-                    .map_err(|_| eyre!("missing attribute `slug` in typst subtree tag"))?;
-                let subtree_slug =
-                    resolve_subtree_slug(current_slug, raw_slug).wrap_err_with(|| {
-                        eyre!(
-                            "invalid typst subtree slug `{}` in `{}`",
-                            raw_slug,
-                            source_slug
-                        )
-                    })?;
+                let (subtree_slug, anonymous) = if let Some(raw_slug) = span.attrs.get("slug") {
+                    let raw_slug = raw_slug.as_ref();
+                    let subtree_slug =
+                        resolve_subtree_slug(current_slug, raw_slug).wrap_err_with(|| {
+                            eyre!(
+                                "invalid typst subtree slug `{}` in `{}`",
+                                raw_slug,
+                                source_slug
+                            )
+                        })?;
+                    slug_state.claim_slug(subtree_slug, source_slug)?;
+                    (subtree_slug, false)
+                } else {
+                    (slug_state.allocate_anonymous_slug(current_slug), true)
+                };
 
                 let def = SectionOption::default();
                 let numbering = parse_bool(span.attrs.get("numbering"), def.numbering);
@@ -156,12 +202,24 @@ fn parse_typst_html(
                     KEY_SOURCE_SLUG.to_string(),
                     HTMLContent::Plain(source_slug.to_string()),
                 );
+                if anonymous {
+                    subtree_metadata.insert(
+                        KEY_INTERNAL_ANON_SUBTREE.to_string(),
+                        HTMLContent::Plain("true".to_string()),
+                    );
+                }
+                let nested_current_slug = if anonymous {
+                    current_slug
+                } else {
+                    subtree_slug
+                };
                 let subtree_content = parse_typst_html(
                     span.body,
                     source_slug,
-                    subtree_slug,
+                    nested_current_slug,
                     &mut subtree_metadata,
                     subtree_sections,
+                    slug_state,
                     true,
                 )
                 .wrap_err_with(|| {
@@ -225,6 +283,13 @@ fn resolve_subtree_slug(current_slug: Slug, raw_slug: &str) -> eyre::Result<Slug
     Ok(slug::to_slug(relative))
 }
 
+fn anonymous_slug_for(base_slug: Slug, ordinal: usize) -> Slug {
+    let disambiguator = slug::to_hash_id(base_slug.as_str());
+    let component = format!("{ANON_SUBTREE_SLUG_PREFIX}-{disambiguator}-{ordinal}");
+    let relative = path_utils::relative_to_current(base_slug.as_str(), component);
+    slug::to_slug(relative)
+}
+
 fn ensure_unique_section_slugs(
     sections: &[(Slug, UnresolvedSection)],
     source_slug: Slug,
@@ -257,6 +322,8 @@ fn parse_typst_sections_from_html(
         HTMLContent::Plain(source_slug.to_string()),
     );
 
+    let mut slug_state = AnonymousSubtreeSlugState::default();
+    slug_state.claim_slug(source_slug, source_slug)?;
     let mut subtree_sections = Vec::new();
     let content = parse_typst_html(
         html_str,
@@ -264,6 +331,7 @@ fn parse_typst_sections_from_html(
         source_slug,
         &mut metadata,
         &mut subtree_sections,
+        &mut slug_state,
         true,
     )?;
 
@@ -295,7 +363,10 @@ pub fn parse_typst_sections<P: AsRef<Utf8Path>>(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{compiler::section::LazyContent, entry::MetaData};
+    use crate::{
+        compiler::section::LazyContent,
+        entry::{MetaData, KEY_INTERNAL_ANON_SUBTREE},
+    };
 
     fn find_section(sections: &[(Slug, UnresolvedSection)], slug: Slug) -> &UnresolvedSection {
         sections
@@ -380,9 +451,78 @@ mod tests {
     }
 
     #[test]
-    fn test_parse_typst_sections_rejects_missing_subtree_slug() {
-        let html = "<kodama-subtree><p>child</p></kodama-subtree>";
-        let err = parse_typst_sections_from_html(Slug::new("book/index"), html).unwrap_err();
-        assert!(err.to_string().contains("missing attribute `slug`"));
+    fn test_parse_typst_sections_extracts_anonymous_subtree() {
+        let html = r#"
+<p>root</p>
+<kodama-subtree title="Anonymous"><p>child</p></kodama-subtree>
+"#;
+        let sections = parse_typst_sections_from_html(Slug::new("book/index"), html).unwrap();
+        assert_eq!(sections.len(), 2);
+
+        let root = find_section(&sections, Slug::new("book/index"));
+        let root_contents = match &root.content {
+            HTMLContent::Lazy(contents) => contents,
+            _ => panic!("expected lazy root content"),
+        };
+        let embed = root_contents
+            .iter()
+            .find_map(|content| match content {
+                LazyContent::Embed(embed) => Some(embed),
+                _ => None,
+            })
+            .expect("expected subtree embed");
+        assert_eq!(
+            embed.url,
+            "/book/__kodama_anon_subtree_internal__-book-index-0"
+        );
+        assert_eq!(embed.title.as_deref(), Some("Anonymous"));
+
+        let anonymous = find_section(
+            &sections,
+            Slug::new("book/__kodama_anon_subtree_internal__-book-index-0"),
+        );
+        assert_eq!(
+            anonymous
+                .metadata
+                .get_str(KEY_INTERNAL_ANON_SUBTREE)
+                .map(String::as_str),
+            Some("true")
+        );
+    }
+
+    #[test]
+    fn test_parse_typst_sections_nested_named_subtree_under_anonymous_wrapper_uses_visible_prefix()
+    {
+        let html = r#"
+<kodama-subtree>
+  <kodama-subtree slug="child"><p>nested</p></kodama-subtree>
+</kodama-subtree>
+"#;
+        let sections = parse_typst_sections_from_html(Slug::new("book/index"), html).unwrap();
+        assert!(sections
+            .iter()
+            .any(|(slug, _)| *slug == Slug::new("book/child")));
+
+        let anonymous = sections
+            .iter()
+            .find_map(|(_, section)| {
+                section
+                    .metadata
+                    .get_str(KEY_INTERNAL_ANON_SUBTREE)
+                    .is_some_and(|value| value == "true")
+                    .then_some(section)
+            })
+            .expect("expected anonymous wrapper section");
+        let HTMLContent::Lazy(contents) = &anonymous.content else {
+            panic!("expected lazy anonymous content");
+        };
+        let nested_embed_urls: Vec<_> = contents
+            .iter()
+            .filter_map(|content| match content {
+                LazyContent::Embed(embed) => Some(embed.url.clone()),
+                _ => None,
+            })
+            .collect();
+        assert_eq!(nested_embed_urls, vec!["/book/child".to_string()]);
     }
 }
