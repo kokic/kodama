@@ -101,15 +101,15 @@
 /// -> string
 #let tex(raw-tex) = "$" + raw-tex.text + "$"
 
-#let local(slug, text) = with-target-check((export-target) => {
+#let local(slug, text: none) = with-target-check((export-target) => {
   if export-target == "html" {
     html.elem(
       "span", // Make it an inline element. This is automatically removed by kodama.
       {
-        let v = text
+        let v = if text == none { none } else { text }
         let attrs = (slug: slug)
 
-        if type(text) != content {
+        if text != none and type(text) != content {
           v = none
           attrs.insert("value", repri(text))
         }
@@ -117,7 +117,10 @@
         html.elem("kodama-local", v, attrs: attrs)
       },
     )
-  } else { underline(stroke: dotted-stroke, text) }
+  } else {
+    let label = if text == none { slug } else { text }
+    underline(stroke: dotted-stroke, label)
+  }
 })
 
 #let embed(url, title, numbering: false, open: true, catalog: true, display-options: false) = {

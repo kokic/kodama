@@ -4,7 +4,7 @@
 #show: kodama
 
 // Recommended font
-// #set text(font: "Inria Sans")
+#set text(font: "Inria Sans")
 
 #metadata((
   "title": "Alice, from the Old French name Aalis", //

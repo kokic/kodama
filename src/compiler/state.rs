@@ -524,6 +524,60 @@ mod tests {
     }
 
     #[test]
+    fn test_metadata_local_link_without_text_uses_target_title() {
+        let mut shallows = HashMap::new();
+
+        let mut index_metadata = OrderedMap::new();
+        index_metadata.insert(
+            KEY_SLUG.to_string(),
+            HTMLContent::Plain("index".to_string()),
+        );
+        index_metadata.insert(KEY_EXT.to_string(), HTMLContent::Plain("typst".to_string()));
+        index_metadata.insert(
+            "author".to_string(),
+            HTMLContent::Lazy(vec![LazyContent::Local(LocalLink {
+                url: "/kokic".to_string(),
+                text: None,
+            })]),
+        );
+        shallows.insert(
+            Slug::new("index"),
+            UnresolvedSection {
+                metadata: HTMLMetaData(index_metadata),
+                content: HTMLContent::Plain(String::new()),
+            },
+        );
+
+        let mut target_metadata = OrderedMap::new();
+        target_metadata.insert(
+            KEY_SLUG.to_string(),
+            HTMLContent::Plain("kokic".to_string()),
+        );
+        target_metadata.insert(KEY_EXT.to_string(), HTMLContent::Plain("md".to_string()));
+        target_metadata.insert(
+            KEY_TITLE.to_string(),
+            HTMLContent::Plain("Kokic".to_string()),
+        );
+        shallows.insert(
+            Slug::new("kokic"),
+            UnresolvedSection {
+                metadata: HTMLMetaData(target_metadata),
+                content: HTMLContent::Plain(String::new()),
+            },
+        );
+
+        let state = compile_all_without_missing_index_warning(&shallows).unwrap();
+        let author = state
+            .compiled()
+            .get(&Slug::new("index"))
+            .and_then(|section| section.metadata.get_str("author"))
+            .expect("compiled author metadata");
+
+        assert!(author.contains(r#"class="link local""#));
+        assert!(author.contains(">Kokic</a>"));
+    }
+
+    #[test]
     fn test_compile_filters_internal_anonymous_sections_from_compiled_graph() {
         let mut shallows = HashMap::new();
         shallows.insert(

@@ -11,16 +11,17 @@
   "taxon": "example", //
   "date": "October 12, 2025", //
   "author": "Anonymous",
+  "0AFE": local("0AFE") // Alice
 ))
 
-#lorem(32) #local("./0AFF")[*Bob being linked*]. 
+#lorem(32) #local("./0AFF", text: [*Bob being linked*]). 
 
 #embed("./0AFE.typst", "Alice when embedded", numbering: true)
 
 #lorem(48)
 
 #subtree(slug: "0AFF", title: "Bob, subtree with slugs", taxon: "exegesis")[
-  - #lorem(64) #local("0AFE", "Alice when being linked").
+  - #lorem(64) #local("0AFE", text: "Alice when being linked").
 ]
 
 #subtree(title: "Christina, anonymous subtree", taxon: "exegesis")[
