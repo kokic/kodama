@@ -11,7 +11,7 @@
   "taxon": "example", //
   "date": "October 12, 2025", //
   "author": "Anonymous",
-  "0AFE": local("0AFE") // Alice
+  "0AFE": local("0AFE"), // Alice
 ))
 
 #lorem(32) #local("./0AFF", text: [*Bob being linked*]). 
