@@ -371,61 +371,45 @@
         set par(spacing: 1.5em)
         doc
       } else {
-        // show math.equation.where(block: false): it => {
-        //   with-target-check(
-        //     (export-target) => {
-        //       if export-target == "html" {
-        //         let label = repr(it)
-        //         if label in equations-height-dict.final().keys() {
-        //           let height = equations-height-dict.final().at(label, default: none)
-        //           equations-height-dict.update(d => {
-        //             d.insert(label, height); d
-        //           })
-        //           let y-length = measure(bounded(it)).height
-        //           let shift = y-length - height
-        //           box(html.elem("span", attrs: (style: "vertical-align: -" + to-em(shift.pt()) + ";"), html.frame(bounded(it))))
-        //         } else {
-        //           box(html.frame(add-pin(it)))
-        //         }
-        //       } else {
-        //         it
-        //       }
-        //     },
-        //   )
-        // }
-        // show math.equation.where(block: true): it => {
-        //   with-target-check(
-        //     (export-target) => {
-        //       if export-target == "html" {
-        //         if is-inside-pin.get() {
-        //           html.frame(it)
-        //         } else {
-        //           html.elem("div", attrs: (style: "display: flex; justify-content: center; width: 100%; margin: 1em 0;"), html.frame(it))
-        //         }
-        //       } else {
-        //         it
-        //       }
-        //     },
-        //   )
-        // }
-        //
         show math.equation.where(block: false): it => {
-          if target() == "html" {
-            html.elem("span", attrs: (role: "math"), html.frame(it))
-          } else {
-            it
-          }
+          with-target-check(
+            (export-target) => {
+              if export-target == "html" {
+                let label = repr(it)
+                if label in equations-height-dict.final().keys() {
+                  let height = equations-height-dict.final().at(label, default: none)
+                  equations-height-dict.update(d => {
+                    d.insert(label, height); d
+                  })
+                  let y-length = measure(bounded(it)).height
+                  let shift = y-length - height
+                  box(html.elem("span", attrs: (style: "vertical-align: -" + to-em(shift.pt()) + ";"), html.frame(bounded(it))))
+                } else {
+                  box(html.frame(add-pin(it)))
+                }
+              } else {
+                it
+              }
+            },
+          )
         }
         show math.equation.where(block: true): it => {
-          if target() == "html" {
-            html.elem("figure", attrs: (role: "math"), html.frame(it))
-          } else {
-            it
-          }
+          with-target-check(
+            (export-target) => {
+              if export-target == "html" {
+                if is-inside-pin.get() {
+                  html.frame(it)
+                } else {
+                  html.elem("div", attrs: (style: "display: flex; justify-content: center; width: 100%; margin: 1em 0;"), html.frame(it))
+                }
+              } else {
+                it
+              }
+            },
+          )
         }
         doc
       }
     },
   )
 }
-
