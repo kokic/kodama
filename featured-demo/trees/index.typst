@@ -24,7 +24,7 @@
   - #lorem(64) #local("0AFE", text: "Alice when being linked").
 ]
 
-#subtree(title: "Christina, anonymous subtree", taxon: "exegesis")[
+#exegesis(title: "Christina, anonymous subtree")[
   #import "@preview/fletcher:0.5.8" as fletcher: node, edge
 
   #let y = 1.5
