@@ -1,4 +1,4 @@
-// Copyright (c) 2025 Kodama Project. All rights reserved.
+﻿// Copyright (c) 2025 Kodama Project. All rights reserved.
 // Released under the GPL-3.0 license as described in the file LICENSE.
 // Authors: Alias Qli (@AliasQli), Kokic (@kokic)
 // Last modified time: 2026/03/06
@@ -171,6 +171,168 @@
   }
 })
 
+// Semantic subtree sugar helpers aligned with markdown subtree tags.
+#let exegesis(slug: none, title: none, taxon: none, numbering: false, open: true, catalog: true, content) = subtree(
+  slug: slug,
+  title: title,
+  taxon: if taxon == none { "exegesis" } else { taxon },
+  numbering: numbering,
+  open: open,
+  catalog: catalog,
+  content,
+)
+
+#let definition(slug: none, title: none, taxon: none, numbering: false, open: true, catalog: true, content) = subtree(
+  slug: slug,
+  title: title,
+  taxon: if taxon == none { "definition" } else { taxon },
+  numbering: numbering,
+  open: open,
+  catalog: catalog,
+  content,
+)
+
+#let proposition(slug: none, title: none, taxon: none, numbering: false, open: true, catalog: true, content) = subtree(
+  slug: slug,
+  title: title,
+  taxon: if taxon == none { "proposition" } else { taxon },
+  numbering: numbering,
+  open: open,
+  catalog: catalog,
+  content,
+)
+
+#let remark(slug: none, title: none, taxon: none, numbering: false, open: true, catalog: true, content) = subtree(
+  slug: slug,
+  title: title,
+  taxon: if taxon == none { "remark" } else { taxon },
+  numbering: numbering,
+  open: open,
+  catalog: catalog,
+  content,
+)
+
+#let conjecture(slug: none, title: none, taxon: none, numbering: false, open: true, catalog: true, content) = subtree(
+  slug: slug,
+  title: title,
+  taxon: if taxon == none { "conjecture" } else { taxon },
+  numbering: numbering,
+  open: open,
+  catalog: catalog,
+  content,
+)
+
+#let postulate(slug: none, title: none, taxon: none, numbering: false, open: true, catalog: true, content) = subtree(
+  slug: slug,
+  title: title,
+  taxon: if taxon == none { "postulate" } else { taxon },
+  numbering: numbering,
+  open: open,
+  catalog: catalog,
+  content,
+)
+
+#let claim(slug: none, title: none, taxon: none, numbering: false, open: true, catalog: true, content) = subtree(
+  slug: slug,
+  title: title,
+  taxon: if taxon == none { "claim" } else { taxon },
+  numbering: numbering,
+  open: open,
+  catalog: catalog,
+  content,
+)
+
+#let observation(slug: none, title: none, taxon: none, numbering: false, open: true, catalog: true, content) = subtree(
+  slug: slug,
+  title: title,
+  taxon: if taxon == none { "observation" } else { taxon },
+  numbering: numbering,
+  open: open,
+  catalog: catalog,
+  content,
+)
+
+#let fact(slug: none, title: none, taxon: none, numbering: false, open: true, catalog: true, content) = subtree(
+  slug: slug,
+  title: title,
+  taxon: if taxon == none { "fact" } else { taxon },
+  numbering: numbering,
+  open: open,
+  catalog: catalog,
+  content,
+)
+
+#let hypothesis(slug: none, title: none, taxon: none, numbering: false, open: true, catalog: true, content) = subtree(
+  slug: slug,
+  title: title,
+  taxon: if taxon == none { "hypothesis" } else { taxon },
+  numbering: numbering,
+  open: open,
+  catalog: catalog,
+  content,
+)
+
+#let axiom(slug: none, title: none, taxon: none, numbering: false, open: true, catalog: true, content) = subtree(
+  slug: slug,
+  title: title,
+  taxon: if taxon == none { "axiom" } else { taxon },
+  numbering: numbering,
+  open: open,
+  catalog: catalog,
+  content,
+)
+
+#let lemma(slug: none, title: none, taxon: none, numbering: false, open: true, catalog: true, content) = subtree(
+  slug: slug,
+  title: title,
+  taxon: if taxon == none { "lemma" } else { taxon },
+  numbering: numbering,
+  open: open,
+  catalog: catalog,
+  content,
+)
+
+#let theorem(slug: none, title: none, taxon: none, numbering: false, open: true, catalog: true, content) = subtree(
+  slug: slug,
+  title: title,
+  taxon: if taxon == none { "theorem" } else { taxon },
+  numbering: numbering,
+  open: open,
+  catalog: catalog,
+  content,
+)
+
+#let corollary(slug: none, title: none, taxon: none, numbering: false, open: true, catalog: true, content) = subtree(
+  slug: slug,
+  title: title,
+  taxon: if taxon == none { "corollary" } else { taxon },
+  numbering: numbering,
+  open: open,
+  catalog: catalog,
+  content,
+)
+
+#let example(slug: none, title: none, taxon: none, numbering: false, open: true, catalog: true, content) = subtree(
+  slug: slug,
+  title: title,
+  taxon: if taxon == none { "example" } else { taxon },
+  numbering: numbering,
+  open: open,
+  catalog: catalog,
+  content,
+)
+
+#let proof(slug: none, title: none, taxon: none, numbering: false, open: true, catalog: true, content) = subtree(
+  slug: slug,
+  title: title,
+  taxon: if taxon == none { "proof" } else { taxon },
+  numbering: numbering,
+  open: open,
+  catalog: catalog,
+  content,
+)
+
+
 /**
  * HTML: SVG formula rendering vertical position adjustment
  */
@@ -248,3 +410,4 @@
     },
   )
 }
+
