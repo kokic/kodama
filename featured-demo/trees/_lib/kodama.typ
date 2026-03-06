@@ -13,10 +13,23 @@
   repr(r)
 }
 
-// To be compatible with the current tinymist
-#let compatibled-target() = {
-  if "target" in dictionary(std) { context std.target() } else { "paged" }
+#let with-target-check(callback) = context {
+  let target-value = if "target" in dictionary(std) { std.target() } else { "paged" }
+  callback(target-value)
 }
+
+#let compatibled-html(f, content-provider) = with-target-check((export-target) => {
+  let content = content-provider()
+  if export-target == "html" { f()(content) } else {
+    content
+  }
+})
+
+#let auto-frame(content) = compatibled-html(() => html.frame, () => content)
+#let auto-figure(content) = compatibled-html(
+  () => html.figure, 
+  () => align(center, content) // main.css: `figure { text-align: center; }`
+)
 
 #let html-font-size = 15.525pt
 
@@ -55,26 +68,30 @@
   let table-pairs = table.pairs()
   let custom-pairs = table-pairs.filter(e => not is_preset_key(e.at(0)))
 
-  context if compatibled-target() != "paged" {
-    table-pairs.map(e => {
-      let value = e.at(1)
-      let v = value
-      let attrs = (key: e.at(0))
+  with-target-check(
+    (export-target) => {
+      if export-target == "html" {
+        table-pairs.map(e => {
+          let value = e.at(1)
+          let v = value
+          let attrs = (key: e.at(0))
 
-      if type(value) != content {
-        v = none
-        attrs.insert("value", repri(value))
+          if type(value) != content {
+            v = none
+            attrs.insert("value", repri(value))
+          }
+          html.elem("kodama-meta", v, attrs: attrs)
+        }).join()
+      } else {
+        if taxon != none {
+          text(weight: heading-font-weight, fill: taxon-color, size: 1.35em, taxon-upper(taxon))
+        }
+        block(above: small-block-below, below: small-block-below, text(size: 1.5em, weight: heading-font-weight, title))
+        block(custom-pairs.map(e =>
+        e.at(1)).join(text(" · ")))
       }
-      html.elem("kodama-meta", v, attrs: attrs)
-    }).join()
-  } else {
-    if taxon != none {
-      text(weight: heading-font-weight, fill: taxon-color, size: 1.35em, taxon-upper(taxon))
-    }
-    block(above: small-block-below, below: small-block-below, text(size: 1.5em, weight: heading-font-weight, title))
-    block(custom-pairs.map(e =>
-    e.at(1)).join(text(" · ")))
-  }
+    },
+  )
 }
 
 #let external(dest, content) = link(dest, underline(content))
@@ -84,63 +101,70 @@
 /// -> string
 #let tex(raw-tex) = "$" + raw-tex.text + "$"
 
-#let local(slug, text) = context if compatibled-target() != "paged" {
-  html.elem(
-    "span", // Make it an inline element. This is automatically removed by kodama.
-    {
-      let v = text
-      let attrs = (slug: slug)
+#let local(slug, text) = with-target-check((export-target) => {
+  if export-target == "html" {
+    html.elem(
+      "span", // Make it an inline element. This is automatically removed by kodama.
+      {
+        let v = text
+        let attrs = (slug: slug)
 
-      if type(text) != content {
-        v = none
-        attrs.insert("value", repri(text))
-      }
+        if type(text) != content {
+          v = none
+          attrs.insert("value", repri(text))
+        }
 
-      html.elem("kodama-local", v, attrs: attrs)
-    },
-  )
-} else { underline(stroke: dotted-stroke, text) }
+        html.elem("kodama-local", v, attrs: attrs)
+      },
+    )
+  } else { underline(stroke: dotted-stroke, text) }
+})
 
 #let embed(url, title, numbering: false, open: true, catalog: true, display-options: false) = {
-  context if compatibled-target() != "paged" {
-    let v = title
-    let attrs = (url: url, numbering: repri(numbering), open: repri(open), catalog: repri(catalog))
+  with-target-check((export-target) => {
+    if export-target == "html" {
+      let v = title
+      let attrs = (url: url, numbering: repri(numbering), open: repri(open), catalog: repri(catalog))
 
-    if type(title) != content {
-      v = none
-      attrs.insert("value", repri(title))
+      if type(title) != content {
+        v = none
+        attrs.insert("value", repri(title))
+      }
+
+      html.elem("kodama-embed", v, attrs: attrs)
+    } else {
+      block(below: small-block-below, text(size: 1.083em, weight: heading-font-weight, title))
+      if display-options {
+        block(text(fill: paged-metadata-text-color)[`numbering:` #numbering ~ `open:` #open ~ `toc:` #catalog])
+      }
+    }
+  })
+}
+
+#let subtree(slug, title: none, taxon: none, numbering: false, open: true, catalog: true, content) = with-target-check((export-target) => {
+  if export-target == "html" {
+    let attrs = (slug: repri(slug), numbering: repri(numbering), open: repri(open), catalog: repri(catalog))
+
+    if title != none {
+      attrs.insert("title", repri(title))
+    }
+    if taxon != none {
+      attrs.insert("taxon", repri(taxon))
     }
 
-    html.elem("kodama-embed", v, attrs: attrs)
+    html.elem("kodama-subtree", content, attrs: attrs)
   } else {
-    block(below: small-block-below, text(size: 1.083em, weight: heading-font-weight, title))
-    if display-options {
-      block(text(fill: paged-metadata-text-color)[`numbering:` #numbering ~ `open:` #open ~ `toc:` #catalog])
-    }
+    block(below: small-block-below)[
+      #if taxon != none {
+        text(size: 1.083em, weight: heading-font-weight, fill: taxon-color, taxon-upper(taxon))
+      }
+      #text(size: 1.083em, weight: heading-font-weight, title)
+      #span-slug(slug)
+    ]
+    content
   }
-}
+})
 
-#let subtree(slug, title: none, taxon: none, numbering: false, open: true, catalog: true, content) = context if compatibled-target() != "paged" {
-  let attrs = (slug: repri(slug), numbering: repri(numbering), open: repri(open), catalog: repri(catalog))
-
-  if title != none {
-    attrs.insert("title", repri(title))
-  }
-  if taxon != none {
-    attrs.insert("taxon", repri(taxon))
-  }
-
-  html.elem("kodama-subtree", content, attrs: attrs)
-} else {
-  block(below: small-block-below)[
-    #if taxon != none {
-      text(size: 1.083em, weight: heading-font-weight, fill: taxon-color, taxon-upper(taxon))
-    }
-    #text(size: 1.083em, weight: heading-font-weight, title)
-    #span-slug(slug)
-  ]
-  content
-}
 
 /**
  * HTML: SVG formula rendering vertical position adjustment
@@ -170,38 +194,52 @@
 }
 
 #let kodama(doc) = {
-  context if compatibled-target() == "paged" {
-    set page(margin: 2em, paper: "iso-b6", height: auto)
-    set par(spacing: 1.5em)
-    doc
-  } else {
-    show math.equation: eq => {
-      if eq.block {
-        if is-inside-pin.get() {
-          html.frame(eq)
-        } else {
-          html.elem("div", attrs: (style: "display: flex; justify-content: center; width: 100%; margin: 1em 0;"), html.frame(eq))
-        }
+  with-target-check(
+    (export-target) => {
+      if export-target == "paged" {
+        set page(margin: 2em, paper: "iso-b6", height: auto)
+        set par(spacing: 1.5em)
+        doc
       } else {
-        let label = repr(eq)
-
-        if label in equations-height-dict.final().keys() {
-          let height = equations-height-dict.final().at(label, default: none)
-
-          equations-height-dict.update(d => {
-            d.insert(label, height); d
-          })
-
-          let y-length = measure(bounded(eq)).height
-          let shift = y-length - height
-
-          box(html.elem("span", attrs: (style: "vertical-align: -" + to-em(shift.pt()) + ";"), html.frame(bounded(eq))))
-        } else {
-          box(html.frame(add-pin(eq)))
+        show math.equation.where(block: false): it => {
+          with-target-check(
+            (export-target) => {
+              if export-target == "html" {
+                let label = repr(it)
+                if label in equations-height-dict.final().keys() {
+                  let height = equations-height-dict.final().at(label, default: none)
+                  equations-height-dict.update(d => {
+                    d.insert(label, height); d
+                  })
+                  let y-length = measure(bounded(it)).height
+                  let shift = y-length - height
+                  box(html.elem("span", attrs: (style: "vertical-align: -" + to-em(shift.pt()) + ";"), html.frame(bounded(it))))
+                } else {
+                  box(html.frame(add-pin(it)))
+                }
+              } else {
+                it
+              }
+            },
+          )
         }
+        show math.equation.where(block: true): it => {
+          with-target-check(
+            (export-target) => {
+              if export-target == "html" {
+                if is-inside-pin.get() {
+                  html.frame(it)
+                } else {
+                  html.elem("div", attrs: (style: "display: flex; justify-content: center; width: 100%; margin: 1em 0;"), html.frame(it))
+                }
+              } else {
+                it
+              }
+            },
+          )
+        }
+        doc
       }
-    }
-    doc
-  }
+    },
+  )
 }
-
