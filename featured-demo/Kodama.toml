@@ -28,4 +28,4 @@ output = "./publish"
 [serve]
 edit = "vscode://file/"
 output = "./.cache/publish"
-command = ["miniserve", "<output>", "--index", "index.html", "--pretty-urls"]
+command = ["miniserve", "<output>", "--index", "index.html", "--pretty-urls", "--port", "8087"]
