@@ -4,7 +4,7 @@ version = "0.7.9"
 edition = "2021"
 
 [dependencies]
-clap = { version = "4.5.23", default-features = false, features = ["std", "derive", "color"] }
+clap = { version = "4.5.23", features = ["std", "derive", "color", "help"] }
 eyre = { version = "0.6.12", default-features = false, features = ["auto-install", "track-caller"] }
 fastrand = { version = "2.3.0", default-features = false, features = ["std"] }
 htmlize = { version = "1.0.5", features = ["unescape"]}
