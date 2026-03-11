@@ -3,7 +3,7 @@
 // Authors: Kokic (@kokic), Spore (@s-cerevisiae)
 
 use std::{
-    collections::{HashMap, HashSet, VecDeque},
+    collections::{HashSet, VecDeque},
     mem,
 };
 
@@ -20,16 +20,17 @@ use crate::{
         ignore_paragraph, metadata::Metadata, text_elaborator::TextElaborator,
         typst_image::TypstImage,
     },
-    slug::{self, Slug},
+    slug::Slug,
 };
 
+use super::anonymous_slug::AnonymousSlugState;
+use super::subtree_slug::ensure_unique_section_slugs;
 use super::{section::LazyContent, HTMLContent, UnresolvedSection};
 
 mod subtree;
 use subtree::{
-    apply_subtree_defaults, compose_subtree_source, ensure_unique_section_slugs,
-    extract_shared_reference_definitions, extract_subtrees_nested, extract_subtrees_root,
-    patch_root_subtree_embeds, SubtreeSpec,
+    apply_subtree_defaults, compose_subtree_source, extract_shared_reference_definitions,
+    extract_subtrees_nested, extract_subtrees_root, patch_root_subtree_embeds, SubtreeSpec,
 };
 
 pub const OPTIONS: Options = Options::ENABLE_MATH
@@ -70,7 +71,7 @@ pub(super) fn parse_markdown_sections_from_source(
     let mut sections = vec![(source_slug, root)];
     let mut used_slugs = HashSet::from([source_slug]);
     let mut pending: VecDeque<(SubtreeSpec, Slug)> = VecDeque::new();
-    let mut anonymous_ordinals: HashMap<Slug, usize> = HashMap::new();
+    let mut anonymous_slugs = AnonymousSlugState::default();
 
     for subtree in extracted.subtrees {
         used_slugs.insert(subtree.slug);
@@ -83,17 +84,14 @@ pub(super) fn parse_markdown_sections_from_source(
     }
 
     while let Some((subtree, nested_base_slug)) = pending.pop_front() {
-        let extracted_nested = extract_subtrees_nested(&subtree.body, nested_base_slug, subtree.source_slug)?;
+        let extracted_nested =
+            extract_subtrees_nested(&subtree.body, nested_base_slug, subtree.source_slug)?;
         let mut nested_subtrees = extracted_nested.subtrees;
         for nested in &mut nested_subtrees {
             nested.source_slug = subtree.source_slug;
             if nested.anonymous && used_slugs.contains(&nested.slug) {
-                nested.slug = allocate_anonymous_slug(
-                    nested_base_slug,
-                    nested.source_slug,
-                    &mut used_slugs,
-                    &mut anonymous_ordinals,
-                );
+                nested.slug =
+                    anonymous_slugs.allocate_with_used(nested.source_slug, &mut used_slugs);
             } else {
                 used_slugs.insert(nested.slug);
             }
@@ -123,30 +121,8 @@ pub(super) fn parse_markdown_sections_from_source(
         sections.push((subtree.slug, section));
     }
 
-    ensure_unique_section_slugs(&sections, source_slug)?;
+    ensure_unique_section_slugs(&sections, source_slug, "subtree")?;
     Ok(sections)
-}
-
-fn allocate_anonymous_slug(
-    _base_slug: Slug,
-    source_slug: Slug,
-    used_slugs: &mut HashSet<Slug>,
-    anonymous_ordinals: &mut HashMap<Slug, usize>,
-) -> Slug {
-    let ordinal = anonymous_ordinals.entry(source_slug).or_insert(0);
-    loop {
-        let candidate = anonymous_slug_for(source_slug, *ordinal);
-        *ordinal += 1;
-        if used_slugs.insert(candidate) {
-            return candidate;
-        }
-    }
-}
-
-fn anonymous_slug_for(source_slug: Slug, ordinal: usize) -> Slug {
-    let component = format!(":{ordinal}");
-    let slug_path = format!("{source_slug}/{component}");
-    slug::to_slug(slug_path)
 }
 
 pub(super) fn parse_markdown_source(source: &str, slug: Slug) -> eyre::Result<UnresolvedSection> {

@@ -8,18 +8,18 @@ use crate::{
         MetaData, KEY_EXT, KEY_INTERNAL_ANON_SUBTREE, KEY_SLUG, KEY_SOURCE_POS, KEY_SOURCE_SLUG,
         KEY_TAXON, KEY_TITLE,
     },
-    path_utils,
     process::metadata,
-    slug::{self, Slug},
+    slug::Slug,
 };
 
 use crate::compiler::{
+    anonymous_slug::{anonymous_slug_for, ANON_SUBTREE_SLUG_PREFIX},
     section::{LazyContent, SectionOption},
+    subtree_slug::resolve_subtree_slug,
     HTMLContent, UnresolvedSection,
 };
 
 const SUBTREE_PLACEHOLDER_PREFIX: &str = "/__kodama_subtree_internal__/";
-pub(super) const ANON_SUBTREE_SLUG_PREFIX: &str = ":";
 
 fn is_subtree_tag(tag: &str) -> bool {
     matches!(
@@ -252,10 +252,7 @@ pub(super) fn extract_subtrees_nested(
                 false,
             )
         } else {
-            (
-                resolve_anonymous_subtree_slug(current_slug, source_slug, subtrees.len()),
-                true,
-            )
+            (anonymous_slug_for(source_slug, subtrees.len()), true)
         };
         let (line, col) = byte_index_to_line_col(source, lt);
         let placeholder_url = format!("{SUBTREE_PLACEHOLDER_PREFIX}{}", subtrees.len());
@@ -537,49 +534,6 @@ fn parse_bool_attr(value: Option<&String>, default: bool) -> bool {
         Some("false") | Some("0") | Some("none") => false,
         _ => true,
     }
-}
-
-fn resolve_subtree_slug(current_slug: Slug, raw_slug: &str) -> eyre::Result<Slug> {
-    let component = raw_slug.trim();
-    if component.is_empty() {
-        return Err(eyre!("slug cannot be empty"));
-    }
-    if component == "." || component == ".." {
-        return Err(eyre!("slug must be a concrete path component name"));
-    }
-    if component.contains('/') || component.contains('\\') {
-        return Err(eyre!(
-            "slug must be a single path component name without separators"
-        ));
-    }
-
-    // Subtree slugs are always relative to the current section prefix.
-    let relative = path_utils::relative_to_current(current_slug.as_str(), component);
-    Ok(slug::to_slug(relative))
-}
-
-fn resolve_anonymous_subtree_slug(_current_slug: Slug, source_slug: Slug, ordinal: usize) -> Slug {
-    let component = format!("{ANON_SUBTREE_SLUG_PREFIX}{ordinal}");
-    let slug_path = format!("{source_slug}/{component}");
-    slug::to_slug(slug_path)
-}
-
-
-pub(super) fn ensure_unique_section_slugs(
-    sections: &[(Slug, UnresolvedSection)],
-    source_slug: Slug,
-) -> eyre::Result<()> {
-    let mut seen = HashSet::new();
-    for (slug, _) in sections {
-        if !seen.insert(*slug) {
-            return Err(eyre!(
-                "duplicate subtree slug `{}` generated from `{}`",
-                slug,
-                source_slug
-            ));
-        }
-    }
-    Ok(())
 }
 
 pub(super) fn patch_root_subtree_embeds(

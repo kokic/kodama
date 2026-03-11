@@ -217,4 +217,3 @@ mod tests {
         assert!(html.contains(">[#]</a>"));
     }
 }
-

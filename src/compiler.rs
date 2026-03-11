@@ -2,6 +2,7 @@
 // Released under the GPL-3.0 license as described in the file LICENSE.
 // Authors: Kokic (@kokic), Alias Qli (@AliasQli), Spore (@s-cerevisiae)
 
+mod anonymous_slug;
 mod artifacts;
 pub mod callback;
 pub mod counter;
@@ -13,6 +14,7 @@ mod serve_session;
 mod source_scan;
 mod stale;
 pub mod state;
+mod subtree_slug;
 pub mod taxon;
 pub mod typst;
 pub mod writer;
@@ -190,7 +192,6 @@ fn is_internal_anonymous_subtree(section: &UnresolvedSection) -> bool {
         .get_str(KEY_INTERNAL_ANON_SUBTREE)
         .is_some_and(|value| value == "true")
 }
-
 
 pub(super) fn collect_shallows(
     workspace: &Workspace,

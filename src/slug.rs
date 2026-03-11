@@ -96,7 +96,14 @@ impl Display for Ext {
 }
 
 pub fn to_hash_id(slug_str: &str) -> String {
-    slug_str.replace("/", "-")
+    if let Some((prefix, last)) = slug_str.rsplit_once('/') {
+        if last.starts_with(':') {
+            let mut hash_id = prefix.replace('/', "-");
+            hash_id.push_str(last);
+            return hash_id;
+        }
+    }
+    slug_str.replace('/', "-")
 }
 
 pub fn to_slug<P: AsRef<Utf8Path>>(path: P) -> Slug {
@@ -113,6 +120,21 @@ pub fn to_slug<P: AsRef<Utf8Path>>(path: P) -> Slug {
 mod tests {
     use super::*;
 
+    #[test]
+    fn test_to_hash_id_preserves_anonymous_suffix_separator() {
+        assert_eq!(
+            to_hash_id("daily-surf/windows-skill/:0"),
+            "daily-surf-windows-skill:0"
+        );
+    }
+
+    #[test]
+    fn test_to_hash_id_replaces_slashes_for_regular_slug() {
+        assert_eq!(
+            to_hash_id("daily-surf/windows-skill"),
+            "daily-surf-windows-skill"
+        );
+    }
     #[test]
     fn test_to_slug_strips_known_source_extension() {
         assert_eq!(to_slug("a.b.md"), Slug::new("a.b"));

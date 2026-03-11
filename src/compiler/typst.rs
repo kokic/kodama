@@ -2,6 +2,8 @@
 // Released under the GPL-3.0 license as described in the file LICENSE.
 // Authors: Alias Qli (@AliasQli), Spore (@s-cerevisiae), Kokic (@kokic)
 
+use super::anonymous_slug::AnonymousSlugState;
+use super::subtree_slug::{ensure_unique_section_slugs, resolve_subtree_slug};
 use camino::Utf8Path;
 use eyre::{eyre, WrapErr};
 
@@ -15,49 +17,11 @@ use crate::{
         KEY_TITLE,
     },
     ordered_map::OrderedMap,
-    path_utils,
     process::metadata,
-    slug::{self, Slug},
+    slug::Slug,
     typst_cli,
 };
-use std::{
-    borrow::Cow,
-    collections::{HashMap, HashSet},
-    str,
-};
-
-const ANON_SUBTREE_SLUG_PREFIX: &str = "__kodama_anon_subtree_internal__";
-
-#[derive(Default)]
-struct AnonymousSubtreeSlugState {
-    used_slugs: HashSet<Slug>,
-    anonymous_ordinals: HashMap<Slug, usize>,
-}
-
-impl AnonymousSubtreeSlugState {
-    fn claim_slug(&mut self, slug: Slug, source_slug: Slug) -> eyre::Result<()> {
-        if self.used_slugs.insert(slug) {
-            Ok(())
-        } else {
-            Err(eyre!(
-                "duplicate typst subtree slug `{}` generated from `{}`",
-                slug,
-                source_slug
-            ))
-        }
-    }
-
-    fn allocate_anonymous_slug(&mut self, base_slug: Slug) -> Slug {
-        let ordinal = self.anonymous_ordinals.entry(base_slug).or_insert(0);
-        loop {
-            let candidate = anonymous_slug_for(base_slug, *ordinal);
-            *ordinal += 1;
-            if self.used_slugs.insert(candidate) {
-                return candidate;
-            }
-        }
-    }
-}
+use std::{borrow::Cow, collections::HashSet, str};
 
 fn parse_bool(m: Option<&Cow<'_, str>>, def: bool) -> bool {
     match m.map(|s| s.as_ref()) {
@@ -73,7 +37,8 @@ fn parse_typst_html(
     current_slug: Slug,
     metadata: &mut OrderedMap<String, HTMLContent>,
     subtree_sections: &mut Vec<(Slug, UnresolvedSection)>,
-    slug_state: &mut AnonymousSubtreeSlugState,
+    used_slugs: &mut HashSet<Slug>,
+    anonymous_slugs: &mut AnonymousSlugState,
     allow_subtree: bool,
 ) -> eyre::Result<HTMLContent> {
     let mut builder = HTMLContentBuilder::new();
@@ -114,7 +79,8 @@ fn parse_typst_html(
                         current_slug,
                         &mut OrderedMap::new(),
                         subtree_sections,
-                        slug_state,
+                        used_slugs,
+                        anonymous_slugs,
                         false,
                     )?
                 };
@@ -162,10 +128,19 @@ fn parse_typst_html(
                                 source_slug
                             )
                         })?;
-                    slug_state.claim_slug(subtree_slug, source_slug)?;
+                    if !used_slugs.insert(subtree_slug) {
+                        return Err(eyre!(
+                            "duplicate typst subtree slug `{}` generated from `{}`",
+                            subtree_slug,
+                            source_slug
+                        ));
+                    }
                     (subtree_slug, false)
                 } else {
-                    (slug_state.allocate_anonymous_slug(current_slug), true)
+                    (
+                        anonymous_slugs.allocate_with_used(source_slug, used_slugs),
+                        true,
+                    )
                 };
 
                 let def = SectionOption::default();
@@ -219,7 +194,8 @@ fn parse_typst_html(
                     nested_current_slug,
                     &mut subtree_metadata,
                     subtree_sections,
-                    slug_state,
+                    used_slugs,
+                    anonymous_slugs,
                     true,
                 )
                 .wrap_err_with(|| {
@@ -266,47 +242,6 @@ fn apply_subtree_defaults(
     }
 }
 
-fn resolve_subtree_slug(current_slug: Slug, raw_slug: &str) -> eyre::Result<Slug> {
-    let component = raw_slug.trim();
-    if component.is_empty() {
-        return Err(eyre!("slug cannot be empty"));
-    }
-    if component == "." || component == ".." {
-        return Err(eyre!("slug must be a concrete path component name"));
-    }
-    if component.contains('/') || component.contains('\\') {
-        return Err(eyre!(
-            "slug must be a single path component name without separators"
-        ));
-    }
-    let relative = path_utils::relative_to_current(current_slug.as_str(), component);
-    Ok(slug::to_slug(relative))
-}
-
-fn anonymous_slug_for(base_slug: Slug, ordinal: usize) -> Slug {
-    let disambiguator = slug::to_hash_id(base_slug.as_str());
-    let component = format!("{ANON_SUBTREE_SLUG_PREFIX}-{disambiguator}-{ordinal}");
-    let relative = path_utils::relative_to_current(base_slug.as_str(), component);
-    slug::to_slug(relative)
-}
-
-fn ensure_unique_section_slugs(
-    sections: &[(Slug, UnresolvedSection)],
-    source_slug: Slug,
-) -> eyre::Result<()> {
-    let mut seen = HashSet::new();
-    for (slug, _) in sections {
-        if !seen.insert(*slug) {
-            return Err(eyre!(
-                "duplicate typst subtree slug `{}` generated from `{}`",
-                slug,
-                source_slug
-            ));
-        }
-    }
-    Ok(())
-}
-
 fn parse_typst_sections_from_html(
     source_slug: Slug,
     html_str: &str,
@@ -322,8 +257,8 @@ fn parse_typst_sections_from_html(
         HTMLContent::Plain(source_slug.to_string()),
     );
 
-    let mut slug_state = AnonymousSubtreeSlugState::default();
-    slug_state.claim_slug(source_slug, source_slug)?;
+    let mut used_slugs = HashSet::from([source_slug]);
+    let mut anonymous_slugs = AnonymousSlugState::default();
     let mut subtree_sections = Vec::new();
     let content = parse_typst_html(
         html_str,
@@ -331,7 +266,8 @@ fn parse_typst_sections_from_html(
         source_slug,
         &mut metadata,
         &mut subtree_sections,
-        &mut slug_state,
+        &mut used_slugs,
+        &mut anonymous_slugs,
         true,
     )?;
 
@@ -343,7 +279,7 @@ fn parse_typst_sections_from_html(
         },
     )];
     sections.extend(subtree_sections);
-    ensure_unique_section_slugs(&sections, source_slug)?;
+    ensure_unique_section_slugs(&sections, source_slug, "typst subtree")?;
     Ok(sections)
 }
 
@@ -471,16 +407,10 @@ mod tests {
                 _ => None,
             })
             .expect("expected subtree embed");
-        assert_eq!(
-            embed.url,
-            "/book/__kodama_anon_subtree_internal__-book-index-0"
-        );
+        assert_eq!(embed.url, "/book/index/:0");
         assert_eq!(embed.title.as_deref(), Some("Anonymous"));
 
-        let anonymous = find_section(
-            &sections,
-            Slug::new("book/__kodama_anon_subtree_internal__-book-index-0"),
-        );
+        let anonymous = find_section(&sections, Slug::new("book/index/:0"));
         assert_eq!(
             anonymous
                 .metadata
