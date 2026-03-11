@@ -188,9 +188,17 @@ fn fenced_code_marker(line: &str) -> Option<char> {
     (count >= 3).then_some(marker)
 }
 
-pub(super) fn extract_subtrees(
+pub(super) fn extract_subtrees_root(
+    source: &str,
+    source_slug: Slug,
+) -> eyre::Result<ExtractedSubtrees> {
+    extract_subtrees_nested(source, source_slug, source_slug)
+}
+
+pub(super) fn extract_subtrees_nested(
     source: &str,
     current_slug: Slug,
+    source_slug: Slug,
 ) -> eyre::Result<ExtractedSubtrees> {
     let mut root_source = String::new();
     let mut subtrees = Vec::new();
@@ -245,7 +253,7 @@ pub(super) fn extract_subtrees(
             )
         } else {
             (
-                resolve_anonymous_subtree_slug(current_slug, subtrees.len()),
+                resolve_anonymous_subtree_slug(current_slug, source_slug, subtrees.len()),
                 true,
             )
         };
@@ -267,7 +275,7 @@ pub(super) fn extract_subtrees(
             title,
             taxon,
             anonymous,
-            source_slug: current_slug,
+            source_slug,
             source_pos: format!("{line}:{col}"),
         });
 
@@ -550,11 +558,12 @@ fn resolve_subtree_slug(current_slug: Slug, raw_slug: &str) -> eyre::Result<Slug
     Ok(slug::to_slug(relative))
 }
 
-fn resolve_anonymous_subtree_slug(current_slug: Slug, ordinal: usize) -> Slug {
+fn resolve_anonymous_subtree_slug(_current_slug: Slug, source_slug: Slug, ordinal: usize) -> Slug {
     let component = format!("{ANON_SUBTREE_SLUG_PREFIX}{ordinal}");
-    let relative = path_utils::relative_to_current(current_slug.as_str(), component);
-    slug::to_slug(relative)
+    let slug_path = format!("{source_slug}/{component}");
+    slug::to_slug(slug_path)
 }
+
 
 pub(super) fn ensure_unique_section_slugs(
     sections: &[(Slug, UnresolvedSection)],
@@ -694,7 +703,7 @@ mod tests {
 [outside]: https://outside-duplicate.example
 "#;
 
-        let extracted = extract_subtrees(source, Slug::new("index")).unwrap();
+        let extracted = extract_subtrees_root(source, Slug::new("index")).unwrap();
         let shared = extract_shared_reference_definitions(&extracted.root_source);
 
         assert!(shared.contains("[outside]: https://outside.example"));
@@ -714,7 +723,7 @@ mod tests {
 [shared-ref]: https://example.com/shared
 "#;
 
-        let extracted = extract_subtrees(source, Slug::new("book/index")).unwrap();
+        let extracted = extract_subtrees_root(source, Slug::new("book/index")).unwrap();
         let shared = extract_shared_reference_definitions(&extracted.root_source);
         let subtree_source = compose_subtree_source(&extracted.subtrees[0].body, &shared);
 
@@ -737,7 +746,7 @@ mod tests {
 [same]: https://example.com/outer
 "#;
 
-        let extracted = extract_subtrees(source, Slug::new("book/index")).unwrap();
+        let extracted = extract_subtrees_root(source, Slug::new("book/index")).unwrap();
         let shared = extract_shared_reference_definitions(&extracted.root_source);
         let subtree_source = compose_subtree_source(&extracted.subtrees[0].body, &shared);
 
@@ -750,7 +759,7 @@ mod tests {
     #[test]
     fn test_extract_subtrees_rewrites_root_to_embed_placeholders() {
         let source = "before\n<remark slug=\"child\" title=\"Child\">\nhello\n</remark>\nafter";
-        let extracted = extract_subtrees(source, Slug::new("doc/index")).unwrap();
+        let extracted = extract_subtrees_root(source, Slug::new("doc/index")).unwrap();
 
         assert!(extracted
             .root_source
@@ -766,7 +775,7 @@ mod tests {
     #[test]
     fn test_extract_subtrees_extracts_anonymous_tags_without_slug_attribute() {
         let source = "<remark>plain</remark>";
-        let extracted = extract_subtrees(source, Slug::new("index")).unwrap();
+        let extracted = extract_subtrees_root(source, Slug::new("index")).unwrap();
         assert_eq!(extracted.subtrees.len(), 1);
         assert!(extracted
             .root_source
@@ -777,7 +786,22 @@ mod tests {
             .as_str()
             .contains(ANON_SUBTREE_SLUG_PREFIX));
     }
+    #[test]
+    fn test_extract_subtrees_nested_anonymous_slug_uses_source_prefix() {
+        let source = "<remark>plain</remark>";
+        let extracted = extract_subtrees_nested(
+            source,
+            Slug::new("daily/surf"),
+            Slug::new("daily-surf/windows-skill"),
+        )
+        .unwrap();
 
+        assert_eq!(extracted.subtrees.len(), 1);
+        assert_eq!(
+            extracted.subtrees[0].slug,
+            Slug::new("daily-surf/windows-skill/:0")
+        );
+    }
     #[test]
     fn test_extract_subtrees_treats_anonymous_wrapper_as_single_extracted_subtree() {
         let source = r#"
@@ -786,7 +810,7 @@ mod tests {
 <proof slug="child">inner</proof>
 
 </remark>"#;
-        let extracted = extract_subtrees(source, Slug::new("index")).unwrap();
+        let extracted = extract_subtrees_root(source, Slug::new("index")).unwrap();
         assert_eq!(extracted.subtrees.len(), 1);
         assert!(extracted.subtrees[0].anonymous);
         assert!(extracted
@@ -803,7 +827,7 @@ mod tests {
 anonymous body
 </remark>
 "#;
-        let extracted = extract_subtrees(source, Slug::new("index")).unwrap();
+        let extracted = extract_subtrees_root(source, Slug::new("index")).unwrap();
         let mut root = parse_markdown_source(&extracted.root_source, Slug::new("index")).unwrap();
         patch_root_subtree_embeds(&mut root, &extracted.subtrees).unwrap();
         let mut anonymous =
@@ -844,7 +868,7 @@ title: Child
 child body
 </remark>
 "#;
-        let extracted = extract_subtrees(source, Slug::new("book/index")).unwrap();
+        let extracted = extract_subtrees_root(source, Slug::new("book/index")).unwrap();
         let mut root =
             parse_markdown_source(&extracted.root_source, Slug::new("book/index")).unwrap();
         patch_root_subtree_embeds(&mut root, &extracted.subtrees).unwrap();
@@ -894,7 +918,7 @@ child body
     #[test]
     fn test_extract_subtrees_rejects_relative_prefix_slug() {
         let source = r#"<remark slug="./child">x</remark>"#;
-        let err = extract_subtrees(source, Slug::new("doc/index")).unwrap_err();
+        let err = extract_subtrees_root(source, Slug::new("doc/index")).unwrap_err();
         let msg = err.to_string();
         assert!(msg.contains("invalid subtree tag"));
         assert!(msg.contains(r#"slug="./child""#));
@@ -905,8 +929,8 @@ child body
         let absolute = r#"<remark slug="/child">x</remark>"#;
         let nested = r#"<remark slug="a/b">x</remark>"#;
 
-        let absolute_err = extract_subtrees(absolute, Slug::new("doc/index")).unwrap_err();
-        let nested_err = extract_subtrees(nested, Slug::new("doc/index")).unwrap_err();
+        let absolute_err = extract_subtrees_root(absolute, Slug::new("doc/index")).unwrap_err();
+        let nested_err = extract_subtrees_root(nested, Slug::new("doc/index")).unwrap_err();
         assert!(absolute_err.to_string().contains(r#"slug="/child""#));
         assert!(nested_err.to_string().contains(r#"slug="a/b""#));
     }

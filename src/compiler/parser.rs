@@ -15,7 +15,6 @@ use crate::{
     entry::{HTMLMetaData, KEY_EXT, KEY_SLUG},
     environment::input_path,
     ordered_map::OrderedMap,
-    path_utils,
     process::{
         content::to_contents, embed_markdown::Embed, figure::Figure, footnote::Footnote,
         ignore_paragraph, metadata::Metadata, text_elaborator::TextElaborator,
@@ -29,8 +28,8 @@ use super::{section::LazyContent, HTMLContent, UnresolvedSection};
 mod subtree;
 use subtree::{
     apply_subtree_defaults, compose_subtree_source, ensure_unique_section_slugs,
-    extract_shared_reference_definitions, extract_subtrees, patch_root_subtree_embeds, SubtreeSpec,
-    ANON_SUBTREE_SLUG_PREFIX,
+    extract_shared_reference_definitions, extract_subtrees_nested, extract_subtrees_root,
+    patch_root_subtree_embeds, SubtreeSpec,
 };
 
 pub const OPTIONS: Options = Options::ENABLE_MATH
@@ -61,7 +60,7 @@ pub(super) fn parse_markdown_sections_from_source(
     source: &str,
     source_slug: Slug,
 ) -> eyre::Result<Vec<(Slug, UnresolvedSection)>> {
-    let extracted = extract_subtrees(&source, source_slug)?;
+    let extracted = extract_subtrees_root(&source, source_slug)?;
     let shared_reference_definitions = extract_shared_reference_definitions(&extracted.root_source);
 
     let mut root = parse_markdown_source(&extracted.root_source, source_slug)
@@ -84,13 +83,14 @@ pub(super) fn parse_markdown_sections_from_source(
     }
 
     while let Some((subtree, nested_base_slug)) = pending.pop_front() {
-        let extracted_nested = extract_subtrees(&subtree.body, nested_base_slug)?;
+        let extracted_nested = extract_subtrees_nested(&subtree.body, nested_base_slug, subtree.source_slug)?;
         let mut nested_subtrees = extracted_nested.subtrees;
         for nested in &mut nested_subtrees {
             nested.source_slug = subtree.source_slug;
             if nested.anonymous && used_slugs.contains(&nested.slug) {
                 nested.slug = allocate_anonymous_slug(
                     nested_base_slug,
+                    nested.source_slug,
                     &mut used_slugs,
                     &mut anonymous_ordinals,
                 );
@@ -128,13 +128,14 @@ pub(super) fn parse_markdown_sections_from_source(
 }
 
 fn allocate_anonymous_slug(
-    base_slug: Slug,
+    _base_slug: Slug,
+    source_slug: Slug,
     used_slugs: &mut HashSet<Slug>,
     anonymous_ordinals: &mut HashMap<Slug, usize>,
 ) -> Slug {
-    let ordinal = anonymous_ordinals.entry(base_slug).or_insert(0);
+    let ordinal = anonymous_ordinals.entry(source_slug).or_insert(0);
     loop {
-        let candidate = anonymous_slug_for(base_slug, *ordinal);
+        let candidate = anonymous_slug_for(source_slug, *ordinal);
         *ordinal += 1;
         if used_slugs.insert(candidate) {
             return candidate;
@@ -142,10 +143,10 @@ fn allocate_anonymous_slug(
     }
 }
 
-fn anonymous_slug_for(base_slug: Slug, ordinal: usize) -> Slug {
-    let component = format!("{ANON_SUBTREE_SLUG_PREFIX}{ordinal}");
-    let relative = path_utils::relative_to_current(base_slug.as_str(), component);
-    slug::to_slug(relative)
+fn anonymous_slug_for(source_slug: Slug, ordinal: usize) -> Slug {
+    let component = format!(":{ordinal}");
+    let slug_path = format!("{source_slug}/{component}");
+    slug::to_slug(slug_path)
 }
 
 pub(super) fn parse_markdown_source(source: &str, slug: Slug) -> eyre::Result<UnresolvedSection> {
