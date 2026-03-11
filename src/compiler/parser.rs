@@ -143,8 +143,7 @@ fn allocate_anonymous_slug(
 }
 
 fn anonymous_slug_for(base_slug: Slug, ordinal: usize) -> Slug {
-    let disambiguator = slug::to_hash_id(base_slug.as_str());
-    let component = format!("{ANON_SUBTREE_SLUG_PREFIX}-{disambiguator}-{ordinal}");
+    let component = format!("{ANON_SUBTREE_SLUG_PREFIX}{ordinal}");
     let relative = path_utils::relative_to_current(base_slug.as_str(), component);
     slug::to_slug(relative)
 }

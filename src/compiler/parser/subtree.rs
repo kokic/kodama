@@ -19,7 +19,7 @@ use crate::compiler::{
 };
 
 const SUBTREE_PLACEHOLDER_PREFIX: &str = "/__kodama_subtree_internal__/";
-pub(super) const ANON_SUBTREE_SLUG_PREFIX: &str = "__kodama_anon_subtree_internal__";
+pub(super) const ANON_SUBTREE_SLUG_PREFIX: &str = ":";
 
 fn is_subtree_tag(tag: &str) -> bool {
     matches!(
@@ -551,8 +551,7 @@ fn resolve_subtree_slug(current_slug: Slug, raw_slug: &str) -> eyre::Result<Slug
 }
 
 fn resolve_anonymous_subtree_slug(current_slug: Slug, ordinal: usize) -> Slug {
-    let disambiguator = slug::to_hash_id(current_slug.as_str());
-    let component = format!("{ANON_SUBTREE_SLUG_PREFIX}-{disambiguator}-{ordinal}");
+    let component = format!("{ANON_SUBTREE_SLUG_PREFIX}{ordinal}");
     let relative = path_utils::relative_to_current(current_slug.as_str(), component);
     slug::to_slug(relative)
 }

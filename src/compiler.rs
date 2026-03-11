@@ -114,7 +114,6 @@ pub(super) fn compile_from_shallows(
         .filter_map(|(slug, section)| (!is_internal_anonymous_subtree(section)).then_some(*slug))
         .collect();
     all_slugs.sort();
-    cleanup_internal_anonymous_outputs(shallows)?;
 
     let indexes = outputs.indexes.then(|| indexes_from_shallows(shallows));
 
@@ -192,17 +191,6 @@ fn is_internal_anonymous_subtree(section: &UnresolvedSection) -> bool {
         .is_some_and(|value| value == "true")
 }
 
-fn cleanup_internal_anonymous_outputs(shallows: &UnresolvedSections) -> eyre::Result<()> {
-    let output_dir = environment::output_dir();
-    for (slug, section) in shallows {
-        if !is_internal_anonymous_subtree(section) {
-            continue;
-        }
-        let output_html = output_dir.join(format!("{}.html", slug));
-        let _ = stale::remove_file_if_exists(output_html.as_path())?;
-    }
-    Ok(())
-}
 
 pub(super) fn collect_shallows(
     workspace: &Workspace,
@@ -314,15 +302,6 @@ fn load_shallow_sections(
     }
 
     let sections = parse_source_sections(source_slug, ext)?;
-    if entry_path.exists() {
-        let old_sections = read_entry_cache(entry_path.as_path(), source_slug).unwrap_or_default();
-        let old_slugs: HashSet<Slug> = old_sections.into_iter().map(|(slug, _)| slug).collect();
-        let new_slugs: HashSet<Slug> = sections.iter().map(|(slug, _)| *slug).collect();
-        for removed_slug in old_slugs.difference(&new_slugs) {
-            let output_html = environment::output_dir().join(format!("{}.html", removed_slug));
-            let _ = stale::remove_file_if_exists(output_html.as_path())?;
-        }
-    }
     write_entry_cache(entry_path.as_path(), &sections)?;
     Ok(sections)
 }
