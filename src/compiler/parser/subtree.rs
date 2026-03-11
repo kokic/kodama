@@ -13,7 +13,7 @@ use crate::{
 };
 
 use crate::compiler::{
-    anonymous_slug::{anonymous_slug_for, ANON_SUBTREE_SLUG_PREFIX},
+    anonymous_slug::anonymous_slug_for,
     section::{LazyContent, SectionOption},
     subtree_slug::resolve_subtree_slug,
     HTMLContent, UnresolvedSection,
@@ -641,6 +641,7 @@ mod tests {
 
     use super::super::{parse_markdown_sections_from_source, parse_markdown_source};
     use super::*;
+    use crate::compiler::anonymous_slug::ANON_SUBTREE_SLUG_PREFIX;
     use crate::{
         compiler::HTMLContent,
         entry::{MetaData, KEY_INTERNAL_ANON_SUBTREE, KEY_SOURCE_POS, KEY_SOURCE_SLUG},
