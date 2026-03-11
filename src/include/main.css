@@ -497,6 +497,7 @@ a {
 
 a.slug:hover,
 a.edit:hover,
+a.hash:hover,
 a.bullet:hover,
 .link:hover {
   background-color: var(--hover-color-link);
@@ -515,7 +516,8 @@ a.bullet:hover,
 a.link.local,
 .link.local a,
 a.slug,
-a.edit {
+a.edit,
+a.hash {
   box-shadow: none;
   text-decoration-line: underline;
   text-decoration-style: dotted;

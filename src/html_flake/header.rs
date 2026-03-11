@@ -55,7 +55,12 @@ pub fn html_header(args: HtmlHeaderArgs<'_>) -> String {
     };
 
     let edit_text = environment::get_edit_text();
-    let edit_class = "edit";
+    let hash_anchor = if !show_slug {
+        let hash_id = crate::slug::to_hash_id(slug_str);
+        html!(a class="hash" href={format!("#{hash_id}")} { "[#]" })
+    } else {
+        String::new()
+    };
     let edit_url = match (is_serve, serve_edit, deploy_edit) {
         (true, Some(prefix), _) => {
             let source_path = input_path(format!("{}.{}", source_slug, ext));
@@ -68,7 +73,7 @@ pub fn html_header(args: HtmlHeaderArgs<'_>) -> String {
             })();
 
             match editor_url {
-                Some(url) => html!(a class=edit_class href={url} { (edit_text) }),
+                Some(url) => html!(a class="edit" href={url} { (edit_text) }),
                 None => {
                     color_print::ceprintln!(
                         "<y>Warning: failed to construct editor URL for `{}` (source `{}`).</>",
@@ -83,7 +88,7 @@ pub fn html_header(args: HtmlHeaderArgs<'_>) -> String {
             let source_path = format!("{}.{}", source_slug, ext);
             let editor_url =
                 append_editor_position(format!("{}{}", prefix, source_path), &prefix, source_pos);
-            html!(a class=edit_class href={editor_url.to_string()} { (edit_text) })
+            html!(a class="edit" href={editor_url.to_string()} { (edit_text) })
         }
         _ => String::default(),
     };
@@ -93,6 +98,7 @@ pub fn html_header(args: HtmlHeaderArgs<'_>) -> String {
             span class="taxon" { (taxon) }
             (title) " "
             (slug_link)
+            (hash_anchor)
             (edit_url)
         }
         (html_header_metadata(etc))
@@ -207,5 +213,8 @@ mod tests {
             etc: &etc,
         });
         assert!(!html.contains("class=\"slug\""));
+        assert!(html.contains("href=\"#book-child\""));
+        assert!(html.contains(">[#]</a>"));
     }
 }
+
