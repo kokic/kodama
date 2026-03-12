@@ -191,6 +191,7 @@ impl Writer {
         let slug = section.slug()?;
         let title = section.metadata.title().map_or("", |s| s);
         let page_title = section.metadata.page_title().map_or("", |s| s);
+        let use_hash_href = Writer::is_internal_anonymous_subtree(section)?;
         Ok(html_flake::catalog_item(
             slug,
             title,
@@ -198,6 +199,7 @@ impl Writer {
             section.option.details_open,
             taxon,
             child_html,
+            use_hash_href,
         ))
     }
 
@@ -287,10 +289,6 @@ impl Writer {
 
         let catalog_item = if toplevel {
             child_html
-        } else if Writer::is_internal_anonymous_subtree(section)? {
-            // Anonymous subtree sections are structural only and have no standalone page.
-            // Keep descendants in TOC, but do not emit a dead link for the anonymous node itself.
-            items
         } else {
             section
                 .option
@@ -432,7 +430,7 @@ mod tests {
     }
 
     #[test]
-    fn test_html_doc_toc_skips_internal_anonymous_subtree_link_but_keeps_descendants() {
+    fn test_html_doc_toc_uses_hash_link_for_internal_anonymous_subtree() {
         with_test_env(|| {
             let mut shallows = HashMap::new();
             shallows.insert(
@@ -470,7 +468,9 @@ mod tests {
 
             let leaf_href = environment::full_html_url(Slug::new("leaf"));
             let anon_href = environment::full_html_url(Slug::new("anon"));
+            let anon_hash_href = format!("#{}", crate::slug::to_hash_id("anon"));
             assert!(html.contains(&format!(r#"href="{}""#, leaf_href)));
+            assert!(html.contains(&format!(r#"href="{}""#, anon_hash_href)));
             assert!(!html.contains(&format!(r#"href="{}""#, anon_href)));
         });
     }

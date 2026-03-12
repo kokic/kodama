@@ -10,6 +10,9 @@ use crate::{
     slug::Slug,
 };
 
+const CATALOG_BULLET_SYMBOL: &str = "\u{25A0}"; // ■
+const HEADER_LOGO_PREFIX: &str = "\u{00AB} "; // «
+
 pub fn html_article_inner(
     metadata: &EntryMetaData,
     contents: &String,
@@ -64,13 +67,16 @@ pub fn catalog_item(
     details_open: bool,
     taxon: &str,
     child_html: &str,
+    use_hash_href: bool,
 ) -> String {
-    let slug_url = environment::full_html_url(slug);
+    let hash_href = format!("#{}", crate::slug::to_hash_id(slug.as_str()));
+    let href = if use_hash_href {
+        hash_href.clone()
+    } else {
+        environment::full_html_url(slug)
+    };
     let title_text = format!("{} [{}]", page_title, slug);
-    let onclick = format!(
-        "window.location.href='#{}'",
-        crate::slug::to_hash_id(slug.as_str())
-    );
+    let onclick = format!("window.location.href='{}'", hash_href);
 
     let mut class_name: Vec<String> = vec![];
     if !details_open {
@@ -78,7 +84,7 @@ pub fn catalog_item(
     }
 
     html!(li class={class_name.join(" ")} {
-        a class="bullet" href={slug_url} title={title_text} { "■" }
+        a class="bullet" href={href} title={title_text} { (CATALOG_BULLET_SYMBOL) }
         span class="link local" onclick={onclick} {
             span class="taxon" { (taxon) }
             (title)
@@ -159,7 +165,7 @@ pub fn html_header_nav(title: &str, page_title: &str, href: &str) -> String {
         nav class="nav" {
             div class="logo" {
                 span class="cursor-pointer" onclick={onclick} title={page_title} {
-                    "« " (title)
+                    (HEADER_LOGO_PREFIX) (title)
                 }
             }
         }
