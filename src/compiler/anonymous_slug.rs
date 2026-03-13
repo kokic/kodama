@@ -7,6 +7,7 @@ use crate::slug::{self, Slug};
 
 pub const ANON_SUBTREE_SLUG_PREFIX: &str = ":";
 
+/// (= catalog numbering)
 pub const ANON_SUBTREE_ORDINAL_INITIAL: usize = 1;
 
 #[derive(Default)]
