@@ -61,7 +61,7 @@ pub(super) fn parse_markdown_sections_from_source(
     source: &str,
     source_slug: Slug,
 ) -> eyre::Result<Vec<(Slug, UnresolvedSection)>> {
-    let extracted = extract_subtrees_root(&source, source_slug)?;
+    let extracted = extract_subtrees_root(source, source_slug)?;
     let shared_reference_definitions = extract_shared_reference_definitions(&extracted.root_source);
 
     let mut root = parse_markdown_source(&extracted.root_source, source_slug)

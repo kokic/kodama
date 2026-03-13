@@ -31,6 +31,7 @@ fn parse_bool(m: Option<&Cow<'_, str>>, def: bool) -> bool {
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 fn parse_typst_html(
     html_str: &str,
     source_slug: Slug,

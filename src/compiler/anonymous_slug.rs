@@ -7,6 +7,8 @@ use crate::slug::{self, Slug};
 
 pub const ANON_SUBTREE_SLUG_PREFIX: &str = ":";
 
+pub const ANON_SUBTREE_ORDINAL_INITIAL: usize = 1;
+
 #[derive(Default)]
 pub struct AnonymousSlugState {
     anonymous_ordinals: HashMap<Slug, usize>,
@@ -18,7 +20,7 @@ impl AnonymousSlugState {
         source_slug: Slug,
         used_slugs: &mut HashSet<Slug>,
     ) -> Slug {
-        let ordinal = self.anonymous_ordinals.entry(source_slug).or_insert(0);
+        let ordinal = self.anonymous_ordinals.entry(source_slug).or_insert(ANON_SUBTREE_ORDINAL_INITIAL);
         loop {
             let candidate = anonymous_slug_for(source_slug, *ordinal);
             *ordinal += 1;
