@@ -1,4 +1,4 @@
-﻿// Released under the GPL-3.0 license as described in the file LICENSE.
+// Released under the GPL-3.0 license as described in the file LICENSE.
 // Authors: Kodama contributors
 
 use std::collections::{HashMap, HashSet};
@@ -20,7 +20,10 @@ impl AnonymousSlugState {
         source_slug: Slug,
         used_slugs: &mut HashSet<Slug>,
     ) -> Slug {
-        let ordinal = self.anonymous_ordinals.entry(source_slug).or_insert(ANON_SUBTREE_ORDINAL_INITIAL);
+        let ordinal = self
+            .anonymous_ordinals
+            .entry(source_slug)
+            .or_insert(ANON_SUBTREE_ORDINAL_INITIAL);
         loop {
             let candidate = anonymous_slug_for(source_slug, *ordinal);
             *ordinal += 1;
@@ -44,8 +47,8 @@ mod tests {
     #[test]
     fn test_anonymous_slug_for_uses_source_prefix() {
         assert_eq!(
-            anonymous_slug_for(Slug::new("book/index"), 0),
-            Slug::new("book/index/:0")
+            anonymous_slug_for(Slug::new("book/index"), ANON_SUBTREE_ORDINAL_INITIAL),
+            Slug::new(format!("book/index/:{}", ANON_SUBTREE_ORDINAL_INITIAL))
         );
     }
 }

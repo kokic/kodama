@@ -301,7 +301,10 @@ pub fn parse_typst_sections<P: AsRef<Utf8Path>>(
 mod tests {
     use super::*;
     use crate::{
-        compiler::section::LazyContent,
+        compiler::{
+            anonymous_slug::{anonymous_slug_for, ANON_SUBTREE_ORDINAL_INITIAL},
+            section::LazyContent,
+        },
         entry::{MetaData, KEY_INTERNAL_ANON_SUBTREE},
     };
 
@@ -408,10 +411,12 @@ mod tests {
                 _ => None,
             })
             .expect("expected subtree embed");
-        assert_eq!(embed.url, "/book/index/:0");
+        let anonymous_slug =
+            anonymous_slug_for(Slug::new("book/index"), ANON_SUBTREE_ORDINAL_INITIAL);
+        assert_eq!(embed.url, format!("/{anonymous_slug}"));
         assert_eq!(embed.title.as_deref(), Some("Anonymous"));
 
-        let anonymous = find_section(&sections, Slug::new("book/index/:0"));
+        let anonymous = find_section(&sections, anonymous_slug);
         assert_eq!(
             anonymous
                 .metadata

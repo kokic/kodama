@@ -13,7 +13,7 @@ use crate::{
 };
 
 use crate::compiler::{
-    anonymous_slug::anonymous_slug_for,
+    anonymous_slug::{anonymous_slug_for, ANON_SUBTREE_ORDINAL_INITIAL},
     section::{LazyContent, SectionOption},
     subtree_slug::resolve_subtree_slug,
     HTMLContent, UnresolvedSection,
@@ -252,7 +252,10 @@ pub(super) fn extract_subtrees_nested(
                 false,
             )
         } else {
-            (anonymous_slug_for(source_slug, subtrees.len()), true)
+            (
+                anonymous_slug_for(source_slug, ANON_SUBTREE_ORDINAL_INITIAL + subtrees.len()),
+                true,
+            )
         };
         let (line, col) = byte_index_to_line_col(source, lt);
         let placeholder_url = format!("{SUBTREE_PLACEHOLDER_PREFIX}{}", subtrees.len());
@@ -641,7 +644,7 @@ mod tests {
 
     use super::super::{parse_markdown_sections_from_source, parse_markdown_source};
     use super::*;
-    use crate::compiler::anonymous_slug::ANON_SUBTREE_SLUG_PREFIX;
+    use crate::compiler::anonymous_slug::{ANON_SUBTREE_ORDINAL_INITIAL, ANON_SUBTREE_SLUG_PREFIX};
     use crate::{
         compiler::HTMLContent,
         entry::{MetaData, KEY_INTERNAL_ANON_SUBTREE, KEY_SOURCE_POS, KEY_SOURCE_SLUG},
@@ -754,7 +757,10 @@ mod tests {
         assert_eq!(extracted.subtrees.len(), 1);
         assert_eq!(
             extracted.subtrees[0].slug,
-            Slug::new("daily-surf/windows-skill/:0")
+            anonymous_slug_for(
+                Slug::new("daily-surf/windows-skill"),
+                ANON_SUBTREE_ORDINAL_INITIAL,
+            )
         );
     }
     #[test]
