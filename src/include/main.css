@@ -247,7 +247,7 @@ blockquote span:is([lang=zh], [lang=ja], [lang=ko]) {
 
 blockquote:is(.markdown-alert-note, .markdown-alert-tip, .markdown-alert-important, .markdown-alert-warning, .markdown-alert-caution) {
   --blockquote-cjk-font-family: var(--text-font-family);
-  margin: 0rem 0.5rem;
+  margin: 0.5rem 0.5rem;
   padding: 0rem 0.5rem;
   font-style: normal;
   border-left: .25rem double var(--alert-border-color);
@@ -256,6 +256,7 @@ blockquote:is(.markdown-alert-note, .markdown-alert-tip, .markdown-alert-importa
 blockquote:is(.markdown-alert-note, .markdown-alert-tip, .markdown-alert-important, .markdown-alert-warning, .markdown-alert-caution)>p:first-child::before {
   font-size: var(--section-details-h1-font-size);
   font-family: monospace;
+  font-style: normal;
   color: var(--span-taxon-color);
   margin-right: 0.5rem;
   display: block;
