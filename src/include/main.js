@@ -1,3 +1,19 @@
+// Mobile TOC: responsive open / close behavior for the table of contents.
+function toggleDetailsOpen() {
+  const details = document.querySelector("#toc>div>details");
+  if (!details) return;
+
+  if (window.matchMedia("(max-width: 1000px)").matches) {
+    details.removeAttribute("open");
+  } else {
+    details.setAttribute("open", "");
+  }
+}
+
+document.addEventListener("DOMContentLoaded", toggleDetailsOpen);
+window.addEventListener("resize", toggleDetailsOpen);
+
+// Theme: option selection, persistence, and dynamic color invert logic.
 const KODAMA_THEME_KEY = `kodama-theme`;
 
 function storeSelectedTheme(name) {

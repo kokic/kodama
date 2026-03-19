@@ -218,8 +218,7 @@ fn export_static_files() -> eyre::Result<()> {
     }
 
     if !environment::inline_script() {
-        sync_script_file(html_flake::html_mobile_toc_script(), "mobile-toc.js")?;
-        sync_script_file(html_flake::html_theme_script(), "theme.js")?;
+        sync_script_file(html_flake::html_main_script(), "main.js")?;
     }
 
     Ok(())
@@ -382,7 +381,7 @@ mod tests {
     #[test]
     fn test_sync_script_file_overwrites_when_content_changes() {
         let base = crate::test_io::case_dir("script-sync");
-        let script_path = base.join("build/theme.js");
+        let script_path = base.join("build/main.js");
 
         sync_text_output(script_path.as_path(), "console.log(1);", "Script file").unwrap();
         let first = fs::read_to_string(script_path.as_std_path()).unwrap();

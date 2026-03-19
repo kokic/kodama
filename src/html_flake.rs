@@ -11,5 +11,5 @@ pub use core::{
     html_figure, html_figure_code, html_footer, html_footer_section, html_header_nav,
     html_inline_typst_span, html_link,
 };
-pub use document::{html_doc, html_main_style, html_mobile_toc_script, html_theme_script};
+pub use document::{html_doc, html_main_script, html_main_style};
 pub use header::{html_header, HtmlHeaderArgs};

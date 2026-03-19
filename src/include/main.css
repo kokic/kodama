@@ -133,6 +133,7 @@ theme-option:has(input:checked)>label::after {
 #theme-options::after {
   content: ")";
 }
+
 body {
   color: var(--text-color);
   font-optical-sizing: auto;

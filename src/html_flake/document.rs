@@ -4,8 +4,7 @@
 
 use crate::{cli::serve, environment, html_macro::html};
 
-const MOBILE_TOC_SCRIPT: &str = include_str!("../include/mobile-toc.js");
-const THEME_SCRIPT: &str = include_str!("../include/theme.js");
+const MAIN_SCRIPT: &str = include_str!("../include/main.js");
 const MAIN_STYLE: &str = include_str!("../include/main.css");
 
 pub fn html_doc(
@@ -127,15 +126,11 @@ pub fn html_scripts() -> String {
     let template = html_theme_option_template();
 
     if environment::inline_script() {
-        return format!(
-            "{template}<script>\n{MOBILE_TOC_SCRIPT}\n</script><script>\n{THEME_SCRIPT}\n</script>"
-        );
+        return format!("{template}<script>\n{MAIN_SCRIPT}\n</script>");
     }
 
     let base_url = environment::base_url();
-    format!(
-        r#"{template}<script src="{base_url}mobile-toc.js"></script><script src="{base_url}theme.js"></script>"#
-    )
+    format!(r#"{template}<script src="{base_url}main.js"></script>"#)
 }
 
 fn html_theme_option_template() -> String {
@@ -144,12 +139,8 @@ fn html_theme_option_template() -> String {
     })
 }
 
-pub fn html_mobile_toc_script() -> &'static str {
-    MOBILE_TOC_SCRIPT
-}
-
-pub fn html_theme_script() -> &'static str {
-    THEME_SCRIPT
+pub fn html_main_script() -> &'static str {
+    MAIN_SCRIPT
 }
 
 fn html_import_theme() -> String {
