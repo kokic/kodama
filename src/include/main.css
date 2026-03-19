@@ -9,7 +9,7 @@ html {
   --article-max-width: 90ex;
   --toc-max-width: 90ex;
   --text-font-family: "Inria Sans", sans-serif;
-  --kaiti-font-family: "LXGW WenKai", "FandolKai", "KaiTi", "SimKai", "STKaiti", "Kaiti SC", "Kaiti TC", "华文楷体", "楷体", serif;
+  --kaiti-font-family: "LXGW WenKai TC", "FandolKai", "KaiTi", "SimKai", "STKaiti", "Kaiti SC", "Kaiti TC", "华文楷体", "楷体", serif;
 
   /* root font size: 16px */
   --pre-font-size: 1rem;
