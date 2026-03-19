@@ -9,7 +9,7 @@ html {
   --article-max-width: 90ex;
   --toc-max-width: 90ex;
   --text-font-family: "Inria Sans", sans-serif;
-  --kaiti-font-family: "KaiTi", "SimKai", "STKaiti", "Kaiti SC", "Kaiti TC", "华文楷体", "楷体", serif;
+  --kaiti-font-family: "FandolKai", "KaiTi", "SimKai", "STKaiti", "Kaiti SC", "Kaiti TC", "华文楷体", "楷体", serif;
 
   /* root font size: 16px */
   --pre-font-size: 1rem;
@@ -176,10 +176,6 @@ code {
   font-family: monospace;
 }
 
-em {
-  color: var(--em-color);
-}
-
 table {
   border-collapse: collapse;
   margin-bottom: 1rem;
@@ -276,6 +272,17 @@ section+p:empty {
 
 .display-none {
   display: none;
+}
+
+em {
+  color: var(--em-color);
+  font-style: italic;
+}
+
+em span:is([lang=zh], [lang=ja], [lang=ko]) {
+  font-style: normal;
+  font-family: var(--kaiti-font-family);
+  font-size: 1.15rem;
 }
 
 blockquote {
