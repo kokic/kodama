@@ -111,6 +111,10 @@ pub fn inline_css() -> bool {
     with_config(|cfg| cfg.build.inline_css)
 }
 
+pub fn inline_script() -> bool {
+    with_config(|cfg| cfg.build.inline_script)
+}
+
 pub fn asref() -> bool {
     with_config(|cfg| cfg.build.asref)
 }

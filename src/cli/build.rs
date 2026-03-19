@@ -102,9 +102,7 @@ pub fn build_with_dirty(
     _ = VERBOSE_SKIP.set(options.verbose_skip);
     _ = NO_CACHE.set(options.no_cache);
 
-    if !environment::inline_css() {
-        export_css_files().wrap_err("failed to export CSS")?;
-    }
+    export_static_files().wrap_err("failed to export static files")?;
 
     let root = environment::root_dir();
     let trees_dir = environment::trees_dir();
@@ -134,9 +132,7 @@ pub fn serve_rewrite_from_memory(config: &str, options: BuildOptions) -> eyre::R
     _ = VERBOSE_SKIP.set(options.verbose_skip);
     _ = NO_CACHE.set(options.no_cache);
 
-    if !environment::inline_css() {
-        export_css_files().wrap_err("failed to export CSS")?;
-    }
+    export_static_files().wrap_err("failed to export static files")?;
 
     rewrite_serve_with_session(options.outputs)?;
     sync_assets_dir()?;
@@ -216,8 +212,16 @@ fn clear_serve_session() {
     });
 }
 
-fn export_css_files() -> eyre::Result<()> {
-    sync_css_file(html_flake::html_main_style(), "main.css")?;
+fn export_static_files() -> eyre::Result<()> {
+    if !environment::inline_css() {
+        sync_css_file(html_flake::html_main_style(), "main.css")?;
+    }
+
+    if !environment::inline_script() {
+        sync_script_file(html_flake::html_mobile_toc_script(), "mobile-toc.js")?;
+        sync_script_file(html_flake::html_theme_script(), "theme.js")?;
+    }
+
     Ok(())
 }
 
@@ -225,6 +229,12 @@ fn sync_css_file(css_content: &str, name: &str) -> eyre::Result<()> {
     let path = output_path(name);
     let path = Utf8Path::new(&path);
     sync_text_output(path, css_content, "CSS file")
+}
+
+fn sync_script_file(script_content: &str, name: &str) -> eyre::Result<()> {
+    let path = output_path(name);
+    let path = Utf8Path::new(&path);
+    sync_text_output(path, script_content, "Script file")
 }
 
 fn sync_text_output(path: &Utf8Path, content: &str, label: &str) -> eyre::Result<()> {
@@ -365,6 +375,22 @@ mod tests {
         sync_text_output(css_path.as_path(), "body{color:white;}", "CSS file").unwrap();
         let second = fs::read_to_string(css_path.as_std_path()).unwrap();
         assert_eq!(second, "body{color:white;}");
+
+        let _ = fs::remove_dir_all(base.as_std_path());
+    }
+
+    #[test]
+    fn test_sync_script_file_overwrites_when_content_changes() {
+        let base = crate::test_io::case_dir("script-sync");
+        let script_path = base.join("build/theme.js");
+
+        sync_text_output(script_path.as_path(), "console.log(1);", "Script file").unwrap();
+        let first = fs::read_to_string(script_path.as_std_path()).unwrap();
+        assert_eq!(first, "console.log(1);");
+
+        sync_text_output(script_path.as_path(), "console.log(2);", "Script file").unwrap();
+        let second = fs::read_to_string(script_path.as_std_path()).unwrap();
+        assert_eq!(second, "console.log(2);");
 
         let _ = fs::remove_dir_all(base.as_std_path());
     }
