@@ -9,12 +9,12 @@ html {
   --article-max-width: 90ex;
   --toc-max-width: 90ex;
   --text-font-family: "Inria Sans", sans-serif;
-  --kaiti-font-family: "FandolKai", "KaiTi", "SimKai", "STKaiti", "Kaiti SC", "Kaiti TC", "华文楷体", "楷体", serif;
+  --kaiti-font-family: "LXGW WenKai", "FandolKai", "KaiTi", "SimKai", "STKaiti", "Kaiti SC", "Kaiti TC", "华文楷体", "楷体", serif;
 
   /* root font size: 16px */
   --pre-font-size: 1rem;
   --code-font-size: 1rem;
-  --cjk-kaiti-font-size: 1.15rem;
+  --cjk-kaiti-font-size: 1rem;
   /* If this value is not 1rem, the CJK text in Typst will not match the size of the CJK text in KaTeX. */
   --katex-font-size: 1em;
   --katex-frac-line-font-size: 1.25em;
