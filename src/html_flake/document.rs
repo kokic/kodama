@@ -115,7 +115,7 @@ pub fn html_import_math() -> String {
 }
 
 pub fn html_live_reload() -> String {
-    if *serve::live_reload() {
+    if environment::is_serve() && *serve::live_reload() {
         include_str!("../include/reload.html").to_string()
     } else {
         String::new()
@@ -173,4 +173,16 @@ pub fn html_nav(toc_class: Vec<&str>, catalog_html: &str) -> String {
 
 pub fn html_main_style() -> &'static str {
     MAIN_STYLE
+}
+
+#[cfg(test)]
+mod tests {
+    use super::html_live_reload;
+    use crate::environment;
+
+    #[test]
+    fn test_html_live_reload_disabled_outside_serve_mode() {
+        environment::mock_environment().unwrap();
+        assert!(html_live_reload().is_empty());
+    }
 }
