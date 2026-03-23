@@ -2,7 +2,7 @@
 // Released under the GPL-3.0 license as described in the file LICENSE.
 // Authors: Kokic (@kokic), Spore (@s-cerevisiae)
 
-use super::{content::EventExtended, processer::url_action};
+use super::{content::EventExtended, path_resolution::relocate_trees_path, processer::url_action};
 use std::{
     fs, mem,
     sync::atomic::{AtomicBool, Ordering},
@@ -10,7 +10,7 @@ use std::{
 
 use crate::{
     compiler::section::{EmbedContent, LocalLink, SectionOption},
-    environment::{self, assets_dir, root_dir},
+    environment::{assets_dir, root_dir},
     html_flake::{html_code_block, html_link},
     path_utils,
     process::typst_image::is_inline_typst,
@@ -195,13 +195,14 @@ impl<'e, E: Iterator<Item = Event<'e>>> Iterator for Embed<'e, E> {
 }
 
 fn resolve_embed_url(raw_url: &str, current_slug: Slug) -> String {
-    relocate_trees_path(resolve_section_url(raw_url, current_slug))
+    let resolved = resolve_section_url(raw_url, current_slug);
+    relocate_trees_path(&resolved)
 }
 
 fn resolve_local_link_url(raw_url: &str, current_slug: Slug) -> String {
     let resolved = resolve_section_url(raw_url, current_slug);
     let resolved = strip_markdown_extension(&resolved);
-    relocate_trees_path(resolved)
+    relocate_trees_path(&resolved)
 }
 
 fn resolve_include_url(raw_url: &str, current_slug: Slug) -> String {
@@ -269,16 +270,6 @@ fn is_inline_allowed(state: &State) -> bool {
         || *state == State::LocalLink
         || *state == State::ExternalLink
         || *state == State::AssetFile
-}
-
-/// Relocate the path `/<trees>/path` to `/path`
-fn relocate_trees_path(path: String) -> String {
-    let trees = environment::trees_dir_without_root();
-    let trees = format!("/{}", trees);
-    if path.starts_with(&trees) {
-        return path[trees.len()..].to_string();
-    }
-    path
 }
 
 /// URI scheme: http, https, ftp, mailto, file, data and irc
@@ -362,14 +353,8 @@ mod tests {
     fn test_relocate_trees_path() {
         crate::environment::mock_environment().unwrap();
 
-        assert_eq!(
-            relocate_trees_path("/path".to_string()),
-            "/path".to_string()
-        );
-        assert_eq!(
-            relocate_trees_path("/trees/path".to_string()),
-            "/path".to_string()
-        );
+        assert_eq!(relocate_trees_path("/path"), "/path".to_string());
+        assert_eq!(relocate_trees_path("/trees/path"), "/path".to_string());
     }
 
     #[test]

@@ -9,6 +9,7 @@ pub mod embed_markdown;
 pub mod figure;
 pub mod footnote;
 pub mod metadata;
+pub mod path_resolution;
 pub mod processer;
 pub mod text_elaborator;
 pub mod typst_image;

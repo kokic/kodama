@@ -20,7 +20,7 @@ use crate::{
     typst_cli::{self, write_to_inline_html},
 };
 
-use super::processer::url_action;
+use super::{path_resolution::relocate_trees_path, processer::url_action};
 
 static TYPEST_IMAGE_ERROR_FLAG: AtomicBool = AtomicBool::new(false);
 
@@ -271,11 +271,23 @@ pub fn is_inline_typst(dest_url: &str) -> bool {
 }
 
 fn typst_path(current_slug: Slug, url: &str) -> Utf8PathBuf {
-    let path = path_utils::relative_to_current(current_slug.as_str(), url);
-    if let Ok(rest) = path.strip_prefix("/") {
-        rest.to_owned()
+    let resolved = resolve_typst_url(url, current_slug);
+    let relocated = relocate_trees_path(&resolved);
+    Utf8PathBuf::from(relocated.trim_start_matches('/'))
+}
+
+fn resolve_typst_url(raw_url: &str, current_slug: Slug) -> String {
+    let path = if raw_url.starts_with('/') {
+        Utf8PathBuf::from(raw_url)
     } else {
-        path
+        path_utils::relative_to_current(current_slug.as_str(), raw_url)
+    };
+
+    let pretty = path_utils::pretty_path(path.as_path());
+    if pretty.is_empty() {
+        "/".to_string()
+    } else {
+        format!("/{pretty}")
     }
 }
 
@@ -287,4 +299,32 @@ fn smart_punctuation_reverse(s: &str) -> String {
         .replace("’", "'")
         .replace("–", "--")
         .replace("—", "---")
+}
+
+#[cfg(test)]
+mod tests {
+    use super::typst_path;
+    use crate::slug::Slug;
+    use camino::Utf8PathBuf;
+
+    #[test]
+    fn test_typst_path_resolves_relative_paths() {
+        crate::environment::mock_environment().unwrap();
+        let path = typst_path(Slug::new("guide/chapter/index"), "../fig.typ");
+        assert_eq!(path, Utf8PathBuf::from("guide/fig.typ"));
+    }
+
+    #[test]
+    fn test_typst_path_relocates_trees_absolute_paths() {
+        crate::environment::mock_environment().unwrap();
+        let path = typst_path(Slug::new("guide/index"), "/trees/ref/plot.typ");
+        assert_eq!(path, Utf8PathBuf::from("ref/plot.typ"));
+    }
+
+    #[test]
+    fn test_typst_path_normalizes_dot_segments() {
+        crate::environment::mock_environment().unwrap();
+        let path = typst_path(Slug::new("a/b/index"), "./x/../y.typ");
+        assert_eq!(path, Utf8PathBuf::from("a/b/y.typ"));
+    }
 }
