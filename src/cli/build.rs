@@ -3,8 +3,6 @@
 // Authors: Kokic (@kokic), Spore (@s-cerevisiae)
 
 use std::{
-    fs,
-    io::Write,
     sync::{
         atomic::{AtomicU64, Ordering},
         Mutex, OnceLock,
@@ -16,7 +14,7 @@ use camino::Utf8Path;
 use eyre::{eyre, WrapErr};
 
 use crate::{
-    assets_sync,
+    assets_sync, atomic_text,
     cli::output::OutputControlArgs,
     compiler::{self, all_trees_source, DirtySet},
     config,
@@ -227,72 +225,13 @@ fn export_static_files() -> eyre::Result<()> {
 fn sync_css_file(css_content: &str, name: &str) -> eyre::Result<()> {
     let path = output_path(name);
     let path = Utf8Path::new(&path);
-    sync_text_output(path, css_content, "CSS file")
+    atomic_text::sync_text_output(path, css_content, "CSS file")
 }
 
 fn sync_script_file(script_content: &str, name: &str) -> eyre::Result<()> {
     let path = output_path(name);
     let path = Utf8Path::new(&path);
-    sync_text_output(path, script_content, "Script file")
-}
-
-fn sync_text_output(path: &Utf8Path, content: &str, label: &str) -> eyre::Result<()> {
-    match fs::read_to_string(path.as_std_path()) {
-        Ok(existing) if existing == content => return Ok(()),
-        Ok(_) => {}
-        Err(err) if err.kind() == std::io::ErrorKind::NotFound => {}
-        Err(err) => {
-            return Err(err).wrap_err_with(|| eyre!("failed to read {} from \"{}\"", label, path));
-        }
-    }
-
-    write_text_atomically(path, content, label)
-}
-
-fn write_text_atomically(path: &Utf8Path, content: &str, label: &str) -> eyre::Result<()> {
-    environment::create_parent_dirs(path);
-    let parent = path.parent().ok_or_else(|| {
-        eyre!(
-            "failed to resolve parent directory for {} `{}`",
-            label,
-            path
-        )
-    })?;
-    let filename = path
-        .file_name()
-        .ok_or_else(|| eyre!("failed to resolve filename for {} `{}`", label, path))?;
-    let temp_filename = format!(
-        "{filename}.tmp.{}.{}",
-        std::process::id(),
-        next_atomic_write_stamp()
-    );
-    let temp_path = parent.join(temp_filename);
-
-    let write_result = (|| -> eyre::Result<()> {
-        let mut file = fs::File::create(temp_path.as_std_path())
-            .wrap_err_with(|| eyre!("failed to create temp {} `{}`", label, temp_path))?;
-        file.write_all(content.as_bytes())
-            .wrap_err_with(|| eyre!("failed to write temp {} `{}`", label, temp_path))?;
-        file.sync_all()
-            .wrap_err_with(|| eyre!("failed to sync temp {} `{}`", label, temp_path))?;
-        Ok(())
-    })();
-
-    if let Err(err) = write_result {
-        let _ = fs::remove_file(temp_path.as_std_path());
-        return Err(err);
-    }
-
-    fs::rename(temp_path.as_std_path(), path.as_std_path()).wrap_err_with(|| {
-        eyre!(
-            "failed to atomically replace {} `{}` from `{}`",
-            label,
-            path,
-            temp_path
-        )
-    })?;
-
-    Ok(())
+    atomic_text::sync_text_output(path, script_content, "Script file")
 }
 
 /// Synchronize the assets directory [`config::assets_dir`] with the
@@ -332,11 +271,13 @@ fn next_atomic_write_stamp() -> String {
 }
 
 fn write_reload_marker_atomically(marker_path: &Utf8Path, stamp: &str) -> eyre::Result<()> {
-    sync_text_output(marker_path, stamp, "reload marker")
+    atomic_text::sync_text_output(marker_path, stamp, "reload marker")
 }
 
 #[cfg(test)]
 mod tests {
+    use std::fs;
+
     use super::*;
 
     #[test]
@@ -367,11 +308,13 @@ mod tests {
         let base = crate::test_io::case_dir("css-sync");
         let css_path = base.join("build/main.css");
 
-        sync_text_output(css_path.as_path(), "body{color:black;}", "CSS file").unwrap();
+        atomic_text::sync_text_output(css_path.as_path(), "body{color:black;}", "CSS file")
+            .unwrap();
         let first = fs::read_to_string(css_path.as_std_path()).unwrap();
         assert_eq!(first, "body{color:black;}");
 
-        sync_text_output(css_path.as_path(), "body{color:white;}", "CSS file").unwrap();
+        atomic_text::sync_text_output(css_path.as_path(), "body{color:white;}", "CSS file")
+            .unwrap();
         let second = fs::read_to_string(css_path.as_std_path()).unwrap();
         assert_eq!(second, "body{color:white;}");
 
@@ -383,11 +326,13 @@ mod tests {
         let base = crate::test_io::case_dir("script-sync");
         let script_path = base.join("build/main.js");
 
-        sync_text_output(script_path.as_path(), "console.log(1);", "Script file").unwrap();
+        atomic_text::sync_text_output(script_path.as_path(), "console.log(1);", "Script file")
+            .unwrap();
         let first = fs::read_to_string(script_path.as_std_path()).unwrap();
         assert_eq!(first, "console.log(1);");
 
-        sync_text_output(script_path.as_path(), "console.log(2);", "Script file").unwrap();
+        atomic_text::sync_text_output(script_path.as_path(), "console.log(2);", "Script file")
+            .unwrap();
         let second = fs::read_to_string(script_path.as_std_path()).unwrap();
         assert_eq!(second, "console.log(2);");
 

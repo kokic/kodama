@@ -14,13 +14,15 @@ use pulldown_cmark::{Event, Tag, TagEnd};
 use crate::{
     environment::{self, output_path},
     html_flake::{html_figure, html_figure_code},
-    path_utils,
     recorder::State,
     slug::Slug,
     typst_cli::{self, write_to_inline_html},
 };
 
-use super::{path_resolution::relocate_trees_path, processer::url_action};
+use super::{
+    path_resolution::{relocate_trees_path, resolve_section_url},
+    processer::url_action,
+};
 
 static TYPEST_IMAGE_ERROR_FLAG: AtomicBool = AtomicBool::new(false);
 
@@ -271,24 +273,9 @@ pub fn is_inline_typst(dest_url: &str) -> bool {
 }
 
 fn typst_path(current_slug: Slug, url: &str) -> Utf8PathBuf {
-    let resolved = resolve_typst_url(url, current_slug);
+    let resolved = resolve_section_url(url, current_slug);
     let relocated = relocate_trees_path(&resolved);
     Utf8PathBuf::from(relocated.trim_start_matches('/'))
-}
-
-fn resolve_typst_url(raw_url: &str, current_slug: Slug) -> String {
-    let path = if raw_url.starts_with('/') {
-        Utf8PathBuf::from(raw_url)
-    } else {
-        path_utils::relative_to_current(current_slug.as_str(), raw_url)
-    };
-
-    let pretty = path_utils::pretty_path(path.as_path());
-    if pretty.is_empty() {
-        "/".to_string()
-    } else {
-        format!("/{pretty}")
-    }
 }
 
 /// Reverses smart punctuation to plain ASCII characters.

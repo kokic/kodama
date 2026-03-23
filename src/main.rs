@@ -3,6 +3,7 @@
 // Authors: Kokic (@kokic)
 
 mod assets_sync;
+mod atomic_text;
 mod cli;
 mod compiler;
 mod config;

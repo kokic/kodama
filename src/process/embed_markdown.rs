@@ -2,7 +2,11 @@
 // Released under the GPL-3.0 license as described in the file LICENSE.
 // Authors: Kokic (@kokic), Spore (@s-cerevisiae)
 
-use super::{content::EventExtended, path_resolution::relocate_trees_path, processer::url_action};
+use super::{
+    content::EventExtended,
+    path_resolution::{relocate_trees_path, resolve_section_url},
+    processer::url_action,
+};
 use std::{
     fs, mem,
     sync::atomic::{AtomicBool, Ordering},
@@ -214,20 +218,6 @@ fn resolve_include_url(raw_url: &str, current_slug: Slug) -> String {
     path_utils::pretty_path(path.as_path())
 }
 
-fn resolve_section_url(raw_url: &str, current_slug: Slug) -> String {
-    let path = if raw_url.starts_with('/') {
-        Utf8PathBuf::from(raw_url)
-    } else {
-        path_utils::relative_to_current(current_slug.as_str(), raw_url)
-    };
-    let pretty = path_utils::pretty_path(path.as_path());
-    if pretty.is_empty() {
-        "/".to_string()
-    } else {
-        format!("/{pretty}")
-    }
-}
-
 fn strip_markdown_extension(url: &str) -> String {
     let mut path = Utf8PathBuf::from(url.trim_start_matches('/'));
     if path.extension() == Some("md") {
@@ -347,14 +337,6 @@ mod tests {
         assert!(!is_local_link("assets/image.png"));
         assert!(!is_local_link("/assets/image.png"));
         assert!(!is_local_link("local-dir/"));
-    }
-
-    #[test]
-    fn test_relocate_trees_path() {
-        crate::environment::mock_environment().unwrap();
-
-        assert_eq!(relocate_trees_path("/path"), "/path".to_string());
-        assert_eq!(relocate_trees_path("/trees/path"), "/path".to_string());
     }
 
     #[test]
