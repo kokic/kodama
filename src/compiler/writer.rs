@@ -80,9 +80,14 @@ impl Writer {
         let html_header = Writer::header(state, slug);
 
         let callback = state.callback().0.get(&slug);
+        let footer_sort_by = section
+            .metadata
+            .footer_sort_by()
+            .unwrap_or_else(environment::footer_sort_by);
         let footer_html = Writer::footer(
             section.metadata.footer_mode()?,
             section.metadata.references_enabled()?,
+            &footer_sort_by,
             state,
             &section.references,
             callback,
@@ -129,12 +134,13 @@ impl Writer {
     fn footer(
         footer_mode: Option<FooterMode>,
         enable_references: bool,
+        footer_sort_by: &str,
         state: &CompileState,
         references: &HashSet<Slug>,
         callback: Option<&CallbackValue>,
     ) -> eyre::Result<String> {
         let mut references: Vec<Slug> = references.iter().copied().collect();
-        references.sort();
+        Writer::sort_footer_slugs(&mut references, state, footer_sort_by);
 
         let references_text = environment::get_footer_references_text();
         let references_html = if enable_references {
@@ -162,7 +168,7 @@ impl Writer {
         let backlinks_text = environment::get_footer_backlinks_text();
         let backlinks_html = if let Some(s) = callback {
             let mut backlinks: Vec<Slug> = s.backlinks.iter().copied().collect();
-            backlinks.sort();
+            Writer::sort_footer_slugs(&mut backlinks, state, footer_sort_by);
             let mut content = String::new();
             for slug in backlinks {
                 let Some(section) = state.compiled().get(&slug) else {
@@ -183,8 +189,36 @@ impl Writer {
         } else {
             String::default()
         };
-
         Ok(html_flake::html_footer(&references_html, &backlinks_html))
+    }
+
+    fn sort_footer_slugs(slugs: &mut Vec<Slug>, state: &CompileState, footer_sort_by: &str) {
+        slugs.sort_by(|left, right| {
+            let left_section = state.compiled().get(left);
+            let right_section = state.compiled().get(right);
+            let left_value = left_section.map_or("", |section| {
+                Writer::footer_sort_value(footer_sort_by, section, left)
+            });
+            let right_value = right_section.map_or("", |section| {
+                Writer::footer_sort_value(footer_sort_by, section, right)
+            });
+
+            left_value.cmp(right_value).then_with(|| left.cmp(right))
+        });
+    }
+
+    fn footer_sort_value<'a>(
+        footer_sort_by: &str,
+        section: &'a Section,
+        slug: &'a Slug,
+    ) -> &'a str {
+        match footer_sort_by.trim() {
+            "slug" => slug.as_str(),
+            "date" => section.metadata.get_str("date").map_or("", String::as_str),
+            "taxon" => section.metadata.data_taxon().map_or("", String::as_str),
+            "title" => section.metadata.title().map_or("", String::as_str),
+            key => section.metadata.get_str(key).map_or("", String::as_str),
+        }
     }
 
     fn catalog_item(section: &Section, taxon: &str, child_html: &str) -> eyre::Result<String> {
@@ -271,9 +305,14 @@ impl Writer {
 
         if !toplevel && section.metadata.is_backlinks_transparent()? {
             let slug = section.slug()?;
+            let footer_sort_by = section
+                .metadata
+                .footer_sort_by()
+                .unwrap_or_else(environment::footer_sort_by);
             let backlinks_html = Writer::footer(
                 section.metadata.footer_mode()?,
                 false,
+                &footer_sort_by,
                 state,
                 &section.references,
                 state.callback().0.get(&slug),

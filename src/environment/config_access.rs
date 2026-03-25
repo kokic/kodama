@@ -107,6 +107,10 @@ pub fn footer_mode() -> FooterMode {
     with_config(|cfg| cfg.build.footer_mode)
 }
 
+pub fn footer_sort_by() -> String {
+    with_config(|cfg| cfg.build.footer_sort_by.clone())
+}
+
 pub fn inline_css() -> bool {
     with_config(|cfg| cfg.build.inline_css)
 }

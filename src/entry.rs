@@ -70,9 +70,12 @@ pub const KEY_ASBACK: &str = "asback";
 /// `footer-mode: embed | link`
 pub const KEY_FOOTER_MODE: &str = "footer-mode";
 
+/// `footer-sort-by: <metadata-key>`
+pub const KEY_FOOTER_SORT_BY: &str = "footer-sort-by";
+
 const FANCY_METADATA: [&str; 2] = [KEY_TITLE, KEY_TAXON];
 
-const PLAIN_METADATA: [&str; 15] = [
+const PLAIN_METADATA: [&str; 16] = [
     KEY_SLUG,
     KEY_EXT,
     KEY_DATA_TAXON,
@@ -88,6 +91,7 @@ const PLAIN_METADATA: [&str; 15] = [
     KEY_ASREF,
     KEY_ASBACK,
     KEY_FOOTER_MODE,
+    KEY_FOOTER_SORT_BY,
 ];
 
 pub fn is_plain_metadata(s: &str) -> bool {
@@ -326,5 +330,11 @@ impl EntryMetaData {
                 value
             )
         })
+    }
+
+    pub fn footer_sort_by(&self) -> Option<String> {
+        self.get_str(KEY_FOOTER_SORT_BY)
+            .map(|value| value.trim().to_string())
+            .filter(|value| !value.is_empty())
     }
 }
