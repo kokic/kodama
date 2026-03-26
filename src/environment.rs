@@ -195,11 +195,6 @@ pub fn is_publish() -> bool {
     with_environment(|env| matches!(env.build_mode, BuildMode::Publish))
 }
 
-#[allow(dead_code)]
-pub fn is_build() -> bool {
-    is_publish()
-}
-
 pub fn is_check() -> bool {
     with_environment(|env| matches!(env.build_mode, BuildMode::Check))
 }
