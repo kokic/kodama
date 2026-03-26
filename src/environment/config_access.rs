@@ -20,6 +20,10 @@ pub fn trees_dir_without_root() -> String {
     with_config(|cfg| cfg.kodama.trees.clone())
 }
 
+pub fn assets_dir_without_root() -> String {
+    with_config(|cfg| cfg.kodama.assets.clone())
+}
+
 pub fn trees_dir() -> Utf8PathBuf {
     super::root_dir().join(trees_dir_without_root())
 }
@@ -38,7 +42,7 @@ pub fn theme_paths() -> Vec<Utf8PathBuf> {
 pub fn output_dir() -> Utf8PathBuf {
     with_environment(|env| {
         let output = match env.build_mode {
-            BuildMode::Build | BuildMode::Check => env.config.build.output.clone(),
+            BuildMode::Publish | BuildMode::Check => env.config.build.output.clone(),
             BuildMode::Serve => env.config.serve.output.clone(),
         };
         env.root.join(output)
@@ -63,7 +67,7 @@ pub fn base_url_raw() -> String {
 
 pub fn base_url() -> String {
     with_environment(|env| match env.build_mode {
-        BuildMode::Build | BuildMode::Check => env.config.kodama.base_url.clone(),
+        BuildMode::Publish | BuildMode::Check => env.config.kodama.base_url.clone(),
         BuildMode::Serve => kodama::DEFAULT_BASE_URL.to_string(),
     })
 }
@@ -140,6 +144,5 @@ pub fn get_cache_dir() -> Utf8PathBuf {
 }
 
 pub fn assets_dir() -> Utf8PathBuf {
-    let assets = with_config(|cfg| cfg.kodama.assets.clone());
-    super::root_dir().join(assets)
+    super::root_dir().join(assets_dir_without_root())
 }

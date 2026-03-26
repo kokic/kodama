@@ -105,7 +105,7 @@ mod tests {
         let root = crate::test_io::case_dir("env-hash-roundtrip");
         fs::create_dir_all(root.as_std_path()).unwrap();
 
-        super::super::with_test_environment(root.clone(), super::super::BuildMode::Build, || {
+        super::super::with_test_environment(root.clone(), super::super::BuildMode::Publish, || {
             let relative = "hash-tests/a.md";
             assert!(verify_update_hash(relative, "v1").unwrap());
             assert!(!verify_update_hash(relative, "v1").unwrap());

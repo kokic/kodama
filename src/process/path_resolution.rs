@@ -20,8 +20,20 @@ pub(crate) fn resolve_section_url(raw_url: &str, current_slug: Slug) -> String {
 
 /// Relocate the path `/<trees>/path` to `/path`.
 pub(crate) fn relocate_trees_path(path: &str) -> String {
-    let trees = environment::trees_dir_without_root();
-    let trees = format!("/{trees}");
+    let trees_dir_name = environment::trees_dir_without_root();
+    relocate_trees_path_with_trees_root(path, &trees_dir_name)
+}
+
+pub(crate) fn relocate_trees_path_with_trees_root(
+    path: &str,
+    trees_dir_without_root: &str,
+) -> String {
+    let trees_dir_without_root = trees_dir_without_root.trim_matches('/');
+    if trees_dir_without_root.is_empty() {
+        return path.to_string();
+    }
+
+    let trees = format!("/{trees_dir_without_root}");
     if path.starts_with(&trees) {
         path[trees.len()..].to_string()
     } else {
@@ -31,15 +43,23 @@ pub(crate) fn relocate_trees_path(path: &str) -> String {
 
 #[cfg(test)]
 mod tests {
-    use super::{relocate_trees_path, resolve_section_url};
+    use super::{relocate_trees_path_with_trees_root, resolve_section_url};
     use crate::slug::Slug;
 
     #[test]
     fn test_relocate_trees_path() {
-        crate::environment::mock_environment().unwrap();
-
-        assert_eq!(relocate_trees_path("/path"), "/path".to_string());
-        assert_eq!(relocate_trees_path("/trees/path"), "/path".to_string());
+        assert_eq!(
+            relocate_trees_path_with_trees_root("/path", "trees"),
+            "/path".to_string()
+        );
+        assert_eq!(
+            relocate_trees_path_with_trees_root("/trees/path", "trees"),
+            "/path".to_string()
+        );
+        assert_eq!(
+            relocate_trees_path_with_trees_root("/docs/path", "trees"),
+            "/docs/path".to_string()
+        );
     }
 
     #[test]

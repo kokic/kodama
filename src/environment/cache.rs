@@ -79,7 +79,7 @@ mod tests {
         let root = crate::test_io::case_dir("env-cache-keep");
         fs::create_dir_all(root.as_std_path()).unwrap();
 
-        super::super::with_test_environment(root.clone(), super::super::BuildMode::Build, || {
+        super::super::with_test_environment(root.clone(), super::super::BuildMode::Publish, || {
             ensure_cache_version().unwrap();
             let hash_file = super::super::hash_file_path("a.md");
             let entry_file = super::super::entry_file_path("a.md");
@@ -100,7 +100,7 @@ mod tests {
         let root = crate::test_io::case_dir("env-cache-mismatch");
         fs::create_dir_all(root.as_std_path()).unwrap();
 
-        super::super::with_test_environment(root.clone(), super::super::BuildMode::Build, || {
+        super::super::with_test_environment(root.clone(), super::super::BuildMode::Publish, || {
             let hash_file = super::super::hash_file_path("a.md");
             let entry_file = super::super::entry_file_path("a.md");
             fs::write(hash_file.as_std_path(), "1").unwrap();

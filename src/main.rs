@@ -9,6 +9,7 @@ mod compiler;
 mod config;
 mod entry;
 mod environment;
+mod footer_sort;
 mod html_flake;
 mod html_macro;
 mod ordered_map;

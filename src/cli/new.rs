@@ -158,7 +158,7 @@ pub fn new_section(command: &NewPostCommand) -> eyre::Result<()> {
 
 /// This function invoked the [`config::init_environment`] function to initialize the environment]
 fn new_section_inner(path: &Utf8Path, template: &str, config: &Utf8Path) -> eyre::Result<()> {
-    environment::init_environment(config.to_owned(), environment::BuildMode::Build)?;
+    environment::init_environment(config.to_owned(), environment::BuildMode::Publish)?;
 
     let default_not_exists = template == DEFAULT_TEMPLATE && !std::fs::exists(template)?;
 

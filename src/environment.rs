@@ -20,11 +20,11 @@ mod paths;
 
 pub use cache::ensure_cache_version;
 pub use config_access::{
-    asref, assets_dir, base_url, base_url_raw, deploy_edit_url, editor_url, footer_mode,
-    footer_sort_by, get_cache_dir, get_edit_text, get_footer_backlinks_text,
-    get_footer_references_text, get_toc_text, graph_path, indexes_path, inline_css, inline_script,
-    is_short_slug, is_toc_left, is_toc_mobile_sticky, is_toc_sticky, output_dir,
-    reload_marker_path, serve_command, theme_paths, toc_max_width, trees_dir,
+    asref, assets_dir, assets_dir_without_root, base_url, base_url_raw, deploy_edit_url,
+    editor_url, footer_mode, footer_sort_by, get_cache_dir, get_edit_text,
+    get_footer_backlinks_text, get_footer_references_text, get_toc_text, graph_path, indexes_path,
+    inline_css, inline_script, is_short_slug, is_toc_left, is_toc_mobile_sticky, is_toc_sticky,
+    output_dir, reload_marker_path, serve_command, theme_paths, toc_max_width, trees_dir,
     trees_dir_without_root, typst_root_dir,
 };
 pub use hashing::{verify_and_file_hash, verify_update_hash};
@@ -52,7 +52,7 @@ fn default_environment() -> Environment {
         root: "./".into(),
         config_file: crate::config::DEFAULT_CONFIG_PATH.into(),
         config: Config::default(),
-        build_mode: BuildMode::Build,
+        build_mode: BuildMode::Publish,
     }
 }
 
@@ -156,8 +156,8 @@ fn test_env_mutex() -> &'static std::sync::Mutex<()> {
 
 #[derive(Clone, Copy)]
 pub enum BuildMode {
-    /// Build mode for the `kodama build` command.
-    Build,
+    /// Publish mode for the `kodama build` command.
+    Publish,
 
     /// Check mode for the `kodama check` command.
     Check,
@@ -191,8 +191,13 @@ pub fn is_serve() -> bool {
 }
 
 #[allow(dead_code)]
+pub fn is_publish() -> bool {
+    with_environment(|env| matches!(env.build_mode, BuildMode::Publish))
+}
+
+#[allow(dead_code)]
 pub fn is_build() -> bool {
-    with_environment(|env| matches!(env.build_mode, BuildMode::Build))
+    is_publish()
 }
 
 pub fn is_check() -> bool {

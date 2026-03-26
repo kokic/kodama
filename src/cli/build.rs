@@ -74,7 +74,7 @@ pub fn no_cache_enabled() -> &'static bool {
 pub fn build(command: &BuildCommand) -> eyre::Result<()> {
     build_with(
         &command.config,
-        BuildMode::Build,
+        BuildMode::Publish,
         BuildOptions {
             verbose: command.verbose,
             verbose_skip: command.verbose_skip,

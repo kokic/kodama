@@ -4,7 +4,7 @@
 
 use super::{
     content::EventExtended,
-    path_resolution::{relocate_trees_path, resolve_section_url},
+    path_resolution::{relocate_trees_path_with_trees_root, resolve_section_url},
     processer::url_action,
 };
 use std::{
@@ -14,7 +14,7 @@ use std::{
 
 use crate::{
     compiler::section::{EmbedContent, LocalLink, SectionOption},
-    environment::{assets_dir, root_dir},
+    environment::{assets_dir_without_root, root_dir, trees_dir_without_root},
     html_flake::{html_code_block, html_link},
     path_utils,
     process::typst_image::is_inline_typst,
@@ -41,6 +41,8 @@ fn record_include_error() {
 pub struct Embed<'e, E> {
     events: E,
     current_slug: Slug,
+    assets_dir_name: String,
+    trees_dir_name: String,
     state: State,
     url: Option<String>,
     content: Vec<Event<'e>>,
@@ -48,9 +50,25 @@ pub struct Embed<'e, E> {
 
 impl<'e, E> Embed<'e, E> {
     pub fn process(events: E, current_slug: Slug) -> Self {
+        Self::process_with_roots(
+            events,
+            current_slug,
+            assets_dir_without_root(),
+            trees_dir_without_root(),
+        )
+    }
+
+    fn process_with_roots(
+        events: E,
+        current_slug: Slug,
+        assets_dir_name: String,
+        trees_dir_name: String,
+    ) -> Self {
         Self {
             events,
             current_slug,
+            assets_dir_name,
+            trees_dir_name,
             state: State::None,
             url: None,
             content: Vec::new(),
@@ -76,7 +94,11 @@ impl<'e, E: Iterator<Item = Event<'e>>> Iterator for Embed<'e, E> {
                     let (url, action) = url_action(dest_url);
                     if action == State::Embed.strify() {
                         self.state = State::Embed;
-                        self.url = Some(resolve_embed_url(&url, self.current_slug));
+                        self.url = Some(resolve_embed_url_with_trees_root(
+                            &url,
+                            self.current_slug,
+                            &self.trees_dir_name,
+                        ));
                     // [0]
                     } else if action == State::Include.strify() {
                         self.state = State::Include;
@@ -84,10 +106,14 @@ impl<'e, E: Iterator<Item = Event<'e>>> Iterator for Embed<'e, E> {
                     } else if is_external_link(&url) {
                         self.state = State::ExternalLink;
                         self.url = Some(url);
-                    } else if is_local_link(dest_url) {
+                    } else if is_local_link_with_assets(dest_url, &self.assets_dir_name) {
                         self.state = State::LocalLink;
-                        self.url = Some(resolve_local_link_url(&url, self.current_slug));
-                    } else if is_assets_file(&url) {
+                        self.url = Some(resolve_local_link_url_with_trees_root(
+                            &url,
+                            self.current_slug,
+                            &self.trees_dir_name,
+                        ));
+                    } else if is_assets_file_with_assets_root(&url, &self.assets_dir_name) {
                         self.state = State::AssetFile;
                         self.url = Some(url);
                     } else {
@@ -198,15 +224,23 @@ impl<'e, E: Iterator<Item = Event<'e>>> Iterator for Embed<'e, E> {
     }
 }
 
-fn resolve_embed_url(raw_url: &str, current_slug: Slug) -> String {
+fn resolve_embed_url_with_trees_root(
+    raw_url: &str,
+    current_slug: Slug,
+    trees_dir_without_root: &str,
+) -> String {
     let resolved = resolve_section_url(raw_url, current_slug);
-    relocate_trees_path(&resolved)
+    relocate_trees_path_with_trees_root(&resolved, trees_dir_without_root)
 }
 
-fn resolve_local_link_url(raw_url: &str, current_slug: Slug) -> String {
+fn resolve_local_link_url_with_trees_root(
+    raw_url: &str,
+    current_slug: Slug,
+    trees_dir_without_root: &str,
+) -> String {
     let resolved = resolve_section_url(raw_url, current_slug);
     let resolved = strip_markdown_extension(&resolved);
-    relocate_trees_path(&resolved)
+    relocate_trees_path_with_trees_root(&resolved, trees_dir_without_root)
 }
 
 fn resolve_include_url(raw_url: &str, current_slug: Slug) -> String {
@@ -274,31 +308,32 @@ fn is_external_link(url: &str) -> bool {
         || url.starts_with("irc://")
 }
 
-/// Returns `true` if the URL represents a static asset file in the configured assets directory (check via [`assets_dir`]).
-fn is_assets_file(url: &str) -> bool {
-    let assets_dir = assets_dir();
-    let assets_dir_str = assets_dir.as_str(); // to "./<assets_dir>"
-    std::path::Path::new(&format!(".{}", url)).starts_with(assets_dir_str)
-        || std::path::Path::new(&format!("./{}", url)).starts_with(assets_dir_str)
+/// Returns `true` if the URL represents a static asset file in the configured assets directory.
+fn is_assets_file_with_assets_root(url: &str, assets_dir_without_root: &str) -> bool {
+    let assets_root = normalize_path_prefix(assets_dir_without_root);
+    if assets_root.is_empty() {
+        return false;
+    }
+
+    let normalized_url = normalize_path_prefix(url);
+    normalized_url == assets_root || normalized_url.starts_with(&format!("{assets_root}/"))
 }
 
-/// Returns `true` if the URL represents a local wiki link.  
-///  
-/// A URL is considered a local link if it satisfies all of the following:  
-/// - Does not end with `/` (not a directory reference)  
-/// - Is not inline Typst syntax (checked via [`is_inline_typst`])  
-/// - Is not an external link (no `http://`, `https://`, or `www.` prefix, checked via  [`is_external_link`])  
-/// - Contains no `:` character (no URI scheme or special action syntax, e.g., `#:embed`, checked via [`url_action`])  
-/// - Does not start with the configured assets directory path  (e.g., `assets`, checked via [`assets_dir`]), as this is reserved for static assets
-///  
-/// Local links are processed into `LocalLink` events during markdown parsing,  
-/// with `.md` extensions automatically stripped.  
-fn is_local_link(url: &str) -> bool {
+/// Returns `true` if the URL represents a local wiki link.
+fn is_local_link_with_assets(url: &str, assets_dir_without_root: &str) -> bool {
     !url.ends_with("/")
         && !is_inline_typst(url)
         && !is_external_link(url)
-        && !is_assets_file(url)
+        && !is_assets_file_with_assets_root(url, assets_dir_without_root)
         && !url.contains(":")
+}
+
+fn normalize_path_prefix(path: &str) -> String {
+    let mut normalized = path.replace('\\', "/");
+    while let Some(rest) = normalized.strip_prefix("./") {
+        normalized = rest.to_string();
+    }
+    normalized.trim_matches('/').to_string()
 }
 
 #[cfg(test)]
@@ -307,36 +342,53 @@ mod tests {
     use crate::process::{content::EventExtended, text_elaborator::TextElaborator};
     use pulldown_cmark::{Event, Parser};
 
+    const ASSETS_DIR: &str = "assets";
+    const TREES_DIR: &str = "trees";
+
     #[test]
     fn test_is_assets_file() {
-        crate::environment::mock_environment().unwrap();
+        assert!(is_assets_file_with_assets_root(
+            "assets/image.png",
+            ASSETS_DIR
+        ));
+        assert!(is_assets_file_with_assets_root(
+            "/assets/image.png",
+            ASSETS_DIR
+        ));
+        assert!(is_assets_file_with_assets_root(
+            "\\assets\\image.png",
+            ASSETS_DIR
+        ));
 
-        assert!(is_assets_file("assets/image.png"));
-        assert!(is_assets_file("/assets/image.png"));
-        assert!(is_assets_file("\\assets\\image.png"));
-
-        assert!(!is_assets_file("image.png"));
-        assert!(!is_assets_file("path/to/assets/image.png"));
-        assert!(!is_assets_file("/path/to/image.png"));
+        assert!(!is_assets_file_with_assets_root("image.png", ASSETS_DIR));
+        assert!(!is_assets_file_with_assets_root(
+            "path/to/assets/image.png",
+            ASSETS_DIR
+        ));
+        assert!(!is_assets_file_with_assets_root(
+            "/path/to/image.png",
+            ASSETS_DIR
+        ));
     }
 
     #[test]
     fn test_is_local_link() {
-        crate::environment::mock_environment().unwrap();
+        assert!(is_local_link_with_assets("./0AB7", ASSETS_DIR));
+        assert!(is_local_link_with_assets("./0AB7.md", ASSETS_DIR));
+        assert!(is_local_link_with_assets("/path/to/0AB7", ASSETS_DIR));
 
-        assert!(is_local_link("./0AB7"));
-        assert!(is_local_link("./0AB7.md"));
-        assert!(is_local_link("/path/to/0AB7"));
-
-        assert!(!is_local_link("http://example.com"));
-        assert!(!is_local_link("https://example.com"));
-        assert!(!is_local_link("www.example.com"));
-        assert!(!is_local_link("external:page"));
-        assert!(!is_local_link("inline"));
-        assert!(!is_local_link("inline-0pt-0pt"));
-        assert!(!is_local_link("assets/image.png"));
-        assert!(!is_local_link("/assets/image.png"));
-        assert!(!is_local_link("local-dir/"));
+        assert!(!is_local_link_with_assets("http://example.com", ASSETS_DIR));
+        assert!(!is_local_link_with_assets(
+            "https://example.com",
+            ASSETS_DIR
+        ));
+        assert!(!is_local_link_with_assets("www.example.com", ASSETS_DIR));
+        assert!(!is_local_link_with_assets("external:page", ASSETS_DIR));
+        assert!(!is_local_link_with_assets("inline", ASSETS_DIR));
+        assert!(!is_local_link_with_assets("inline-0pt-0pt", ASSETS_DIR));
+        assert!(!is_local_link_with_assets("assets/image.png", ASSETS_DIR));
+        assert!(!is_local_link_with_assets("/assets/image.png", ASSETS_DIR));
+        assert!(!is_local_link_with_assets("local-dir/", ASSETS_DIR));
     }
 
     #[test]
@@ -357,30 +409,40 @@ mod tests {
 
     #[test]
     fn test_resolve_local_and_embed_urls_are_normalized_early() {
-        crate::environment::mock_environment().unwrap();
-
         assert_eq!(
-            resolve_local_link_url("./a.b.md", Slug::new("guide/index")),
+            resolve_local_link_url_with_trees_root("./a.b.md", Slug::new("guide/index"), TREES_DIR),
             "/guide/a.b"
         );
         assert_eq!(
-            resolve_embed_url("../ref.md", Slug::new("guide/chapter/page")),
+            resolve_embed_url_with_trees_root(
+                "../ref.md",
+                Slug::new("guide/chapter/page"),
+                TREES_DIR
+            ),
             "/guide/ref.md"
         );
         assert_eq!(
-            resolve_local_link_url("/trees/root.md", Slug::new("guide/index")),
+            resolve_local_link_url_with_trees_root(
+                "/trees/root.md",
+                Slug::new("guide/index"),
+                TREES_DIR
+            ),
             "/root"
         );
     }
 
     #[test]
     fn test_local_link_keeps_text_elaborator_inline_html_in_link_text() {
-        crate::environment::mock_environment().unwrap();
-
         let source = "[中文](./target)";
         let events = Parser::new_ext(source, crate::compiler::parser::OPTIONS);
         let events = TextElaborator::process(events);
-        let actual = Embed::process(events, Slug::new("index")).collect::<Vec<_>>();
+        let actual = Embed::process_with_roots(
+            events,
+            Slug::new("index"),
+            ASSETS_DIR.to_string(),
+            TREES_DIR.to_string(),
+        )
+        .collect::<Vec<_>>();
 
         assert_eq!(
             actual
@@ -409,12 +471,16 @@ mod tests {
 
     #[test]
     fn test_asset_link_title_strips_text_elaborator_inline_html() {
-        crate::environment::mock_environment().unwrap();
-
         let source = "[中文](/assets/image.png)";
         let events = Parser::new_ext(source, crate::compiler::parser::OPTIONS);
         let events = TextElaborator::process(events);
-        let actual = Embed::process(events, Slug::new("index")).collect::<Vec<_>>();
+        let actual = Embed::process_with_roots(
+            events,
+            Slug::new("index"),
+            ASSETS_DIR.to_string(),
+            TREES_DIR.to_string(),
+        )
+        .collect::<Vec<_>>();
 
         let html = actual
             .iter()

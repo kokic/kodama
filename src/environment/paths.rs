@@ -125,7 +125,7 @@ mod tests {
         let root = crate::test_io::case_dir("env-paths-full-url");
         fs::create_dir_all(root.as_std_path()).unwrap();
 
-        super::super::with_test_environment(root.clone(), super::super::BuildMode::Build, || {
+        super::super::with_test_environment(root.clone(), super::super::BuildMode::Publish, || {
             let base = super::super::base_url();
             assert_eq!(full_url("/notes/a"), format!("{base}notes/a"));
             assert_eq!(full_url("./notes/a"), format!("{base}notes/a"));
@@ -140,7 +140,7 @@ mod tests {
         let root = crate::test_io::case_dir("env-paths-hash-entry");
         fs::create_dir_all(root.as_std_path()).unwrap();
 
-        super::super::with_test_environment(root.clone(), super::super::BuildMode::Build, || {
+        super::super::with_test_environment(root.clone(), super::super::BuildMode::Publish, || {
             let hash = hash_file_path("nested/a.b.md");
             let entry = entry_file_path("nested/a.b.md");
 

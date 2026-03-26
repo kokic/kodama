@@ -193,17 +193,19 @@ impl Writer {
     }
 
     fn sort_footer_slugs(slugs: &mut Vec<Slug>, state: &CompileState, footer_sort_by: &str) {
+        let sort_key = footer_sort_by.trim();
         slugs.sort_by(|left, right| {
             let left_section = state.compiled().get(left);
             let right_section = state.compiled().get(right);
             let left_value = left_section.map_or("", |section| {
-                Writer::footer_sort_value(footer_sort_by, section, left)
+                Writer::footer_sort_value(sort_key, section, left)
             });
             let right_value = right_section.map_or("", |section| {
-                Writer::footer_sort_value(footer_sort_by, section, right)
+                Writer::footer_sort_value(sort_key, section, right)
             });
 
-            left_value.cmp(right_value).then_with(|| left.cmp(right))
+            crate::footer_sort::compare_values(sort_key, left_value, right_value)
+                .then_with(|| left.cmp(right))
         });
     }
 
@@ -212,7 +214,7 @@ impl Writer {
         section: &'a Section,
         slug: &'a Slug,
     ) -> &'a str {
-        match footer_sort_by.trim() {
+        match footer_sort_by {
             "slug" => slug.as_str(),
             "date" => section.metadata.get_str("date").map_or("", String::as_str),
             "taxon" => section.metadata.data_taxon().map_or("", String::as_str),
@@ -405,7 +407,7 @@ mod tests {
         std::fs::create_dir_all(root.as_std_path()).unwrap();
         crate::environment::with_test_environment(
             root.clone(),
-            crate::environment::BuildMode::Build,
+            crate::environment::BuildMode::Publish,
             f,
         );
         let _ = std::fs::remove_dir_all(root.as_std_path());
@@ -433,6 +435,15 @@ mod tests {
             metadata: HTMLMetaData(metadata),
             content,
         }
+    }
+
+    fn shallow_section_with_date(slug: &str, title: &str, date: &str) -> UnresolvedSection {
+        let mut section = shallow_section(slug, title);
+        section
+            .metadata
+            .0
+            .insert("date".to_string(), HTMLContent::Plain(date.to_string()));
+        section
     }
 
     #[test]
@@ -511,6 +522,34 @@ mod tests {
             assert!(html.contains(&format!(r#"href="{}""#, leaf_href)));
             assert!(html.contains(&format!(r#"href="{}""#, anon_hash_href)));
             assert!(!html.contains(&format!(r#"href="{}""#, anon_href)));
+        });
+    }
+
+    #[test]
+    fn test_sort_footer_slugs_uses_parsed_dates_for_date_key() {
+        with_test_env(|| {
+            let mut shallows = HashMap::new();
+            shallows.insert(
+                Slug::new("old"),
+                shallow_section_with_date("old", "Old", "January 2, 2020"),
+            );
+            shallows.insert(
+                Slug::new("mid"),
+                shallow_section_with_date("mid", "Mid", "2021-01-01"),
+            );
+            shallows.insert(
+                Slug::new("new"),
+                shallow_section_with_date("new", "New", "August 15, 2021"),
+            );
+
+            let state = compile_all(&shallows).unwrap();
+            let mut slugs = vec![Slug::new("new"), Slug::new("old"), Slug::new("mid")];
+            Writer::sort_footer_slugs(&mut slugs, &state, "date");
+
+            assert_eq!(
+                slugs,
+                vec![Slug::new("old"), Slug::new("mid"), Slug::new("new")]
+            );
         });
     }
 }
