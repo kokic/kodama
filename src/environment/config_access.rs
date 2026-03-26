@@ -57,6 +57,10 @@ pub fn graph_path(output_dir: &Utf8Path) -> Utf8PathBuf {
     output_dir.join("kodama.graph.json")
 }
 
+pub fn feed_path(output_dir: &Utf8Path) -> Utf8PathBuf {
+    output_dir.join("feed.xml")
+}
+
 pub fn reload_marker_path(output_dir: &Utf8Path) -> Utf8PathBuf {
     output_dir.join("kodama.reload")
 }
@@ -113,6 +117,10 @@ pub fn footer_mode() -> FooterMode {
 
 pub fn footer_sort_by() -> String {
     with_config(|cfg| cfg.build.footer_sort_by.clone())
+}
+
+pub fn publish_rss() -> bool {
+    with_config(|cfg| cfg.publish.rss)
 }
 
 pub fn inline_css() -> bool {

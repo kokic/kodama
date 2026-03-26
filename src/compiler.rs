@@ -9,6 +9,7 @@ pub mod counter;
 pub mod html_parser;
 mod incremental;
 pub mod parser;
+mod rss;
 pub mod section;
 mod serve_session;
 mod source_scan;
@@ -172,6 +173,12 @@ pub(super) fn compile_from_shallows(
         indexes_payload.as_deref(),
         "indexes",
     )?;
+
+    if environment::is_publish() {
+        let feed_path = environment::feed_path(output_dir.as_path());
+        let feed_payload = environment::publish_rss().then(|| rss::feed_xml(&state));
+        sync_optional_output(feed_path.as_path(), feed_payload.as_deref(), "rss feed")?;
+    }
 
     Ok(())
 }

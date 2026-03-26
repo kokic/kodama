@@ -4,6 +4,7 @@
 
 pub mod build;
 pub mod kodama;
+pub mod publish;
 pub mod serve;
 pub mod text;
 pub mod toc;
@@ -11,6 +12,7 @@ pub mod toc;
 use build::Build;
 use camino::Utf8PathBuf;
 use kodama::Kodama;
+use publish::Publish;
 use serde::{Deserialize, Serialize};
 use serve::Serve;
 use text::Text;
@@ -34,6 +36,9 @@ pub struct Config {
 
     #[serde(default)]
     pub serve: Serve,
+
+    #[serde(default)]
+    pub publish: Publish,
 }
 
 /// Try to find toml file in the current directory or the parent directory.
@@ -81,6 +86,7 @@ mod test {
         assert_eq!(config.build.footer_sort_by, "slug");
         assert_eq!(config.serve.edit, serve.edit);
         assert_eq!(config.serve.output, serve.output);
+        assert!(!config.publish.rss);
     }
 
     #[test]
@@ -98,6 +104,9 @@ mod test {
             inline-css = true
             inline-script = true
             footer-sort-by = "title"
+
+            [publish]
+            rss = true
             "#,
         )
         .unwrap();
@@ -111,5 +120,6 @@ mod test {
         assert_eq!(config.build.footer_sort_by, "title");
         assert_eq!(config.serve.edit, serve.edit);
         assert_eq!(config.serve.output, serve.output);
+        assert!(config.publish.rss);
     }
 }
