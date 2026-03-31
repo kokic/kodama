@@ -176,7 +176,12 @@ pub(super) fn compile_from_shallows(
 
     if environment::is_publish() {
         let feed_path = environment::feed_path(output_dir.as_path());
-        let feed_payload = environment::publish_rss().then(|| rss::feed_xml(&state));
+        let feed_payload = if environment::publish_rss() {
+            rss::ensure_publish_rss_base_url_is_absolute()?;
+            Some(rss::feed_xml(&state)?)
+        } else {
+            None
+        };
         sync_optional_output(feed_path.as_path(), feed_payload.as_deref(), "rss feed")?;
     }
 

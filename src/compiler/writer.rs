@@ -65,6 +65,13 @@ impl Writer {
         Ok(())
     }
 
+    pub fn rss_content_html(section: &Section, state: &CompileState) -> eyre::Result<String> {
+        let mut counter = Counter::init();
+        let (article_inner, _catalog_item) =
+            Writer::section_to_html(section, &mut counter, true, false, state)?;
+        Ok(article_inner)
+    }
+
     pub fn html_doc(section: &Section, state: &CompileState) -> eyre::Result<(String, String)> {
         let mut counter = Counter::init();
 

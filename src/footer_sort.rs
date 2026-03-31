@@ -14,7 +14,7 @@ pub fn compare_values(sort_key: &str, left: &str, right: &str) -> Ordering {
     left.cmp(right)
 }
 
-fn parse_date(value: &str) -> Option<(u32, u8, u8)> {
+pub(crate) fn parse_date(value: &str) -> Option<(u32, u8, u8)> {
     let text = value.trim();
     if text.is_empty() {
         return None;
