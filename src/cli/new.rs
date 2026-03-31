@@ -8,7 +8,7 @@ use eyre::Context;
 
 use crate::{
     config::{self, kodama},
-    environment,
+    environment, path_utils,
 };
 
 #[derive(Parser)]
@@ -77,9 +77,15 @@ pub fn add_project_files(site_path: &Utf8Path, no_typst: bool) -> eyre::Result<(
     std::fs::write(&default_gitignore_path, DEFAULT_GITIGNORE)
         .wrap_err("failed to create .gitignore")?;
 
-    // Create the `index.md` section in the new site directory
+    // Create the default index section in the new site directory
+    let (default_section_path, default_section_ext) = if no_typst {
+        (DEFAULT_SECTION_PATH_MARKDOWN, DEFAULT_SECTION_EXT_MARKDOWN)
+    } else {
+        (DEFAULT_SECTION_PATH, DEFAULT_SECTION_EXT_TYPST)
+    };
     new_section_inner(
-        &Utf8PathBuf::from(DEFAULT_SECTION_PATH),
+        &Utf8PathBuf::from(default_section_path),
+        default_section_ext,
         DEFAULT_TEMPLATE,
         &default_config_path,
     )?;
@@ -119,10 +125,23 @@ pub fn new_config_inner(config_path: &Utf8PathBuf) -> Result<(), eyre::Error> {
     Ok(())
 }
 
-pub const DEFAULT_SECTION_PATH: &str = "./index.md";
+pub const DEFAULT_SECTION_PATH: &str = "./index.typst";
+pub const DEFAULT_SECTION_PATH_MARKDOWN: &str = "./index.md";
 
 pub const DEFAULT_TEMPLATE: &str = "./template";
-pub const DEFAULT_TEMPLATE_CONTENT: &str = r#"
+pub const DEFAULT_SECTION_EXT_TYPST: &str = ".typst";
+pub const DEFAULT_SECTION_EXT_MARKDOWN: &str = ".md";
+
+pub const DEFAULT_TEMPLATE_CONTENT_TYPST: &str = r#"
+#import "_lib/kodama.typ": *
+
+#show: kodama
+
+#metadata((
+  "title": "<FILE_NAME>",
+))
+"#;
+pub const DEFAULT_TEMPLATE_CONTENT_MARKDOWN: &str = r#"
 ---
 title: <FILE_NAME>
 ---
@@ -138,6 +157,15 @@ pub struct NewPostCommand {
     #[arg(required = true)]
     pub path: Utf8PathBuf,
 
+    /// Source extension to append when `path` has no extension.
+    #[arg(
+        short = 'f',
+        long,
+        default_value = DEFAULT_SECTION_EXT_TYPST,
+        value_parser = [DEFAULT_SECTION_EXT_TYPST, DEFAULT_SECTION_EXT_MARKDOWN]
+    )]
+    pub format: String,
+
     /// Path to the template file to use for the new section.
     #[arg(short, long, default_value_t = DEFAULT_TEMPLATE.to_string())]
     pub template: String,
@@ -151,30 +179,44 @@ pub struct NewPostCommand {
 pub fn new_section(command: &NewPostCommand) -> eyre::Result<()> {
     new_section_inner(
         &command.path,
+        &command.format,
         &command.template,
         Utf8Path::new(&command.config),
     )
 }
 
 /// This function invoked the [`config::init_environment`] function to initialize the environment]
-fn new_section_inner(path: &Utf8Path, template: &str, config: &Utf8Path) -> eyre::Result<()> {
+fn new_section_inner(
+    path: &Utf8Path,
+    extension: &str,
+    template: &str,
+    config: &Utf8Path,
+) -> eyre::Result<()> {
     environment::init_environment(config.to_owned(), environment::BuildMode::Publish)?;
 
+    let (section_relative_path, section_ext) = normalize_new_section_path(path, extension)?;
+    let section_relative_path = strip_new_post_tree_prefix(
+        section_relative_path.as_path(),
+        &environment::trees_dir_without_root(),
+    );
     let default_not_exists = template == DEFAULT_TEMPLATE && !std::fs::exists(template)?;
 
     let content = if default_not_exists {
-        DEFAULT_TEMPLATE_CONTENT.to_string()
+        default_template_content(section_ext).to_string()
     } else {
         std::fs::read_to_string(template)
             .map_err(|e| eyre::eyre!("failed to read template file: {}", e))?
     };
 
-    let filestem = path
-        .file_stem()
-        .ok_or_else(|| eyre::eyre!("invalid section path (missing file name): {}", path))?;
+    let filestem = section_relative_path.file_stem().ok_or_else(|| {
+        eyre::eyre!(
+            "invalid section path (missing file name): {}",
+            section_relative_path
+        )
+    })?;
     let content = content.replace("<FILE_NAME>", filestem);
 
-    let section_path = environment::trees_dir().join(path);
+    let section_path = environment::trees_dir().join(&section_relative_path);
 
     if section_path.exists() {
         return Err(eyre::eyre!("already exists: {}", section_path));
@@ -194,4 +236,160 @@ fn new_section_inner(path: &Utf8Path, template: &str, config: &Utf8Path) -> eyre
     println!("Created new section at: {}", section_path);
 
     Ok(())
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum NewSectionExt {
+    Typst,
+    Markdown,
+}
+
+impl NewSectionExt {
+    fn from_cli(value: &str) -> eyre::Result<Self> {
+        match value {
+            DEFAULT_SECTION_EXT_TYPST => Ok(Self::Typst),
+            DEFAULT_SECTION_EXT_MARKDOWN => Ok(Self::Markdown),
+            _ => Err(eyre::eyre!(
+                "unsupported --format value `{}`; expected `{}` or `{}`",
+                value,
+                DEFAULT_SECTION_EXT_TYPST,
+                DEFAULT_SECTION_EXT_MARKDOWN
+            )),
+        }
+    }
+
+    fn from_path(value: &str) -> eyre::Result<Self> {
+        match value {
+            "typst" => Ok(Self::Typst),
+            "md" => Ok(Self::Markdown),
+            _ => Err(eyre::eyre!(
+                "unsupported section extension `.{}`; expected `.typst` or `.md`",
+                value
+            )),
+        }
+    }
+
+    fn extension_without_dot(self) -> &'static str {
+        match self {
+            Self::Typst => "typst",
+            Self::Markdown => "md",
+        }
+    }
+}
+
+fn normalize_new_section_path(
+    path: &Utf8Path,
+    extension: &str,
+) -> eyre::Result<(Utf8PathBuf, NewSectionExt)> {
+    if let Some(path_ext) = path.extension() {
+        let section_ext = NewSectionExt::from_path(path_ext)?;
+        return Ok((path.to_owned(), section_ext));
+    }
+
+    let section_ext = NewSectionExt::from_cli(extension)?;
+    let mut section_path = path.to_owned();
+    section_path.set_extension(section_ext.extension_without_dot());
+    Ok((section_path, section_ext))
+}
+
+fn default_template_content(section_ext: NewSectionExt) -> &'static str {
+    match section_ext {
+        NewSectionExt::Typst => DEFAULT_TEMPLATE_CONTENT_TYPST,
+        NewSectionExt::Markdown => DEFAULT_TEMPLATE_CONTENT_MARKDOWN,
+    }
+}
+
+fn strip_new_post_tree_prefix(path: &Utf8Path, trees_dir_without_root: &str) -> Utf8PathBuf {
+    let normalized_path = Utf8PathBuf::from(path_utils::pretty_path(path));
+    let normalized_trees_dir = Utf8PathBuf::from(path_utils::pretty_path(Utf8Path::new(
+        trees_dir_without_root,
+    )));
+
+    if normalized_path.as_str().is_empty() || normalized_trees_dir.as_str().is_empty() {
+        return normalized_path;
+    }
+
+    match normalized_path.strip_prefix(normalized_trees_dir.as_path()) {
+        Ok(stripped) if !stripped.as_str().is_empty() => stripped.to_owned(),
+        _ => normalized_path,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_normalize_new_section_path_appends_typst_when_missing_extension() {
+        let (path, ext) =
+            normalize_new_section_path(Utf8Path::new("notes/foo"), DEFAULT_SECTION_EXT_TYPST)
+                .expect("should normalize path");
+
+        assert_eq!(path, Utf8PathBuf::from("notes/foo.typst"));
+        assert_eq!(ext, NewSectionExt::Typst);
+    }
+
+    #[test]
+    fn test_normalize_new_section_path_appends_markdown_when_requested() {
+        let (path, ext) =
+            normalize_new_section_path(Utf8Path::new("notes/foo"), DEFAULT_SECTION_EXT_MARKDOWN)
+                .expect("should normalize path");
+
+        assert_eq!(path, Utf8PathBuf::from("notes/foo.md"));
+        assert_eq!(ext, NewSectionExt::Markdown);
+    }
+
+    #[test]
+    fn test_normalize_new_section_path_respects_explicit_extension() {
+        let (typst_path, typst_ext) = normalize_new_section_path(
+            Utf8Path::new("notes/foo.typst"),
+            DEFAULT_SECTION_EXT_MARKDOWN,
+        )
+        .expect("should preserve typst path");
+        assert_eq!(typst_path, Utf8PathBuf::from("notes/foo.typst"));
+        assert_eq!(typst_ext, NewSectionExt::Typst);
+
+        let (markdown_path, markdown_ext) =
+            normalize_new_section_path(Utf8Path::new("notes/foo.md"), DEFAULT_SECTION_EXT_TYPST)
+                .expect("should preserve markdown path");
+        assert_eq!(markdown_path, Utf8PathBuf::from("notes/foo.md"));
+        assert_eq!(markdown_ext, NewSectionExt::Markdown);
+    }
+
+    #[test]
+    fn test_default_template_content_matches_extension() {
+        assert_eq!(
+            default_template_content(NewSectionExt::Typst),
+            DEFAULT_TEMPLATE_CONTENT_TYPST
+        );
+        assert_eq!(
+            default_template_content(NewSectionExt::Markdown),
+            DEFAULT_TEMPLATE_CONTENT_MARKDOWN
+        );
+    }
+
+    #[test]
+    fn test_strip_new_post_tree_prefix_strips_leading_tree_directory() {
+        let stripped = strip_new_post_tree_prefix(Utf8Path::new("trees/notes/a.md"), "trees");
+        assert_eq!(stripped, Utf8PathBuf::from("notes/a.md"));
+    }
+
+    #[test]
+    fn test_strip_new_post_tree_prefix_handles_dot_prefix_path() {
+        let stripped = strip_new_post_tree_prefix(Utf8Path::new("./trees/notes/a.typst"), "trees");
+        assert_eq!(stripped, Utf8PathBuf::from("notes/a.typst"));
+    }
+
+    #[test]
+    fn test_strip_new_post_tree_prefix_keeps_non_tree_prefixed_path() {
+        let stripped = strip_new_post_tree_prefix(Utf8Path::new("notes/a.md"), "trees");
+        assert_eq!(stripped, Utf8PathBuf::from("notes/a.md"));
+    }
+
+    #[test]
+    fn test_strip_new_post_tree_prefix_supports_nested_tree_root() {
+        let stripped =
+            strip_new_post_tree_prefix(Utf8Path::new("content/trees/notes/a.md"), "content/trees");
+        assert_eq!(stripped, Utf8PathBuf::from("notes/a.md"));
+    }
 }
