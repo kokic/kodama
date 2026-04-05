@@ -127,11 +127,11 @@ theme-option:has(input:checked)>label::after {
   color: var(--link-color);
 }
 
-#theme-options::before {
+#theme-options:not(:empty)::before {
   content: "(";
 }
 
-#theme-options::after {
+#theme-options:not(:empty)::after {
   content: ")";
 }
 
