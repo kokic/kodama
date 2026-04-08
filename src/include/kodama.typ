@@ -34,7 +34,8 @@
   }
 })
 
-#let html-font-size = 15.525pt
+// 1em (:= 18px)
+#let html-font-size = 13.5pt
 
 // paged
 #let paged-metadata-text-color = gray
