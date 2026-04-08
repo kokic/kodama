@@ -13,7 +13,7 @@ use pulldown_cmark::{Event, Tag, TagEnd};
 
 use crate::{
     environment::{self, output_path},
-    html_flake::{html_figure, html_figure_code},
+    html_flake::{html_typst_figure, html_figure_code},
     recorder::State,
     slug::Slug,
     typst_cli::{self, write_to_inline_html},
@@ -191,7 +191,7 @@ impl<'e, E: Iterator<Item = Event<'e>>> Iterator for TypstImage<E> {
                         let svg_url = typst_url.with_extension("svg");
                         self.exit();
 
-                        let html = html_figure(&environment::full_url(&svg_url), false, caption);
+                        let html = html_typst_figure(&environment::full_url(&svg_url), false, caption);
                         return Some(Event::Html(html.into()));
                     }
                     State::ImageBlock => {
@@ -201,7 +201,7 @@ impl<'e, E: Iterator<Item = Event<'e>>> Iterator for TypstImage<E> {
                         let svg_url = typst_url.with_extension("svg");
                         self.exit();
 
-                        let html = html_figure(&environment::full_url(&svg_url), true, caption);
+                        let html = html_typst_figure(&environment::full_url(&svg_url), true, caption);
                         return Some(Event::Html(html.into()));
                     }
                     State::ImageCode => {

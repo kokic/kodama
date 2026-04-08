@@ -437,13 +437,6 @@ section.block.link-list>details>section.block>details {
   margin-bottom: 0.25em;
 }
 
-/* class */
-.inline-typst {
-  display: inline;
-  margin: 0 0;
-  font-size: var(--katex-font-size);
-}
-
 .block {
   padding-left: 5px;
   padding-right: 10px;
@@ -684,6 +677,31 @@ nav#toc a.bullet {
   padding-left: 0.2rem;
   padding-right: 0.2rem;
   text-decoration: none;
+}
+
+/* markdown inline typst */
+.inline-typst {
+  display: inline;
+  margin: 0 0;
+  font-size: var(--katex-font-size);
+}
+
+/* typst html figure */
+figure:has(.typst-frame) {
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+/* typst html math block */
+.typst-block {
+  text-align: center;
+  margin: 1em 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+figure.typst-block>img {
+  max-width: none;
 }
 
 .typst-text use[fill="#000000"],

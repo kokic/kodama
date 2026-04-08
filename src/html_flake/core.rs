@@ -122,7 +122,7 @@ pub fn html_image_color_invert(image_src: &str) -> String {
     html_image(image_src, "color-invert")
 }
 
-pub fn html_figure(image_src: &str, is_block: bool, caption: String) -> String {
+pub fn html_typst_figure(image_src: &str, is_block: bool, caption: String) -> String {
     if !is_block {
         return html!(span class="inline-typst" { (html_image_color_invert(image_src)) });
     }
@@ -130,7 +130,7 @@ pub fn html_figure(image_src: &str, is_block: bool, caption: String) -> String {
     if !caption.is_empty() {
         caption = html!(figcaption { (caption) })
     }
-    html!(figure { (html_image_color_invert(image_src)) (caption) })
+    html!(figure class="typst-block" { (html_image_color_invert(image_src)) (caption) })
 }
 
 pub fn html_figure_code(image_src: &str, caption: String, code: String) -> String {
