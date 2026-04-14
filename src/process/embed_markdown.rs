@@ -13,7 +13,7 @@ use std::{
 };
 
 use crate::{
-    compiler::section::{EmbedContent, LocalLink, SectionOption},
+    compiler::section::{EmbedContent, HTMLContent, LocalLink, SectionOption},
     environment::{assets_dir_without_root, root_dir, trees_dir_without_root},
     html_flake::{html_code_block, html_link},
     path_utils,
@@ -92,7 +92,9 @@ impl<'e, E: Iterator<Item = Event<'e>>> Iterator for Embed<'e, E> {
             match e {
                 Event::Start(Tag::Link { ref dest_url, .. }) => {
                     let (url, action) = url_action(dest_url);
-                    if action == State::Embed.strify() {
+                    if !is_safe_link_target(&url) {
+                        self.state = State::UnsafeLink;
+                    } else if action == State::Embed.strify() {
                         self.state = State::Embed;
                         self.url = Some(resolve_embed_url_with_trees_root(
                             &url,
@@ -198,6 +200,17 @@ impl<'e, E: Iterator<Item = Event<'e>>> Iterator for Embed<'e, E> {
                         let html = html_link(&url, &text, &text, State::AssetFile.strify());
                         return Some(Event::Html(html.into()).into());
                     }
+                    State::UnsafeLink => {
+                        let (_, content) = self.exit();
+                        let text = if content.is_empty() {
+                            String::new()
+                        } else {
+                            let mut html = String::new();
+                            html::push_html(&mut html, content.into_iter());
+                            HTMLContent::Plain(html).remove_all_tags()
+                        };
+                        return Some(Event::Text(text.into()).into());
+                    }
                     _ => return Some(e.into()),
                 },
                 Event::Text(_) if is_inline_allowed(&self.state) => self.content.push(e),
@@ -294,18 +307,54 @@ fn is_inline_allowed(state: &State) -> bool {
         || *state == State::LocalLink
         || *state == State::ExternalLink
         || *state == State::AssetFile
+        || *state == State::UnsafeLink
 }
 
-/// URI scheme: http, https, ftp, mailto, file, data and irc
+fn is_safe_link_target(url: &str) -> bool {
+    let trimmed = url.trim();
+    if trimmed.is_empty() || trimmed.starts_with('#') {
+        return true;
+    }
+
+    let Some(scheme) = scheme_name(trimmed) else {
+        return true;
+    };
+    !is_unsafe_scheme(&scheme) && is_allowed_scheme(&scheme)
+}
+
 fn is_external_link(url: &str) -> bool {
-    url.starts_with("http://")
-        || url.starts_with("https://")
-        || url.starts_with("www.")
-        || url.starts_with("ftp://")
-        || url.starts_with("mailto:")
-        || url.starts_with("file://")
-        || url.starts_with("data:")
-        || url.starts_with("irc://")
+    let trimmed = url.trim();
+    if trimmed.starts_with("www.") {
+        return true;
+    }
+    scheme_name(trimmed).is_some_and(|scheme| is_allowed_scheme(&scheme))
+}
+
+fn scheme_name(url: &str) -> Option<String> {
+    let scheme_end = url.find(':')?;
+    if scheme_end == 0 {
+        return None;
+    }
+    let first_delimiter = url.find(['/', '?', '#']).unwrap_or(url.len());
+    if scheme_end > first_delimiter {
+        return None;
+    }
+    let scheme = &url[..scheme_end];
+    if scheme
+        .chars()
+        .all(|ch| ch.is_ascii_alphanumeric() || matches!(ch, '+' | '-' | '.'))
+    {
+        return Some(scheme.to_ascii_lowercase());
+    }
+    None
+}
+
+fn is_allowed_scheme(scheme: &str) -> bool {
+    matches!(scheme, "http" | "https" | "ftp" | "mailto")
+}
+
+fn is_unsafe_scheme(scheme: &str) -> bool {
+    matches!(scheme, "javascript" | "vbscript" | "data" | "file")
 }
 
 /// Returns `true` if the URL represents a static asset file in the configured assets directory.
@@ -429,6 +478,43 @@ mod tests {
             ),
             "/root"
         );
+    }
+
+    #[test]
+    fn test_is_safe_link_target_filters_unsafe_schemes() {
+        assert!(is_safe_link_target("https://example.com"));
+        assert!(is_safe_link_target("./target"));
+        assert!(is_safe_link_target("/target"));
+        assert!(is_safe_link_target("mailto:dev@example.com"));
+
+        assert!(!is_safe_link_target("javascript:alert(1)"));
+        assert!(!is_safe_link_target("vbscript:msgbox(1)"));
+        assert!(!is_safe_link_target("data:text/html,<svg/onload=alert(1)>"));
+        assert!(!is_safe_link_target("file:///etc/passwd"));
+    }
+
+    #[test]
+    fn test_unsafe_link_is_downgraded_to_plain_text_event() {
+        let source = "[click](javascript:alert(1))";
+        let events = Parser::new_ext(source, crate::compiler::parser::OPTIONS);
+        let events = TextElaborator::process(events);
+        let actual = Embed::process_with_roots(
+            events,
+            Slug::new("index"),
+            ASSETS_DIR.to_string(),
+            TREES_DIR.to_string(),
+        )
+        .collect::<Vec<_>>();
+
+        assert!(actual
+            .iter()
+            .any(|event| matches!(event, EventExtended::CMark(Event::Text(text)) if text.as_ref() == "click")));
+        assert!(!actual.iter().any(|event| {
+            matches!(
+                event,
+                EventExtended::CMark(Event::Html(_)) | EventExtended::CMark(Event::InlineHtml(_))
+            )
+        }));
     }
 
     #[test]

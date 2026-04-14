@@ -34,6 +34,7 @@ pub enum State {
     LocalLink,
     ExternalLink,
     AssetFile,
+    UnsafeLink,
 }
 
 impl State {
@@ -51,6 +52,7 @@ impl State {
             State::LocalLink => "local",       // style class name
             State::ExternalLink => "external", // style class name
             State::AssetFile => "asset",       // style class name
+            State::UnsafeLink => "unsafe",     // style class name
         }
     }
 }

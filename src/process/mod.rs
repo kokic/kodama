@@ -14,6 +14,16 @@ pub mod processer;
 pub mod text_elaborator;
 pub mod typst_image;
 
+pub fn escape_raw_html<'e, I>(events: I) -> impl Iterator<Item = Event<'e>>
+where
+    I: Iterator<Item = Event<'e>>,
+{
+    events.map(|event| match event {
+        Event::Html(html) | Event::InlineHtml(html) => Event::Text(html.into_string().into()),
+        _ => event,
+    })
+}
+
 pub fn ignore_paragraph<'e, I>(events: I) -> impl Iterator<Item = Event<'e>>
 where
     I: Iterator<Item = Event<'e>>,

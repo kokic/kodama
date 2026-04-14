@@ -61,3 +61,12 @@ pub fn test_parse_spanned_markdown_wraps_cjk_text() {
         "hello <span lang=\"zh\">\u{4e2d}\u{6587}</span> world"
     );
 }
+
+#[test]
+pub fn test_parse_spanned_markdown_escapes_raw_html() {
+    let content = parse_spanned_markdown("safe <script>alert(1)</script>", Slug::new("-"));
+    assert_eq!(
+        content.as_str().unwrap(),
+        "safe &lt;script&gt;alert(1)&lt;/script&gt;"
+    );
+}

@@ -14,6 +14,44 @@ enum TableState {
     Body,
 }
 
+fn scheme_name(url: &str) -> Option<String> {
+    let scheme_end = url.find(':')?;
+    if scheme_end == 0 {
+        return None;
+    }
+    let first_delimiter = url.find(['/', '?', '#']).unwrap_or(url.len());
+    if scheme_end > first_delimiter {
+        return None;
+    }
+    let scheme = &url[..scheme_end];
+    if scheme
+        .chars()
+        .all(|ch| ch.is_ascii_alphanumeric() || matches!(ch, '+' | '-' | '.'))
+    {
+        return Some(scheme.to_ascii_lowercase());
+    }
+    None
+}
+
+fn is_allowed_scheme(scheme: &str) -> bool {
+    matches!(scheme, "http" | "https" | "ftp" | "mailto")
+}
+
+fn is_unsafe_scheme(scheme: &str) -> bool {
+    matches!(scheme, "javascript" | "vbscript" | "data" | "file")
+}
+
+fn is_safe_link_destination(dest: &str) -> bool {
+    let trimmed = dest.trim();
+    if trimmed.is_empty() || trimmed.starts_with('#') || trimmed.starts_with("www.") {
+        return true;
+    }
+    let Some(scheme) = scheme_name(trimmed) else {
+        return true;
+    };
+    !is_unsafe_scheme(&scheme) && is_allowed_scheme(&scheme)
+}
+
 pub(super) struct HtmlWriter<'e, I> {
     /// Iterator supplying events.
     iter: I,
@@ -30,6 +68,7 @@ pub(super) struct HtmlWriter<'e, I> {
     table_state: TableState,
     table_alignments: Vec<Alignment>,
     table_cell_index: usize,
+    unsafe_link_open: bool,
     numbers: HashMap<CowStr<'e>, usize>,
     in_paragraph: bool,
     paragraph_started: bool,
@@ -48,6 +87,7 @@ where
             table_state: TableState::Head,
             table_alignments: vec![],
             table_cell_index: 0,
+            unsafe_link_open: false,
             numbers: HashMap::new(),
             in_paragraph: false,
             paragraph_started: false,
@@ -395,13 +435,18 @@ where
                 title,
                 id: _,
             } => {
-                self.write("<a href=\"");
-                escape_href(self.writer(), &dest_url).unwrap();
-                if !title.is_empty() {
-                    self.write("\" title=\"");
-                    escape_html(self.writer(), &title).unwrap();
+                if is_safe_link_destination(dest_url.as_ref()) {
+                    self.write("<a href=\"");
+                    escape_href(self.writer(), &dest_url).unwrap();
+                    if !title.is_empty() {
+                        self.write("\" title=\"");
+                        escape_html(self.writer(), &title).unwrap();
+                    }
+                    self.write("\">");
+                } else {
+                    self.write("<span class=\"link unsafe\">");
+                    self.unsafe_link_open = true;
                 }
-                self.write("\">")
             }
             Tag::Image {
                 link_type: _,
@@ -409,15 +454,19 @@ where
                 title,
                 id: _,
             } => {
-                self.write("<img src=\"");
-                escape_href(self.writer(), &dest_url).unwrap();
-                self.write("\" alt=\"");
-                self.raw_text();
-                if !title.is_empty() {
-                    self.write("\" title=\"");
-                    escape_html(self.writer(), &title).unwrap();
+                if is_safe_link_destination(dest_url.as_ref()) {
+                    self.write("<img src=\"");
+                    escape_href(self.writer(), &dest_url).unwrap();
+                    self.write("\" alt=\"");
+                    self.raw_text();
+                    if !title.is_empty() {
+                        self.write("\" title=\"");
+                        escape_html(self.writer(), &title).unwrap();
+                    }
+                    self.write("\" />");
+                } else {
+                    self.raw_text();
                 }
-                self.write("\" />")
             }
             Tag::FootnoteDefinition(name) => {
                 if self.end_newline {
@@ -506,7 +555,12 @@ where
                 self.write("</del>");
             }
             TagEnd::Link => {
-                self.write("</a>");
+                if self.unsafe_link_open {
+                    self.write("</span>");
+                    self.unsafe_link_open = false;
+                } else {
+                    self.write("</a>");
+                }
             }
             TagEnd::Image => (), // shouldn't happen, handled in start
             TagEnd::FootnoteDefinition => {

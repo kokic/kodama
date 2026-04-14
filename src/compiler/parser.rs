@@ -16,8 +16,8 @@ use crate::{
     environment::input_path,
     ordered_map::OrderedMap,
     process::{
-        content::to_contents, embed_markdown::Embed, figure::Figure, footnote::Footnote,
-        ignore_paragraph, metadata::Metadata, text_elaborator::TextElaborator,
+        content::to_contents, embed_markdown::Embed, escape_raw_html, figure::Figure,
+        footnote::Footnote, ignore_paragraph, metadata::Metadata, text_elaborator::TextElaborator,
         typst_image::TypstImage,
     },
     slug::Slug,
@@ -131,6 +131,7 @@ pub(super) fn parse_markdown_source(source: &str, slug: Slug) -> eyre::Result<Un
     metadata.insert(KEY_EXT.to_string(), HTMLContent::Plain("md".to_string()));
 
     let events = pulldown_cmark::Parser::new_ext(source, OPTIONS);
+    let events = escape_raw_html(events);
 
     let content = Metadata::process(events, &mut metadata)
         .process_results(|events| {
@@ -149,6 +150,7 @@ pub(super) fn parse_markdown_source(source: &str, slug: Slug) -> eyre::Result<Un
 
 pub fn parse_spanned_markdown(markdown_input: &str, slug: Slug) -> HTMLContent {
     let events = pulldown_cmark::Parser::new_ext(markdown_input, OPTIONS);
+    let events = escape_raw_html(events);
     let events = ignore_paragraph(events);
     let events = TypstImage::process(events, slug);
     let events = TextElaborator::process(events);

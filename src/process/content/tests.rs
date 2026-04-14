@@ -1,7 +1,17 @@
-use pulldown_cmark::{Event, Tag, TagEnd};
+use pulldown_cmark::{Event, LinkType, Tag, TagEnd};
 
 use super::{to_contents, EventExtended};
 use crate::compiler::section::{EmbedContent, LazyContent, LocalLink, SectionOption};
+
+fn joined_plain(contents: &[LazyContent]) -> String {
+    let mut out = String::new();
+    for content in contents {
+        if let LazyContent::Plain(s) = content {
+            out.push_str(s);
+        }
+    }
+    out
+}
 
 #[test]
 fn test_embed_only_paragraph_emits_no_empty_wrapper() {
@@ -78,4 +88,43 @@ fn test_embed_splits_paragraph_without_empty_segments() {
         contents.get(2),
         Some(LazyContent::Plain(s)) if s == "<p>after</p>\n"
     ));
+}
+
+#[test]
+fn test_writer_unsafe_link_renders_non_clickable_span() {
+    let events = vec![
+        EventExtended::from(Event::Start(Tag::Link {
+            link_type: LinkType::Inline,
+            dest_url: "javascript:alert(1)".into(),
+            title: "".into(),
+            id: "".into(),
+        })),
+        EventExtended::from(Event::Text("click".into())),
+        EventExtended::from(Event::End(TagEnd::Link)),
+    ];
+
+    let contents = to_contents(events.into_iter());
+    assert_eq!(
+        joined_plain(&contents),
+        r#"<span class="link unsafe">click</span>"#
+    );
+}
+
+#[test]
+fn test_writer_unsafe_image_renders_alt_text_without_img_tag() {
+    let events = vec![
+        EventExtended::from(Event::Start(Tag::Image {
+            link_type: LinkType::Inline,
+            dest_url: "data:text/html,<svg onload=alert(1)>".into(),
+            title: "".into(),
+            id: "".into(),
+        })),
+        EventExtended::from(Event::Text("alt".into())),
+        EventExtended::from(Event::End(TagEnd::Image)),
+    ];
+
+    let contents = to_contents(events.into_iter());
+    let html = joined_plain(&contents);
+    assert_eq!(html, "alt");
+    assert!(!html.contains("<img"));
 }
