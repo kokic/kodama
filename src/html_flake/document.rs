@@ -87,12 +87,17 @@ pub fn html_dynamic_css() -> String {
     } else {
         "var(--article-max-width) var(--toc-max-width)"
     };
+    let theme_lock = if environment::theme_lock() {
+        "\n#theme-options { display: none; }"
+    } else {
+        ""
+    };
 
     let grid_wrapper = format!(
         r#"@media only screen and (min-width: 1000px) {{
   #grid-wrapper {{ grid-template-columns: {grid_columns_value}; }}
   nav#toc {{ max-width: {toc_max_width}; }}
-}}"#
+}}{theme_lock}"#
     );
 
     format!("<style>\n{grid_wrapper}\n</style>")
@@ -177,12 +182,47 @@ pub fn html_main_style() -> &'static str {
 
 #[cfg(test)]
 mod tests {
-    use super::html_live_reload;
+    use super::{html_dynamic_css, html_live_reload};
     use crate::environment;
 
     #[test]
     fn test_html_live_reload_disabled_outside_serve_mode() {
         environment::mock_environment().unwrap();
         assert!(html_live_reload().is_empty());
+    }
+
+    #[test]
+    fn test_html_dynamic_css_hides_theme_options_when_theme_lock_enabled() {
+        use std::fs;
+
+        let root = crate::test_io::case_dir("document-theme-lock-enabled");
+        fs::create_dir_all(root.as_std_path()).unwrap();
+        let config_path = root.join("Kodama.toml");
+        fs::write(
+            config_path.as_std_path(),
+            r#"
+[kodama]
+theme-lock = true
+"#,
+        )
+        .unwrap();
+
+        environment::with_test_environment(root.clone(), environment::BuildMode::Publish, || {
+            environment::init_environment(config_path.clone(), environment::BuildMode::Publish)
+                .unwrap();
+
+            let css = html_dynamic_css();
+            assert!(css.contains("#theme-options { display: none; }"));
+        });
+
+        let _ = fs::remove_dir_all(root.as_std_path());
+    }
+
+    #[test]
+    fn test_html_dynamic_css_keeps_theme_options_visible_by_default() {
+        environment::mock_environment().unwrap();
+
+        let css = html_dynamic_css();
+        assert!(!css.contains("#theme-options { display: none; }"));
     }
 }

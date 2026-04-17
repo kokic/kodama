@@ -2,6 +2,7 @@
 trees = "trees"
 assets = "assets"
 base-url = "/"
+theme-lock = false
 themes = []
 
 [toc]

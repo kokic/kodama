@@ -79,6 +79,7 @@ mod test {
         assert_eq!(config.kodama.trees, "trees");
         assert_eq!(config.kodama.assets, "assets");
         assert_eq!(config.kodama.base_url, "/");
+        assert!(!config.kodama.theme_lock);
         assert!(!config.build.short_slug);
         assert!(!config.build.pretty_urls);
         assert!(!config.build.inline_css);
@@ -99,6 +100,7 @@ mod test {
             trees = "source"
             assets = "assets"
             base-url = "https://example.com/"
+            theme-lock = true
 
             [build]
             short-slug = true
@@ -116,6 +118,7 @@ mod test {
         assert_eq!(config.kodama.trees, "source");
         assert_eq!(config.kodama.assets, "assets");
         assert_eq!(config.kodama.base_url, "https://example.com/");
+        assert!(config.kodama.theme_lock);
         assert!(config.build.short_slug);
         assert!(config.build.inline_css);
         assert!(config.build.inline_script);
