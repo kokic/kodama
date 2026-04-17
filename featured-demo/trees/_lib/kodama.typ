@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2025 Kodama Project. All rights reserved.
+// Copyright (c) 2025 Kodama Project. All rights reserved.
 // Released under the GPL-3.0 license as described in the file LICENSE.
 // Authors: Alias Qli (@AliasQli), Kokic (@kokic)
 // Last modified time: 2026/03/06
@@ -34,7 +34,8 @@
   }
 })
 
-#let html-font-size = 15.525pt
+// 1em (:= 18px)
+#let html-font-size = 13.5pt
 
 // paged
 #let paged-metadata-text-color = gray
@@ -364,52 +365,49 @@
 }
 
 #let kodama(doc) = {
-  with-target-check(
-    (export-target) => {
-      if export-target == "paged" {
-        set page(margin: 2em, paper: "iso-b6", height: auto)
-        set par(spacing: 1.5em)
-        doc
-      } else {
-        show math.equation.where(block: false): it => {
-          with-target-check(
-            (export-target) => {
-              if export-target == "html" {
-                let label = repr(it)
-                if label in equations-height-dict.final().keys() {
-                  let height = equations-height-dict.final().at(label, default: none)
-                  equations-height-dict.update(d => {
-                    d.insert(label, height); d
-                  })
-                  let y-length = measure(bounded(it)).height
-                  let shift = y-length - height
-                  box(html.elem("span", attrs: (style: "vertical-align: -" + to-em(shift.pt()) + ";"), html.frame(bounded(it))))
-                } else {
-                  box(html.frame(add-pin(it)))
-                }
-              } else {
-                it
-              }
-            },
-          )
-        }
-        show math.equation.where(block: true): it => {
-          with-target-check(
-            (export-target) => {
-              if export-target == "html" {
-                if is-inside-pin.get() {
-                  html.frame(it)
-                } else {
-                  html.elem("div", attrs: (style: "display: flex; justify-content: center; width: 100%; margin: 1em 0;"), html.frame(it))
-                }
-              } else {
-                it
-              }
-            },
-          )
-        }
-        doc
+  with-target-check((export-target) => {
+    if export-target == "paged" {
+      set page(margin: 2em, paper: "iso-b6", height: auto)
+      set par(spacing: 1.5em)
+      doc
+    } else {
+      show math.equation.where(block: false): it => {
+        with-target-check((export-target) => {
+          if export-target == "html" {
+            let label = repr(it)
+            if label in equations-height-dict.final().keys() {
+              let height = equations-height-dict.final().at(label, default: none)
+              equations-height-dict.update(d => {
+                d.insert(label, height); d
+              })
+              let y-length = measure(bounded(it)).height
+              let shift = y-length - height
+              box(html.elem("span", attrs: (
+                class: "typst-inline", //
+                style: "vertical-align: -" + to-em(shift.pt()) + ";",
+              ), html.frame(bounded(it))))
+            } else {
+              box(html.frame(add-pin(it)))
+            }
+          } else {
+            it
+          }
+        })
       }
-    },
-  )
+      show math.equation.where(block: true): it => {
+        with-target-check((export-target) => {
+          if export-target == "html" {
+            if is-inside-pin.get() {
+              html.frame(it)
+            } else {
+              html.elem("div", attrs: (class: "typst-block"), html.frame(it))
+            }
+          } else {
+            it
+          }
+        })
+      }
+      doc
+    }
+  })
 }

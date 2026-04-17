@@ -131,6 +131,11 @@ pub fn inline_script() -> bool {
     with_config(|cfg| cfg.build.inline_script)
 }
 
+pub fn allow_unsafe_html() -> bool {
+    let lock = super::environment_lock(false);
+    super::read_environment(lock, |env| env.config.build.allow_unsafe_html)
+}
+
 pub fn asref() -> bool {
     with_config(|cfg| cfg.build.asref)
 }

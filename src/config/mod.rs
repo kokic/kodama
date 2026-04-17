@@ -83,6 +83,7 @@ mod test {
         assert!(!config.build.pretty_urls);
         assert!(!config.build.inline_css);
         assert!(!config.build.inline_script);
+        assert!(!config.build.allow_unsafe_html);
         assert_eq!(config.build.footer_sort_by, "slug");
         assert_eq!(config.serve.edit, serve.edit);
         assert_eq!(config.serve.output, serve.output);
@@ -103,6 +104,7 @@ mod test {
             short-slug = true
             inline-css = true
             inline-script = true
+            allow-unsafe-html = true
             footer-sort-by = "title"
 
             [publish]
@@ -117,6 +119,7 @@ mod test {
         assert!(config.build.short_slug);
         assert!(config.build.inline_css);
         assert!(config.build.inline_script);
+        assert!(config.build.allow_unsafe_html);
         assert_eq!(config.build.footer_sort_by, "title");
         assert_eq!(config.serve.edit, serve.edit);
         assert_eq!(config.serve.output, serve.output);

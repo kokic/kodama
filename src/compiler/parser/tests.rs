@@ -67,10 +67,45 @@ pub fn test_parse_spanned_markdown_wraps_cjk_text() {
 }
 
 #[test]
-pub fn test_parse_spanned_markdown_escapes_raw_html() {
-    let content = parse_spanned_markdown("safe <script>alert(1)</script>", Slug::new("-"));
-    assert_eq!(
-        content.as_str().unwrap(),
-        "safe &lt;script&gt;alert(1)&lt;/script&gt;"
+pub fn test_parse_spanned_markdown_drops_raw_html_tags_when_disabled() {
+    let content = parse_spanned_markdown(r#"safe <span class="x">ok</span>"#, Slug::new("-"));
+    assert_eq!(content.as_str().unwrap(), "safe ok");
+}
+
+#[test]
+pub fn test_parse_spanned_markdown_preserves_raw_html_when_allowed_by_config() {
+    use std::fs;
+
+    let root = crate::test_io::case_dir("parser-allow-unsafe-html");
+    fs::create_dir_all(root.as_std_path()).unwrap();
+    let config_path = root.join("Kodama.toml");
+    fs::write(
+        config_path.as_std_path(),
+        r#"
+[build]
+allow-unsafe-html = true
+"#,
+    )
+    .unwrap();
+
+    crate::environment::with_test_environment(
+        root.clone(),
+        crate::environment::BuildMode::Publish,
+        || {
+            crate::environment::init_environment(
+                config_path.clone(),
+                crate::environment::BuildMode::Publish,
+            )
+            .unwrap();
+
+            let content =
+                parse_spanned_markdown(r#"safe <span class="x">ok</span>"#, Slug::new("-"));
+            assert_eq!(
+                content.as_str().unwrap(),
+                r#"safe <span class="x">ok</span>"#
+            );
+        },
     );
+
+    let _ = fs::remove_dir_all(root.as_std_path());
 }

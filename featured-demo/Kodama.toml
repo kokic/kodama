@@ -21,7 +21,10 @@ typst-root = "trees"
 short-slug = false
 pretty-urls = false
 footer-mode = "embed"
+footer-sort-by = "slug"
 inline-css = false
+inline-script = false
+allow-unsafe-html = false
 asref = true
 output = "./publish"
 
@@ -29,3 +32,6 @@ output = "./publish"
 edit = "vscode://file/"
 output = "./.cache/publish"
 command = ["miniserve", "<output>", "--index", "index.html", "--pretty-urls", "--port", "8087"]
+
+[publish]
+rss = false

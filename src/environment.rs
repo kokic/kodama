@@ -20,12 +20,12 @@ mod paths;
 
 pub use cache::ensure_cache_version;
 pub use config_access::{
-    asref, assets_dir, assets_dir_without_root, base_url, base_url_raw, deploy_edit_url,
-    editor_url, feed_path, footer_mode, footer_sort_by, get_cache_dir, get_edit_text,
-    get_footer_backlinks_text, get_footer_references_text, get_toc_text, graph_path, indexes_path,
-    inline_css, inline_script, is_short_slug, is_toc_left, is_toc_mobile_sticky, is_toc_sticky,
-    output_dir, publish_rss, reload_marker_path, serve_command, theme_paths, toc_max_width,
-    trees_dir, trees_dir_without_root, typst_root_dir,
+    allow_unsafe_html, asref, assets_dir, assets_dir_without_root, base_url, base_url_raw,
+    deploy_edit_url, editor_url, feed_path, footer_mode, footer_sort_by, get_cache_dir,
+    get_edit_text, get_footer_backlinks_text, get_footer_references_text, get_toc_text, graph_path,
+    indexes_path, inline_css, inline_script, is_short_slug, is_toc_left, is_toc_mobile_sticky,
+    is_toc_sticky, output_dir, publish_rss, reload_marker_path, serve_command, theme_paths,
+    toc_max_width, trees_dir, trees_dir_without_root, typst_root_dir,
 };
 pub use hashing::{verify_and_file_hash, verify_update_hash};
 pub use imports::{import_fonts_html, import_math_html, import_meta_html, import_style_html};
