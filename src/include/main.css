@@ -180,6 +180,12 @@ code {
 table {
   border-collapse: collapse;
   margin-bottom: 1rem;
+  display: block; 
+  white-space: nowrap;
+  overflow-x: auto;
+  overflow-y: hidden;
+  border-collapse: separate;
+  border-spacing: 0 5px;
 }
 
 /* !forest */
