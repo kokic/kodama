@@ -452,6 +452,21 @@ fn find_tag_end(source: &str, mut idx: usize) -> Option<usize> {
     None
 }
 
+fn unescape_backslash(s: &str) -> String {
+    let mut out = String::with_capacity(s.len());
+    let mut chars = s.chars();
+    while let Some(ch) = chars.next() {
+        if ch == '\\' {
+            if let Some(next) = chars.next() {
+                out.push(next);
+                continue;
+            }
+        }
+        out.push(ch);
+    }
+    out
+}
+
 fn parse_attrs(attrs: &str) -> eyre::Result<HashMap<String, String>> {
     let bytes = attrs.as_bytes();
     let mut i = 0usize;
@@ -508,7 +523,7 @@ fn parse_attrs(attrs: &str) -> eyre::Result<HashMap<String, String>> {
                 if i >= bytes.len() {
                     return Err(eyre!("malformed subtree tag attribute: unclosed quote"));
                 }
-                value = attrs[start..i].to_string();
+                value = unescape_backslash(&attrs[start..i]);
                 i += 1;
             } else {
                 let start = i;

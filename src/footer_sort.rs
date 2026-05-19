@@ -105,10 +105,19 @@ fn parse_u32_prefix(token: &str) -> Option<u32> {
 }
 
 fn validate_ymd(year: u32, month: u8, day: u8) -> Option<(u32, u8, u8)> {
-    if month == 0 || month > 12 || day == 0 || day > 31 {
-        return None;
-    }
-    Some((year, month, day))
+    let max_day = match month {
+        1 | 3 | 5 | 7 | 8 | 10 | 12 => 31,
+        4 | 6 | 9 | 11 => 30,
+        2 => {
+            if year % 400 == 0 || (year % 4 == 0 && year % 100 != 0) {
+                29
+            } else {
+                28
+            }
+        }
+        _ => return None,
+    };
+    (day != 0 && day <= max_day).then_some((year, month, day))
 }
 
 #[cfg(test)]

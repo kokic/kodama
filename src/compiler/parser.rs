@@ -153,6 +153,7 @@ pub fn parse_spanned_markdown(markdown_input: &str, slug: Slug) -> HTMLContent {
     let events = pulldown_cmark::Parser::new_ext(markdown_input, OPTIONS);
     let events = filter_raw_html(events, environment::allow_unsafe_html());
     let events = ignore_paragraph(events);
+    let events = Footnote::process(events, slug);
     let events = TypstImage::process(events, slug);
     let events = TextElaborator::process(events);
     let events = Embed::process(events, slug);
