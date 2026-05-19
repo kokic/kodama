@@ -41,11 +41,6 @@ pub fn all_trees_source(trees_dir: &Utf8Path) -> eyre::Result<Workspace> {
     all_trees_source_inner(trees_dir)
 }
 
-/// Collect all source file paths in `<trees>` dir without generating side effects.
-pub fn all_trees_source_readonly(trees_dir: &Utf8Path) -> eyre::Result<Workspace> {
-    all_trees_source_inner(trees_dir)
-}
-
 fn all_trees_source_inner(trees_dir: &Utf8Path) -> eyre::Result<Workspace> {
     let mut slug_exts = HashMap::new();
 
@@ -231,10 +226,10 @@ mod tests {
     }
 
     #[test]
-    fn test_all_trees_source_readonly_returns_empty_workspace_when_trees_missing() {
+    fn test_all_trees_source_returns_empty_workspace_when_trees_missing() {
         let missing = crate::test_io::case_dir("missing-trees");
 
-        let workspace = all_trees_source_readonly(missing.as_path()).expect("scan should succeed");
+        let workspace = all_trees_source(missing.as_path()).expect("scan should succeed");
         assert!(workspace.slug_exts.is_empty());
     }
 

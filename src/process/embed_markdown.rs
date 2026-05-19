@@ -5,7 +5,8 @@
 use super::{
     content::EventExtended,
     path_resolution::{relocate_trees_path_with_trees_root, resolve_section_url},
-    processer::url_action,
+    processor::url_action,
+    url::{is_allowed_scheme, is_unsafe_scheme, scheme_name},
 };
 use std::{
     fs, mem,
@@ -333,33 +334,6 @@ fn is_external_link(url: &str) -> bool {
         return true;
     }
     scheme_name(trimmed).is_some_and(|scheme| is_allowed_scheme(&scheme))
-}
-
-fn scheme_name(url: &str) -> Option<String> {
-    let scheme_end = url.find(':')?;
-    if scheme_end == 0 {
-        return None;
-    }
-    let first_delimiter = url.find(['/', '?', '#']).unwrap_or(url.len());
-    if scheme_end > first_delimiter {
-        return None;
-    }
-    let scheme = &url[..scheme_end];
-    if scheme
-        .chars()
-        .all(|ch| ch.is_ascii_alphanumeric() || matches!(ch, '+' | '-' | '.'))
-    {
-        return Some(scheme.to_ascii_lowercase());
-    }
-    None
-}
-
-fn is_allowed_scheme(scheme: &str) -> bool {
-    matches!(scheme, "http" | "https" | "ftp" | "mailto")
-}
-
-fn is_unsafe_scheme(scheme: &str) -> bool {
-    matches!(scheme, "javascript" | "vbscript" | "data" | "file")
 }
 
 /// Returns `true` if the URL represents a static asset file in the configured assets directory.

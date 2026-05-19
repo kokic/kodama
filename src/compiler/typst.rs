@@ -7,7 +7,7 @@ use super::subtree_slug::{ensure_unique_section_slugs, resolve_subtree_slug};
 use camino::Utf8Path;
 use eyre::{eyre, WrapErr};
 
-use super::html_parser::{HTMLParser, HTMLTagKind};
+use super::custom_tag::{HTMLParser, HTMLTagKind};
 use super::section::{EmbedContent, LocalLink, SectionOption};
 use super::section::{HTMLContent, HTMLContentBuilder, LazyContent};
 use super::UnresolvedSection;

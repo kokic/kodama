@@ -6,7 +6,7 @@ mod anonymous_slug;
 mod artifacts;
 pub mod callback;
 pub mod counter;
-pub mod html_parser;
+pub mod custom_tag;
 mod incremental;
 pub mod parser;
 mod rss;
@@ -52,7 +52,7 @@ use self::{
 pub use incremental::expand_dirty_paths;
 pub use serve_session::ServeCompileSession;
 pub use source_scan::{
-    all_trees_source, all_trees_source_readonly, sync_typst_svg_assets, Workspace,
+    all_trees_source, sync_typst_svg_assets, Workspace,
 };
 
 pub type DirtySet = HashSet<Utf8PathBuf>;

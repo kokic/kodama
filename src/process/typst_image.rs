@@ -21,7 +21,7 @@ use crate::{
 
 use super::{
     path_resolution::{relocate_trees_path, resolve_section_url},
-    processer::url_action,
+    processor::url_action,
 };
 
 static TYPEST_IMAGE_ERROR_FLAG: AtomicBool = AtomicBool::new(false);

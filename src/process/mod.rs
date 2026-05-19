@@ -10,9 +10,10 @@ pub mod figure;
 pub mod footnote;
 pub mod metadata;
 pub mod path_resolution;
-pub mod processer;
+pub mod processor;
 pub mod text_elaborator;
 pub mod typst_image;
+mod url;
 
 pub fn filter_raw_html<'e, I>(events: I, allow_unsafe_html: bool) -> impl Iterator<Item = Event<'e>>
 where

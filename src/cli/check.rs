@@ -69,7 +69,7 @@ pub fn check(command: &CheckCommand) -> eyre::Result<()> {
     environment::init_environment(command.config.clone().into(), BuildMode::Check)?;
 
     let trees_dir = environment::trees_dir();
-    let workspace = compiler::all_trees_source_readonly(trees_dir.as_path())
+    let workspace = compiler::all_trees_source(trees_dir.as_path())
         .wrap_err_with(|| eyre!("failed to scan trees dir `{}`", trees_dir))?;
 
     let mut diagnostics = Vec::new();
