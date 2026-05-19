@@ -20,8 +20,9 @@ A [Typst](https://github.com/typst/typst)-friendly static Zettelkästen site gen
 # Docs
 
 - [Demo](https://kokic.github.io/riemann-surfaces/)
-- [Getting Started](https://kodama-community.github.io/docs/tutorials/getting-started.html)
-- [References](https://kodama-community.github.io/docs/references/)
+- [Getting Started](/docs/users/getting-started.md)
+- [User Documentation](/docs/users/README.md)
+- [Developer Documentation](/docs/developers/README.md)
 
 # Community
 
