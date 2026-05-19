@@ -225,7 +225,12 @@ impl<'e, E: Iterator<Item = Event<'e>>> Iterator for Embed<'e, E> {
                 }
                 // TODO: move away from mangling math manually
                 Event::DisplayMath(ref math) => {
-                    return Some(Event::Text(format!("$${math}$$").into()).into())
+                    let replaced = Event::Text(format!("$${math}$$").into());
+                    if is_inline_allowed(&self.state) {
+                        self.content.push(replaced);
+                    } else {
+                        return Some(replaced.into());
+                    }
                 }
                 Event::Code(_) if is_inline_allowed(&self.state) => {
                     self.content.push(e);
